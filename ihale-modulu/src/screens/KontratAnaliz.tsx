@@ -1,0 +1,159 @@
+import { useState } from 'react'
+import { clauses } from '../data/mock'
+import type { ClauseAnalysis } from '../data/types'
+import {
+  Badge, Bar, Btn, Card, Chips, Evidence, Kpi, PageHead, ReadOnlyNote, SeverityBadge, Table, Td, Th,
+} from '../components/ui'
+import { pct } from '../lib/format'
+
+type Filter = 'Tümü' | 'Aleyhine' | 'Süre sınırı' | 'Çelişki'
+
+function positionTone(p: ClauseAnalysis['position']) {
+  return p === 'Yüklenici aleyhine' ? 'crit' : p === 'Dengeli' ? 'neutral' : 'ok'
+}
+
+/** Sözleşme maddelerinin tek tek analizi: risk paylaşımı, çelişkiler ve bildirim süreleri. */
+export function KontratAnaliz({ writable, role }: { writable: boolean; role: string }) {
+  const [filter, setFilter] = useState<Filter>('Tümü')
+  const [sel, setSel] = useState<ClauseAnalysis>(clauses[0])
+
+  const list = clauses.filter((c) => {
+    if (filter === 'Aleyhine') return c.position === 'Yüklenici aleyhine'
+    if (filter === 'Süre sınırı') return !!c.timeBarDays
+    if (filter === 'Çelişki') return !!c.conflictWith
+    return true
+  })
+
+  const against = clauses.filter((c) => c.position === 'Yüklenici aleyhine').length
+  const conflicts = clauses.filter((c) => c.conflictWith)
+  const timeBars = clauses.filter((c) => c.timeBarDays)
+
+  return (
+    <>
+      <PageHead
+        title="Kontrat Analiz"
+        note="Sözleşme maddeleri madde madde değerlendirilir: risk kimde, hangi süre sınırları var, hangi maddeler çelişiyor."
+        right={<>
+          <Btn disabled={!writable}>Revizyon talebi oluştur</Btn>
+          <Btn>Karşılaştır (FIDIC standardı)</Btn>
+          <Btn>Excel</Btn>
+        </>}
+      />
+
+      {!writable && <ReadOnlyNote role={role} />}
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <Kpi label="İncelenen madde" value={clauses.length} sub="Özel Şartlar + İdari Şartname" />
+        <Kpi label="Yüklenici aleyhine" value={against} sub={pct((against / clauses.length) * 100)} tone="crit" />
+        <Kpi label="Çelişki" value={conflicts.length} sub="Dokümanlar arası" tone="warn" />
+        <Kpi label="Süre sınırı" value={timeBars.length} sub="Bildirim yükümlülüğü" tone="warn" />
+        <Kpi label="En kısa süre" value="48 saat" sub="Sözlü talimat teyidi" tone="crit" />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        <div className="lg:col-span-7">
+          <div className="mb-3">
+            <Chips<Filter> value={filter} onChange={setFilter} items={[
+              { key: 'Tümü', label: 'Tümü', count: clauses.length },
+              { key: 'Aleyhine', label: 'Aleyhimize', count: against },
+              { key: 'Süre sınırı', label: 'Süre sınırlı', count: timeBars.length },
+              { key: 'Çelişki', label: 'Çelişkili', count: conflicts.length },
+            ]} />
+          </div>
+
+          <Card title={`Maddeler (${list.length})`} subtitle="Satıra tıklayarak sağda kanıtı görün" pad={false}>
+            <Table head={
+              <tr>
+                <Th w={80}>Madde</Th>
+                <Th w={220}>Başlık</Th>
+                <Th w={110}>Kategori</Th>
+                <Th w={140}>Konum</Th>
+                <Th w={90}>Önem</Th>
+                <Th w={90}>Süre</Th>
+              </tr>
+            }>
+              {list.map((c) => (
+                <tr key={c.id} onClick={() => setSel(c)} className="cursor-pointer hover:bg-[var(--surface-2)]"
+                  style={sel.id === c.id ? { background: 'var(--accent-soft)' } : undefined}>
+                  <Td mono nowrap><span className="text-[var(--accent)]">{c.clause}</span></Td>
+                  <Td>
+                    <div className="text-[12.5px] font-medium text-[var(--ink)]">{c.title}</div>
+                    {c.conflictWith && <div className="mt-0.5 text-[11px] text-[var(--warn)]">⚠ Çelişki: {c.conflictWith}</div>}
+                  </Td>
+                  <Td nowrap><span className="text-[var(--muted)]">{c.category}</span></Td>
+                  <Td nowrap><Badge tone={positionTone(c.position)} dot>{c.position.replace('Yüklenici ', '')}</Badge></Td>
+                  <Td nowrap><SeverityBadge value={c.severity} /></Td>
+                  <Td nowrap>{c.timeBarDays ? <Badge tone="warn">{c.timeBarDays < 3 ? '48 saat' : `${c.timeBarDays} gün`}</Badge> : <span className="text-[var(--faint)]">—</span>}</Td>
+                </tr>
+              ))}
+            </Table>
+          </Card>
+        </div>
+
+        <div className="flex flex-col gap-4 lg:col-span-5">
+          <Card
+            title={`${sel.clause} — ${sel.title}`}
+            subtitle={`${sel.category} · sayfa ${sel.page}`}
+            right={<SeverityBadge value={sel.severity} />}
+          >
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-wrap gap-2">
+                <Badge tone={positionTone(sel.position)} dot>{sel.position}</Badge>
+                {sel.timeBarDays && <Badge tone="warn">Süre sınırı: {sel.timeBarDays < 3 ? '48 saat' : `${sel.timeBarDays} gün`}</Badge>}
+                {sel.conflictWith && <Badge tone="crit">Çelişki</Badge>}
+              </div>
+              <p className="text-[13px] leading-relaxed text-[var(--ink)]">{sel.summary}</p>
+              <Evidence doc="Sozlesme Tasarisi (Ozel Sartlar).pdf" page={sel.page} clause={sel.clause} quote={sel.quote} verification="exact" />
+              {sel.conflictWith && (
+                <div className="rounded-md border p-3 text-[12.5px]" style={{ background: 'var(--crit-bg)', borderColor: 'var(--crit)', color: 'var(--crit)' }}>
+                  <b>Çelişen hüküm:</b> {sel.conflictWith}. İki doküman farklı şey söylüyor; teklif öncesi yazılı açıklama istenmeli.
+                </div>
+              )}
+              <div className="flex flex-wrap gap-2">
+                <Btn small disabled={!writable}>Soru listesine ekle</Btn>
+                <Btn small disabled={!writable}>Revizyon öner</Btn>
+                <Btn small primary disabled={!writable}>Yükümlülük olarak izle</Btn>
+              </div>
+            </div>
+          </Card>
+
+          <Card title="Risk paylaşımı dengesi" subtitle="Maddelerin taraflara dağılımı">
+            <div className="flex flex-col gap-3">
+              {(['Yüklenici aleyhine', 'Dengeli', 'Yüklenici lehine'] as const).map((p) => {
+                const n = clauses.filter((c) => c.position === p).length
+                return (
+                  <div key={p}>
+                    <div className="mb-1 flex items-center justify-between text-[12px]">
+                      <span className="text-[var(--ink)]">{p}</span>
+                      <span className="text-[var(--muted)] tnum">{n} madde · {pct((n / clauses.length) * 100)}</span>
+                    </div>
+                    <Bar value={(n / clauses.length) * 100} tone={positionTone(p)} />
+                  </div>
+                )
+              })}
+              <p className="text-[12px] leading-relaxed text-[var(--muted)]">
+                Sözleşme, standart FIDIC dengesine göre belirgin biçimde işveren lehine kaydırılmış.
+                Özellikle ödeme, fiyat farkı ve fesih maddeleri revizyon talebi için öncelikli.
+              </p>
+            </div>
+          </Card>
+
+          <Card title="Süre sınırları (time-bar)" subtitle="Kaçırılırsa hak kaybı doğuran süreler">
+            <div className="flex flex-col gap-2">
+              {timeBars.map((c) => (
+                <div key={c.id} className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
+                  <span className="mono text-[11.5px] text-[var(--accent)]">{c.clause}</span>
+                  <span className="text-[12px] text-[var(--ink)]">{c.title}</span>
+                  <span className="ml-auto"><Badge tone="warn">{c.timeBarDays! < 3 ? '48 saat' : `${c.timeBarDays} gün`}</Badge></span>
+                </div>
+              ))}
+              <p className="mt-1 text-[11.5px] leading-relaxed text-[var(--faint)]">
+                Bu süreler proje döneminde otomatik geri sayıma bağlanır: olay kaydedildiğinde sistem son tarihi hesaplar ve uyarır.
+              </p>
+            </div>
+          </Card>
+        </div>
+      </div>
+    </>
+  )
+}
