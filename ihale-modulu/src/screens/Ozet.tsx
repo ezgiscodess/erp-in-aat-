@@ -11,7 +11,8 @@ import { date, daysLabel, money, moneyShort, num, pct } from '../lib/format'
  */
 export function Ozet({ onGo }: { onGo: (t: TabKey) => void }) {
   const score = goNoGoCriteria.reduce((a, c) => a + c.weight * c.score, 0) / goNoGoCriteria.reduce((a, c) => a + c.weight, 0)
-  const boqTotal = boqItems.reduce((a, b) => a + b.qty * b.unitPrice, 0)
+  /** Yalnızca havuzda fiyatı eşleşen kalemler toplanır; fiyatı olmayanlar teklif bedeline girmez. */
+  const boqTotal = boqItems.reduce((a, b) => a + b.qty * (b.unitPrice ?? 0), 0)
   const riskProvision = 8_900_000
   const overhead = 6_400_000      // şantiye genel giderleri + merkez payı
   const profit = 5_500_000        // hedeflenen kâr
@@ -84,12 +85,14 @@ export function Ozet({ onGo }: { onGo: (t: TabKey) => void }) {
         <div className="lg:col-span-8">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Kpi label="Ön teklif bedeli" value={moneyShort(bidPrice, project.currency)} sub={`Direkt ${moneyShort(boqTotal, project.currency)} + genel gider + risk + kâr`} tone="accent" />
-            <Kpi label="Risk karşılığı" value={moneyShort(riskProvision, project.currency)} sub={`Teklifin ${pct((riskProvision / bidPrice) * 100)}’i`} tone="crit" />
+            <Kpi label="Risk karşılığı" value={moneyShort(riskProvision, project.currency)} sub={`Teklifin ${pct((riskProvision / bidPrice) * 100)}’i`} tone="crit"
+              help="Teklif fiyatına eklenen risk karşılığı. Risklerin olasılıkla ağırlıklı beklenen değerinden hesaplanır; en kötü senaryonun tamamı değildir." />
             <Kpi label="Beklenen marj" value={pct(margin, 1)} sub="Hedef %10" tone="warn" />
             <Kpi label="İdare yaklaşık bedeli" value={moneyShort(project.estimatedValue, project.currency)} sub={`Fark ${pct(((bidPrice - project.estimatedValue) / project.estimatedValue) * 100, 1)}`} />
             <Kpi label="Kritik bulgu" value={critFindings.length} sub={`${findings.length} bulgu içinde`} tone="crit" />
             <Kpi label="Açık kritik şart" value={openTerms.length} sub="Kapatılmalı" tone="crit" />
-            <Kpi label="Eksik belge" value={missingCerts.length} sub="Teklif dosyası" tone="warn" />
+            <Kpi label="Belge durumu" value={`${certificates.filter((c) => c.owned).length}/${certificates.filter((c) => c.required).length}`} sub={`${missingCerts.length} eksik belge`} tone="warn"
+              help="Teklif dosyasında istenen belgelerden kaçının firmada hazır olduğu. Eksikler Sertifikalar sekmesinde listelenir." />
             <Kpi label="Hazırlık" value={pct(project.progress)} sub="Teklif dosyası tamamlanma" tone="warn" />
           </div>
         </div>
@@ -153,15 +156,15 @@ export function Ozet({ onGo }: { onGo: (t: TabKey) => void }) {
           </div>
         </SummaryCard>
 
-        <SummaryCard title="BoQ / Take Off's" addon onGo={() => onGo('boq')}
+        <SummaryCard title="Metraj (BoQ / Take-off)" addon onGo={() => onGo('boq')}
           lines={[
             [`${boqItems.length} poz`, moneyShort(boqTotal, project.currency)],
-            ['Ölçüm güveni', pct(boqItems.reduce((a, b) => a + b.confidence, 0) / boqItems.length)],
+            ['Havuzda fiyatı yok', `${boqItems.filter((b) => b.poolMatch === 'Eşleşmedi').length} poz`],
             ['Elle kontrol', `${boqItems.filter((b) => b.confidence < 80).length} poz`],
           ]}>
           <div className="flex flex-col gap-1.5 text-[12px]">
             {['Deniz İşleri', 'Saha İşleri', 'Altyapı'].map((g) => {
-              const v = boqItems.filter((b) => b.group === g).reduce((a, b) => a + b.qty * b.unitPrice, 0)
+              const v = boqItems.filter((b) => b.group === g).reduce((a, b) => a + b.qty * (b.unitPrice ?? 0), 0)
               return (
                 <div key={g} className="flex items-center gap-2">
                   <span className="text-[var(--ink)]">{g}</span>
@@ -229,13 +232,12 @@ export function Ozet({ onGo }: { onGo: (t: TabKey) => void }) {
       {/* Aksiyonlar ve takvim */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
         <div className="lg:col-span-7">
-          <Card title="Yapılacaklar" subtitle="Sistemin bulgulardan çıkardığı öneriler; sorumlu ve tarihe bağlanır" pad={false}>
-            <Table head={<tr><Th w={80}>Öncelik</Th><Th w={360}>Aksiyon</Th><Th w={100}>Sorumlu</Th><Th w={110}>Termin</Th><Th w={90}>Git</Th></tr>}>
+          <Card title="Yapılacaklar" help="Sistemin bulgulardan çıkardığı öneriler. Her satır bir termine bağlanır ve 'Aç' ile ilgili sekmeye gider." pad={false}>
+            <Table head={<tr><Th w={80}>Öncelik</Th><Th w={420}>Aksiyon</Th><Th w={110}>Termin</Th><Th w={90}>Git</Th></tr>}>
               {actions.map((a) => (
                 <tr key={a.t} className="hover:bg-[var(--surface-2)]">
                   <Td nowrap><Badge tone={a.p === 'Kritik' ? 'crit' : a.p === 'Yüksek' ? 'warn' : 'neutral'} dot>{a.p}</Badge></Td>
                   <Td><span className="text-[12.5px] text-[var(--ink)]">{a.t}</span></Td>
-                  <Td nowrap><span className="text-[12px] text-[var(--muted)]">{a.o}</span></Td>
                   <Td nowrap><span className="tnum text-[12.5px]">{date(a.d)}</span></Td>
                   <Td nowrap><Btn small onClick={() => onGo(a.tab)}>Aç →</Btn></Td>
                 </tr>
@@ -245,7 +247,7 @@ export function Ozet({ onGo }: { onGo: (t: TabKey) => void }) {
         </div>
 
         <div className="flex flex-col gap-4 lg:col-span-5">
-          <Card title="Takvim" subtitle="Teklif sürecinin kalan adımları" pad={false}>
+          <Card title="Log" help="Teklif sürecindeki adımların kaydı: hangi adım ne zaman, kim tarafından, hangi durumda. Tarih değişiklikleri ve tamamlanan adımlar buraya düşer." pad={false}>
             <Table head={<tr><Th>Adım</Th><Th w={120}>Tarih</Th><Th w={100}>Durum</Th></tr>}>
               {timeline.map((t) => (
                 <tr key={t.id} className="hover:bg-[var(--surface-2)]">

@@ -25,6 +25,7 @@ export type TabKey =
   | 'go_nogo'
   | 'kritik_sartlar'
   | 'boq'
+  | 'birim_fiyat'
   | 'teklif_riskleri'
   | 'kontrat_analiz'
   | 'kontrat_hazirlama'
@@ -136,12 +137,40 @@ export interface BoqItem {
   description: string
   unit: string
   qty: number
-  unitPrice: number
+  /**
+   * İhale dokümanında birim fiyat bulunmaz; bu alan Birim Fiyat Havuzu'ndan eşleşirse dolar.
+   * Eşleşme yoksa teklif ekibi fiyatı havuza girene kadar boş kalır.
+   */
+  unitPrice?: number
+  poolMatch: 'Eşleşti' | 'Benzer poz' | 'Eşleşmedi'
   /** Metrajın kaynağı: çizim veya idare cetveli */
   source: string
   /** AI metraj güveni (%) — düşükse elle kontrol gerekir */
   confidence: number
   note?: string
+}
+
+/** Firmanın kendi birim fiyat havuzu — projeye değil firmaya ait, arka planda çalışır. */
+export interface UnitPrice {
+  id: string
+  no: string
+  description: string
+  unit: string
+  price: number
+  currency: string
+  source: 'Kendi analizimiz' | 'BCBS' | 'Piyasa teklifi' | 'Geçmiş proje'
+  updatedAt: string
+  updatedBy: string
+  /** Kaç projede kullanıldı */
+  usedIn: number
+}
+
+/** İhale Bilgi Paneli altındaki kapsam bilgisi bölümleri */
+export interface ScopeSection {
+  id: string
+  title: string
+  body: string
+  source: string
 }
 
 /* ---------------- 6. Teklif riskleri ---------------- */

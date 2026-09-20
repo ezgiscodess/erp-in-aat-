@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { clauses } from '../data/mock'
 import type { ClauseAnalysis } from '../data/types'
 import {
-  Badge, Bar, Btn, Card, Chips, Evidence, Kpi, PageHead, ReadOnlyNote, SeverityBadge, Table, Td, Th,
+  Badge, Bar, Btn, Card, Chips, Kpi, PageHead, PreviewPane, ReadOnlyNote, SeverityBadge, Table, Td, Th,
 } from '../components/ui'
 import { pct } from '../lib/format'
 
@@ -61,7 +61,7 @@ export function KontratAnaliz({ writable, role }: { writable: boolean; role: str
             ]} />
           </div>
 
-          <Card title={`Maddeler (${list.length})`} subtitle="Satıra tıklayarak sağda kanıtı görün" pad={false}>
+          <Card title={`Maddeler (${list.length})`} help="Satıra tıklayınca maddenin sözleşmedeki asıl metni sağdaki önizlemede vurgulanarak açılır." pad={false}>
             <Table head={
               <tr>
                 <Th w={80}>Madde</Th>
@@ -91,33 +91,34 @@ export function KontratAnaliz({ writable, role }: { writable: boolean; role: str
         </div>
 
         <div className="flex flex-col gap-4 lg:col-span-5">
-          <Card
+          <PreviewPane
             title={`${sel.clause} — ${sel.title}`}
-            subtitle={`${sel.category} · sayfa ${sel.page}`}
-            right={<SeverityBadge value={sel.severity} />}
-          >
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-wrap gap-2">
-                <Badge tone={positionTone(sel.position)} dot>{sel.position}</Badge>
-                {sel.timeBarDays && <Badge tone="warn">Süre sınırı: {sel.timeBarDays < 3 ? '48 saat' : `${sel.timeBarDays} gün`}</Badge>}
-                {sel.conflictWith && <Badge tone="crit">Çelişki</Badge>}
-              </div>
-              <p className="text-[13px] leading-relaxed text-[var(--ink)]">{sel.summary}</p>
-              <Evidence doc="Sozlesme Tasarisi (Ozel Sartlar).pdf" page={sel.page} clause={sel.clause} quote={sel.quote} verification="exact" />
-              {sel.conflictWith && (
-                <div className="rounded-md border p-3 text-[12.5px]" style={{ background: 'var(--crit-bg)', borderColor: 'var(--crit)', color: 'var(--crit)' }}>
-                  <b>Çelişen hüküm:</b> {sel.conflictWith}. İki doküman farklı şey söylüyor; teklif öncesi yazılı açıklama istenmeli.
+            preview={{
+              doc: 'Sozlesme Tasarisi (Ozel Sartlar).pdf',
+              page: sel.page,
+              pages: 126,
+              clause: sel.clause,
+              highlight: sel.quote,
+              body: `${sel.quote}\n\n${sel.summary}`,
+            }}
+            footer={
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <Badge tone={positionTone(sel.position)} dot>{sel.position}</Badge>
+                  <SeverityBadge value={sel.severity} />
+                  {sel.timeBarDays && <Badge tone="warn">Süre sınırı: {sel.timeBarDays < 3 ? '48 saat' : `${sel.timeBarDays} gün`}</Badge>}
+                  {sel.conflictWith && <Badge tone="crit">Çelişki: {sel.conflictWith}</Badge>}
                 </div>
-              )}
-              <div className="flex flex-wrap gap-2">
-                <Btn small disabled={!writable}>Soru listesine ekle</Btn>
-                <Btn small disabled={!writable}>Revizyon öner</Btn>
-                <Btn small primary disabled={!writable}>Yükümlülük olarak izle</Btn>
+                <div className="flex flex-wrap gap-2">
+                  <Btn small disabled={!writable}>Soru listesine ekle</Btn>
+                  <Btn small disabled={!writable}>Revizyon öner</Btn>
+                  <Btn small primary disabled={!writable}>Yükümlülük olarak izle</Btn>
+                </div>
               </div>
-            </div>
-          </Card>
+            }
+          />
 
-          <Card title="Risk paylaşımı dengesi" subtitle="Maddelerin taraflara dağılımı">
+          <Card title="Risk paylaşımı dengesi" help="Maddelerin hangi tarafın lehine olduğunun dağılımı. Standart FIDIC dengesine göre sapma, revizyon talebi için gerekçedir.">
             <div className="flex flex-col gap-3">
               {(['Yüklenici aleyhine', 'Dengeli', 'Yüklenici lehine'] as const).map((p) => {
                 const n = clauses.filter((c) => c.position === p).length
@@ -138,7 +139,7 @@ export function KontratAnaliz({ writable, role }: { writable: boolean; role: str
             </div>
           </Card>
 
-          <Card title="Süre sınırları (time-bar)" subtitle="Kaçırılırsa hak kaybı doğuran süreler">
+          <Card title="Süre sınırları (time-bar)" help="Sözleşmede bildirim için öngörülen süreler. Kaçırılırsa ek süre ve ek bedel talebi hakkı tamamen düşer; proje döneminde otomatik geri sayıma bağlanır.">
             <div className="flex flex-col gap-2">
               {timeBars.map((c) => (
                 <div key={c.id} className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">

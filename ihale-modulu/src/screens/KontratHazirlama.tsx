@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { contractSections, contractVariables, project } from '../data/mock'
-import { AddonBadge, Badge, Bar, Btn, Card, Kpi, PageHead, ReadOnlyNote, StateBadge, Table, Td, Th } from '../components/ui'
+import { Badge, Btn, Card, Kpi, PageHead, PreviewPane, ReadOnlyNote, StateBadge, Table, Td, Th } from '../components/ui'
 import { pct } from '../lib/format'
 
 /** Şablon + ihale dokümanı verisinden sözleşme taslağı üretimi. */
@@ -17,26 +17,27 @@ export function KontratHazirlama({ writable, role }: { writable: boolean; role: 
         title="Kontrat Hazırlama"
         note="Sözleşme taslağı; şablon maddeleri ile ihale dokümanından çıkarılan veriler birleştirilerek üretilir."
         right={<>
-          <AddonBadge />
           <Btn disabled={!writable}>Şablon seç</Btn>
-          <Btn disabled={!writable}>Taslağı yeniden üret</Btn>
           <Btn primary disabled={!writable}>Word olarak indir</Btn>
         </>}
       />
 
       {!writable && <ReadOnlyNote role={role} />}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Kpi label="Bölüm" value={contractSections.length} sub={`${ready} hazır`} />
-        <Kpi label="Tamamlanma" value={pct(completion)} sub="Taslak hazırlık oranı" tone={completion > 70 ? 'ok' : 'warn'} />
-        <Kpi label="Değişkenler" value={`${filled}/${contractVariables.length}`} sub="Otomatik dolduruldu" tone="accent" />
-        <Kpi label="Boş bölüm" value={contractSections.filter((s) => s.state === 'Boş').length} sub="Veri bekliyor" tone="crit" />
-        <Kpi label="Hukuk onayı" value={contractSections.filter((s) => s.state === 'Onaylandı').length} sub="Onaylanan bölüm" />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Kpi label="Tamamlanma" value={pct(completion)} sub={`${ready}/${contractSections.length} bölüm hazır`} tone={completion > 70 ? 'ok' : 'warn'}
+          help="Taslağı hazır ve onaylanmış bölümlerin toplam bölüme oranı." />
+        <Kpi label="Değişkenler" value={`${filled}/${contractVariables.length}`} sub="Otomatik dolduruldu" tone="accent"
+          help="Sözleşme metnindeki boşlukların (işveren, süre, bedel, ceza…) ihale dokümanından otomatik doldurulan kısmı." />
+        <Kpi label="Boş bölüm" value={contractSections.filter((s) => s.state === 'Boş').length} sub="Veri bekliyor" tone="crit"
+          help="Gerekli veri gelmediği için henüz üretilemeyen bölümler." />
+        <Kpi label="Hukuk onayı" value={contractSections.filter((s) => s.state === 'Onaylandı').length} sub="Onaylanan bölüm"
+          help="Hukuk biriminin onayladığı bölüm sayısı. Onaylanan bölümler kilitlenir; değişiklik yeni sürüm açar." />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
         <div className="flex flex-col gap-4 lg:col-span-5">
-          <Card title="Sözleşme bölümleri" subtitle="Satıra tıklayınca sağda önizleme açılır" pad={false}>
+          <Card title="Sözleşme bölümleri" help="Satıra tıklayınca bölümün taslağı sağdaki önizlemede açılır. Kaynak sütunu metnin şablondan mı, ihale dokümanından mı yoksa elle mi yazıldığını gösterir." pad={false}>
             <Table head={<tr><Th w={40}>#</Th><Th w={200}>Bölüm</Th><Th w={120}>Kaynak</Th><Th w={120}>Durum</Th></tr>}>
               {contractSections.map((s) => (
                 <tr key={s.id} onClick={() => setSel(s)} className="cursor-pointer hover:bg-[var(--surface-2)]"
@@ -53,7 +54,7 @@ export function KontratHazirlama({ writable, role }: { writable: boolean; role: 
             </Table>
           </Card>
 
-          <Card title="Sözleşme değişkenleri" subtitle="İhale dokümanından otomatik çıkarılan alanlar" pad={false}>
+          <Card title="Sözleşme değişkenleri" help="Sözleşme metnindeki doldurulacak alanlar. Değer ihale dokümanından çıkarılır ve kaynağı gösterilir; boş olanlar teklif sonrası netleşir." pad={false}>
             <Table head={<tr><Th w={150}>Alan</Th><Th w={210}>Değer</Th><Th w={150}>Kaynak</Th></tr>}>
               {contractVariables.map((v) => (
                 <tr key={v.key} className="hover:bg-[var(--surface-2)]">
@@ -70,86 +71,48 @@ export function KontratHazirlama({ writable, role }: { writable: boolean; role: 
         </div>
 
         <div className="flex flex-col gap-4 lg:col-span-7">
-          <Card
+          <PreviewPane
             title={`Önizleme — ${sel.no}. ${sel.title}`}
-            subtitle={`Kaynak: ${sel.source}${sel.filledBy ? ` · dolduran: ${sel.filledBy}` : ''}`}
-            right={<>
-              <Btn small disabled={!writable}>Düzenle</Btn>
-              <Btn small disabled={!writable}>Hukuka gönder</Btn>
-            </>}
-          >
-            <article className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-5 text-[13px] leading-[1.9] text-[var(--ink)]">
-              <h4 className="mb-3 text-center text-[14px] font-bold">{sel.no}. {sel.title.toLocaleUpperCase('tr')}</h4>
-              {sel.state === 'Boş' ? (
-                <p className="py-8 text-center text-[13px] text-[var(--faint)]">
-                  Bu bölüm henüz doldurulmadı. Gerekli veri geldiğinde taslak otomatik üretilecek.
-                </p>
-              ) : (
-                <>
-                  <p>
-                    <b>{sel.no}.1.</b> İşbu sözleşme, <Var>{project.employer}</Var> (bundan sonra “İdare” olarak anılacaktır) ile
-                    <Var> Anadolu İnşaat A.Ş.</Var> (bundan sonra “Yüklenici” olarak anılacaktır) arasında,
-                    <Var> {project.name}</Var> işinin yapılması amacıyla düzenlenmiştir.
-                  </p>
-                  <p className="mt-3">
-                    <b>{sel.no}.2.</b> İşin süresi <Var>{project.durationDays} takvim günü</Var> olup, yer tesliminden itibaren başlar.
-                    Yüklenici, ayrıntılı iş programını sözleşmenin imzalanmasını izleyen <Var>28 gün</Var> içinde İdare’ye sunar.
-                  </p>
-                  <p className="mt-3">
-                    <b>{sel.no}.3.</b> Hakediş ödemeleri, düzenlenen hakedişin İdare tarafından onaylanmasını izleyen
-                    <Var> 90 gün</Var> içinde yapılır. Bu sözleşmede <Var>fiyat farkı ödenmez</Var>.
-                  </p>
-                  <p className="mt-3">
-                    <b>{sel.no}.4.</b> Gecikme hâlinde, gecikilen her takvim günü için sözleşme bedelinin
-                    <Var> on binde beşi</Var> oranında ceza uygulanır; toplam ceza sözleşme bedelinin <Var>%10</Var>’unu geçemez.
-                  </p>
-                  <div className="mt-4 rounded border border-dashed border-[var(--warn)] bg-[var(--warn-bg)] px-3 py-2 text-[12px]" style={{ color: 'var(--warn)' }}>
-                    ⚠ Revizyon notu: İhale dokümanında ceza tavanı %15’tir. Bu taslakta %10 olarak yazıldı ve
-                    zeyilname talebine bağlandı. Talep kabul edilmezse metin geri alınmalıdır.
-                  </div>
-                </>
-              )}
-            </article>
-
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px] text-[var(--muted)]">
-              <span className="inline-flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent)' }} /> otomatik doldurulan alan</span>
-              <span>· kaynağı görmek için alanın üzerine gelin</span>
-            </div>
-          </Card>
-
-          <Card title="Taslak hazırlık durumu">
-            <div className="flex flex-col gap-3">
-              <div>
-                <div className="mb-1 flex items-center justify-between text-[12.5px]">
-                  <span className="font-medium text-[var(--ink)]">Bölümler</span>
-                  <span className="text-[var(--muted)] tnum">{ready}/{contractSections.length}</span>
+            editable={writable}
+            user="a.koc"
+            log={[
+              { at: '18.09.2026 14:22', user: 'sistem', kind: 'Otomatik doldurma', note: 'Bölüm ihale dokümanından üretildi (İdari Şartname md. 2)' },
+              { at: '19.09.2026 09:40', user: 'a.koc', kind: 'Manuel düzeltme', note: 'Gecikme cezası tavanı %15 yerine %10 yazıldı; zeyilname talebine bağlandı' },
+            ]}
+            preview={{
+              doc: 'Sozlesme Taslagi v3.docx',
+              page: Number(sel.no),
+              pages: contractSections.length,
+              body: sel.state === 'Boş'
+                ? 'Bu bölüm henüz doldurulmadı. Gerekli veri geldiğinde taslak otomatik üretilecek.'
+                : `${sel.no}. ${sel.title.toLocaleUpperCase('tr')}\n\n`
+                  + `${sel.no}.1. İşbu sözleşme, ${project.employer} (bundan sonra “İdare” olarak anılacaktır) ile Anadolu İnşaat A.Ş. `
+                  + `(bundan sonra “Yüklenici” olarak anılacaktır) arasında, ${project.name} işinin yapılması amacıyla düzenlenmiştir.\n\n`
+                  + `${sel.no}.2. İşin süresi ${project.durationDays} takvim günü olup, yer tesliminden itibaren başlar. `
+                  + `Yüklenici, ayrıntılı iş programını sözleşmenin imzalanmasını izleyen 28 gün içinde İdare’ye sunar.\n\n`
+                  + `${sel.no}.3. Hakediş ödemeleri, düzenlenen hakedişin İdare tarafından onaylanmasını izleyen 90 gün içinde yapılır. `
+                  + `Bu sözleşmede fiyat farkı ödenmez.\n\n`
+                  + `${sel.no}.4. Gecikme hâlinde, gecikilen her takvim günü için sözleşme bedelinin on binde beşi oranında ceza uygulanır; `
+                  + `toplam ceza sözleşme bedelinin %10’unu geçemez.`,
+            }}
+            footer={
+              <div className="flex flex-col gap-2">
+                <div className="rounded border border-dashed px-3 py-2 text-[12px]" style={{ borderColor: 'var(--warn)', background: 'var(--warn-bg)', color: 'var(--warn)' }}>
+                  ⚠ Revizyon notu: İhale dokümanında ceza tavanı %15’tir. Bu taslakta %10 olarak yazıldı ve zeyilname talebine bağlandı.
+                  Talep kabul edilmezse metin geri alınmalıdır.
                 </div>
-                <Bar value={completion} tone={completion > 70 ? 'ok' : 'warn'} />
-              </div>
-              <div>
-                <div className="mb-1 flex items-center justify-between text-[12.5px]">
-                  <span className="font-medium text-[var(--ink)]">Değişkenler</span>
-                  <span className="text-[var(--muted)] tnum">{filled}/{contractVariables.length}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge tone="neutral">Kaynak: {sel.source}</Badge>
+                  {sel.filledBy && <Badge tone="accent">Dolduran: {sel.filledBy}</Badge>}
+                  <span className="ml-auto flex gap-1.5">
+                    <Btn small disabled={!writable}>Hukuka gönder</Btn>
+                  </span>
                 </div>
-                <Bar value={(filled / contractVariables.length) * 100} tone="accent" />
               </div>
-              <p className="text-[12px] leading-relaxed text-[var(--muted)]">
-                Sözleşme taslağı, <b className="text-[var(--ink)]">Kontrat Analiz</b> sekmesindeki bulgularla bağlantılıdır:
-                aleyhe maddeler taslağa revizyon notu olarak düşer, kabul edilen revizyonlar metne işlenir.
-              </p>
-            </div>
-          </Card>
+            }
+          />
         </div>
       </div>
     </>
-  )
-}
-
-/** Otomatik doldurulan alan vurgusu */
-function Var({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="rounded px-1" style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent)', color: 'var(--ink)' }}>
-      {children}
-    </span>
   )
 }

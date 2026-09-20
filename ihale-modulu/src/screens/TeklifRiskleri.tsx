@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { bidRisks, project } from '../data/mock'
 import type { BidRisk } from '../data/types'
-import { Badge, Btn, Card, Kpi, PageHead, ReadOnlyNote, StateBadge, Table, Td, Th } from '../components/ui'
+import { Badge, Btn, Card, Kpi, PageHead, PreviewPane, ReadOnlyNote, StateBadge, Table, Td, Th } from '../components/ui'
 import { money, moneyShort, num, pct } from '../lib/format'
 
 const P_LABELS = ['Çok düşük', 'Düşük', 'Orta', 'Yüksek', 'Çok yüksek']
@@ -38,14 +38,16 @@ export function TeklifRiskleri({ writable, role }: { writable: boolean; role: st
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Kpi label="Toplam risk" value={bidRisks.length} sub={`${bidRisks.filter((r) => r.state === 'Açık').length} açık`} />
         <Kpi label="Yüksek risk" value={high} sub="Olasılık × etki ≥ 16" tone="crit" />
-        <Kpi label="Toplam bedel etkisi" value={moneyShort(totalCost, project.currency)} sub="En kötü senaryo toplamı" tone="warn" />
-        <Kpi label="Beklenen değer" value={moneyShort(expected, project.currency)} sub="Olasılıkla ağırlıklı" tone="accent" />
+        <Kpi label="Toplam bedel etkisi" value={moneyShort(totalCost, project.currency)} sub="En kötü senaryo toplamı" tone="warn"
+          help="Bütün risklerin aynı anda gerçekleşmesi hâlindeki toplam maliyet. Teklife bu tutar değil, olasılıkla ağırlıklı karşılık eklenir." />
+        <Kpi label="Beklenen değer" value={moneyShort(expected, project.currency)} sub="Olasılıkla ağırlıklı" tone="accent"
+          help="Her riskin bedeli, gerçekleşme olasılığıyla çarpılıp toplanır. Teklife eklenecek risk karşılığı bu değere yakın belirlenir." />
         <Kpi label="En yüksek süre etkisi" value={`${maxTime} gün`} sub="Kazık tedariki" tone="warn" />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
         <div className="lg:col-span-4">
-          <Card title="Risk matrisi" subtitle="Satır: olasılık · Sütun: etki">
+          <Card title="Risk matrisi" help="Satır olasılığı, sütun etkiyi gösterir. Hücredeki sayı o kutudaki risk sayısıdır; tıklayınca ilgili risk açılır. Sağ üst köşe (yüksek olasılık + yüksek etki) en tehlikeli bölgedir.">
             <div className="flex gap-2">
               <div className="flex flex-col justify-around pb-6 text-right text-[10px] text-[var(--faint)]">
                 {[5, 4, 3, 2, 1].map((p) => <div key={p} className="h-12 leading-[3rem]">{P_LABELS[p - 1]}</div>)}
@@ -105,7 +107,7 @@ export function TeklifRiskleri({ writable, role }: { writable: boolean; role: st
         </div>
 
         <div className="flex flex-col gap-4 lg:col-span-8">
-          <Card title="Risk kayıtları" subtitle="Satıra tıklayınca soldaki panel açılır" pad={false}>
+          <Card title="Risk kayıtları" help="O = olasılık (1–5), E = etki (1–5), Skor = O × E. Satıra tıklayınca sol panelde ayrıntısı, sağda ilgili doküman açılır." pad={false}>
             <Table head={
               <tr>
                 <Th w={110}>Kategori</Th>
@@ -139,7 +141,28 @@ export function TeklifRiskleri({ writable, role }: { writable: boolean; role: st
             </Table>
           </Card>
 
-          <Card title="Teklif fiyatına yansıma" subtitle="Risk karşılıklarının teklif bedeli içindeki payı">
+          {sel && (
+            <PreviewPane
+              title={`Riskin dayanağı — ${sel.title}`}
+              preview={{
+                doc: sel.category === 'Sözleşmesel' ? 'Sozlesme Tasarisi (Ozel Sartlar).pdf'
+                  : sel.category === 'Zemin' ? 'Zemin Etut Raporu.pdf'
+                  : sel.category === 'Program' ? 'Teknik Sartname - Deniz Yapilari.pdf'
+                  : 'Idari Sartname.pdf',
+                page: 41,
+                body: `${sel.description}\n\nÖnlem: ${sel.mitigation}\n\nOlasılık ${sel.probability}/5 · Etki ${sel.impact}/5 · Skor ${sel.probability * sel.impact}`,
+              }}
+              footer={
+                <div className="flex flex-wrap items-center gap-2">
+                  <Btn small disabled={!writable}>Önlemi güncelle</Btn>
+                  <Btn small primary disabled={!writable}>Teklife karşılık ekle</Btn>
+                  <span className="ml-auto text-[11.5px] text-[var(--muted)]">Sorumlu: {sel.owner}</span>
+                </div>
+              }
+            />
+          )}
+
+          <Card title="Teklif fiyatına yansıma" help="Risklerin teklif fiyatına eklenen karşılık olarak yansıması. Bu tutar, en kötü senaryonun tamamı değil, olasılıkla ağırlıklı bir paydır.">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-2 text-[12.5px]">
                 {[

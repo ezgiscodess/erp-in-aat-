@@ -61,11 +61,10 @@ export function Sertifikalar({ writable, role }: { writable: boolean; role: stri
         ]} />
       </div>
 
-      <Card title={`Belgeler (${list.length})`} subtitle="Kırmızı satırlar teklif dosyasını eksik bırakır" pad={false}>
+      <Card title={`Belgeler (${list.length})`} help="Kırmızı satırlar teklif dosyasını eksik bırakan belgelerdir. Sarı satırların geçerlilik süresi teklif tarihinden önce dolar." pad={false}>
         <Table head={
           <tr>
             <Th w={280}>Belge</Th>
-            <Th w={200}>Veren kurum</Th>
             <Th w={80}>İstenen</Th>
             <Th w={90}>Durum</Th>
             <Th w={130}>Belge no</Th>
@@ -83,7 +82,6 @@ export function Sertifikalar({ writable, role }: { writable: boolean; role: stri
                   ? { background: 'color-mix(in srgb, var(--crit-bg) 50%, transparent)' }
                   : isExpiring ? { background: 'color-mix(in srgb, var(--warn-bg) 45%, transparent)' } : undefined}>
                 <Td><span className="text-[12.5px] font-medium text-[var(--ink)]">{c.name}</span></Td>
-                <Td><span className="text-[12px] text-[var(--muted)]">{c.authority}</span></Td>
                 <Td nowrap>{c.required ? <Badge tone="neutral">Zorunlu</Badge> : <span className="text-[var(--faint)]">Opsiyonel</span>}</Td>
                 <Td nowrap>{c.owned ? <Badge tone="ok" dot>Var</Badge> : <Badge tone="crit" dot>Yok</Badge>}</Td>
                 <Td mono nowrap>{c.number ?? '—'}</Td>
@@ -110,7 +108,7 @@ export function Sertifikalar({ writable, role }: { writable: boolean; role: stri
       </Card>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card title="Belge takvimi" subtitle="Proje döneminde otomatik hatırlatma kurulur">
+        <Card title="Belge takvimi" help="Geçerlilik süresi yaklaşan belgeler. Proje dönemine geçildiğinde bu tarihler için otomatik hatırlatma kurulur.">
           <div className="flex flex-col gap-2 text-[12.5px]">
             {certificates.filter((c) => c.daysLeft != null).sort((a, b) => a.daysLeft! - b.daysLeft!).slice(0, 6).map((c) => (
               <div key={c.id} className="flex items-center gap-2 border-b border-[var(--border)] pb-2 last:border-0">

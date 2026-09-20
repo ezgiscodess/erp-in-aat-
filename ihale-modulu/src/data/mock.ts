@@ -4,7 +4,7 @@
  */
 import type {
   BidRisk, BoqItem, Certificate, ClauseAnalysis, ContractSection, ContractVariable,
-  CriticalTerm, Finding, GoNoGoCriterion, TenderDoc, TenderProject, Timeline,
+  CriticalTerm, Finding, GoNoGoCriterion, ScopeSection, TenderDoc, TenderProject, Timeline, UnitPrice,
 } from './types'
 
 export const project: TenderProject = {
@@ -190,28 +190,28 @@ export const timeline: Timeline[] = [
 /* ---------------- 5. BoQ / Take-off ---------------- */
 
 export const boqItems: BoqItem[] = [
-  { id: 'B1', no: '01.100', group: 'Hazırlık & Mobilizasyon', description: 'Şantiye kurulumu, geçici tesisler ve mobilizasyon', unit: 'Götürü', qty: 1, unitPrice: 2_450_000, source: 'İdare cetveli', confidence: 100 },
-  { id: 'B2', no: '01.200', group: 'Hazırlık & Mobilizasyon', description: 'Mevcut saha kaplamasının sökümü ve taşınması', unit: 'm²', qty: 48_500, unitPrice: 9.4, source: 'Çizim P-102', confidence: 93 },
-  { id: 'B3', no: '02.100', group: 'Deniz İşleri', description: 'Tarama (dredging), deniz tabanı düzeltme, −16,00 kotuna', unit: 'm³', qty: 386_000, unitPrice: 11.8, source: 'Çizim D-201 + batimetri', confidence: 76, note: 'Batimetri 2024 tarihli; güncel ölçüm istenmeli' },
-  { id: 'B4', no: '02.200', group: 'Deniz İşleri', description: 'Çelik boru kazık Ø1220 mm, t=20 mm, temin ve çakım', unit: 'ton', qty: 9_850, unitPrice: 1_640, source: 'Çizim D-204', confidence: 71, note: 'Kazık boyu doğu uçta belirsiz (sondaj yok)' },
-  { id: 'B5', no: '02.300', group: 'Deniz İşleri', description: 'Kazık başlığı betonu C35/45, donatı dâhil', unit: 'm³', qty: 12_400, unitPrice: 268, source: 'Çizim D-206', confidence: 88 },
-  { id: 'B6', no: '02.400', group: 'Deniz İşleri', description: 'Rıhtım tabliyesi prekast kiriş üretimi ve montajı', unit: 'ad', qty: 268, unitPrice: 14_900, source: 'Çizim D-211', confidence: 90 },
-  { id: 'B7', no: '02.500', group: 'Deniz İşleri', description: 'Blok taş anroşman (1–3 ton)', unit: 'ton', qty: 74_000, unitPrice: 27.5, source: 'Çizim D-215', confidence: 84 },
-  { id: 'B8', no: '03.100', group: 'Saha İşleri', description: 'Granüler dolgu (idare stok sahasından, nakliye dâhil)', unit: 'm³', qty: 268_000, unitPrice: 6.9, source: 'Çizim P-110 + Zeyilname-01', confidence: 95, note: 'Malzeme bedelsiz — yalnız nakliye ve serme' },
-  { id: 'B9', no: '03.200', group: 'Saha İşleri', description: 'Alt temel ve temel (kırmataş) serilmesi, sıkıştırma', unit: 'm³', qty: 96_500, unitPrice: 18.2, source: 'Çizim P-112', confidence: 92 },
-  { id: 'B10', no: '03.300', group: 'Saha İşleri', description: 'Ağır hizmet beton parke kaplama 100 mm', unit: 'm²', qty: 182_000, unitPrice: 31.4, source: 'Çizim P-118', confidence: 94 },
-  { id: 'B11', no: '03.400', group: 'Saha İşleri', description: 'Asfalt kaplama (BSK) 2 tabaka', unit: 'ton', qty: 21_600, unitPrice: 88, source: 'Çizim P-120', confidence: 89 },
-  { id: 'B12', no: '04.100', group: 'Altyapı', description: 'Yağmur suyu drenaj hattı Ø600–Ø1000 betonarme boru', unit: 'm', qty: 8_450, unitPrice: 142, source: 'Çizim A-301', confidence: 87 },
-  { id: 'B13', no: '04.200', group: 'Altyapı', description: 'Yangın hattı ve hidrant sistemi', unit: 'm', qty: 4_200, unitPrice: 96, source: 'Çizim A-310', confidence: 81 },
-  { id: 'B14', no: '04.300', group: 'Altyapı', description: 'Atık su terfi merkezi (komple)', unit: 'ad', qty: 2, unitPrice: 385_000, source: 'Çizim A-320', confidence: 78 },
-  { id: 'B15', no: '05.100', group: 'Elektrik', description: 'OG kablolama ve ring besleme (34,5 kV)', unit: 'm', qty: 6_800, unitPrice: 128, source: 'Çizim E-401', confidence: 85 },
-  { id: 'B16', no: '05.200', group: 'Elektrik', description: 'Saha aydınlatma direği 30 m, projektörlü', unit: 'ad', qty: 42, unitPrice: 24_600, source: 'Çizim E-406', confidence: 91 },
-  { id: 'B17', no: '05.300', group: 'Elektrik', description: 'RTG besleme hattı ve makaralı kanal sistemi', unit: 'm', qty: 3_150, unitPrice: 210, source: 'Çizim E-412', confidence: 74, note: 'Ekipman markası netleşmedi' },
-  { id: 'B18', no: '06.100', group: 'Rıhtım Donanımı', description: 'Rıhtım babası 150 ton, montaj dâhil', unit: 'ad', qty: 36, unitPrice: 12_800, source: 'Çizim D-220', confidence: 96 },
-  { id: 'B19', no: '06.200', group: 'Rıhtım Donanımı', description: 'Usturmaça sistemi (cell fender), montaj dâhil', unit: 'ad', qty: 28, unitPrice: 46_500, source: 'Çizim D-222', confidence: 93 },
-  { id: 'B20', no: '06.300', group: 'Rıhtım Donanımı', description: 'Vinç rayı ve ankraj sistemi', unit: 'm', qty: 1_540, unitPrice: 640, source: 'Çizim D-226', confidence: 88 },
-  { id: 'B21', no: '07.100', group: 'Çevre & Güvenlik', description: 'Çevre güvenlik duvarı ve kapı sistemleri', unit: 'm', qty: 2_100, unitPrice: 285, source: 'Çizim P-130', confidence: 90 },
-  { id: 'B22', no: '07.200', group: 'Çevre & Güvenlik', description: 'CCTV ve saha güvenlik altyapısı', unit: 'Götürü', qty: 1, unitPrice: 1_180_000, source: 'Teknik şartname 9.2', confidence: 69, note: 'Kapsam şartnamede net değil' },
+  { id: 'B1', no: '1000101', group: 'Hazırlık & Mobilizasyon', description: 'Şantiye kurulumu, geçici tesisler ve mobilizasyon', unit: 'Götürü', qty: 1, poolMatch: 'Eşleşti', unitPrice: 2_450_000, source: 'İdare cetveli', confidence: 100 },
+  { id: 'B2', no: '1000205', group: 'Hazırlık & Mobilizasyon', description: 'Mevcut saha kaplamasının sökümü ve taşınması', unit: 'm²', qty: 48_500, poolMatch: 'Eşleşti', unitPrice: 9.4, source: 'Çizim P-102', confidence: 93 },
+  { id: 'B3', no: '1000312', group: 'Deniz İşleri', description: 'Tarama (dredging), deniz tabanı düzeltme, −16,00 kotuna', unit: 'm³', qty: 386_000, poolMatch: 'Benzer poz', unitPrice: 11.8, source: 'Çizim D-201 + batimetri', confidence: 76, note: 'Batimetri 2024 tarihli; güncel ölçüm istenmeli' },
+  { id: 'B4', no: '1000487', group: 'Deniz İşleri', description: 'Çelik boru kazık Ø1220 mm, t=20 mm, temin ve çakım', unit: 'ton', qty: 9_850, poolMatch: 'Eşleşti', unitPrice: 1_640, source: 'Çizim D-204', confidence: 71, note: 'Kazık boyu doğu uçta belirsiz (sondaj yok)' },
+  { id: 'B5', no: '1000520', group: 'Deniz İşleri', description: 'Kazık başlığı betonu C35/45, donatı dâhil', unit: 'm³', qty: 12_400, poolMatch: 'Eşleşti', unitPrice: 268, source: 'Çizim D-206', confidence: 88 },
+  { id: 'B6', no: '1000534', group: 'Deniz İşleri', description: 'Rıhtım tabliyesi prekast kiriş üretimi ve montajı', unit: 'ad', qty: 268, poolMatch: 'Eşleşti', unitPrice: 14_900, source: 'Çizim D-211', confidence: 90 },
+  { id: 'B7', no: '1000560', group: 'Deniz İşleri', description: 'Blok taş anroşman (1–3 ton)', unit: 'ton', qty: 74_000, poolMatch: 'Eşleşti', unitPrice: 27.5, source: 'Çizim D-215', confidence: 84 },
+  { id: 'B8', no: '1000612', group: 'Saha İşleri', description: 'Granüler dolgu (idare stok sahasından, nakliye dâhil)', unit: 'm³', qty: 268_000, poolMatch: 'Eşleşti', unitPrice: 6.9, source: 'Çizim P-110 + Zeyilname-01', confidence: 95, note: 'Malzeme bedelsiz — yalnız nakliye ve serme' },
+  { id: 'B9', no: '1000625', group: 'Saha İşleri', description: 'Alt temel ve temel (kırmataş) serilmesi, sıkıştırma', unit: 'm³', qty: 96_500, poolMatch: 'Eşleşti', unitPrice: 18.2, source: 'Çizim P-112', confidence: 92 },
+  { id: 'B10', no: '1000640', group: 'Saha İşleri', description: 'Ağır hizmet beton parke kaplama 100 mm', unit: 'm²', qty: 182_000, poolMatch: 'Eşleşti', unitPrice: 31.4, source: 'Çizim P-118', confidence: 94 },
+  { id: 'B11', no: '1000655', group: 'Saha İşleri', description: 'Asfalt kaplama (BSK) 2 tabaka', unit: 'ton', qty: 21_600, poolMatch: 'Eşleşti', unitPrice: 88, source: 'Çizim P-120', confidence: 89 },
+  { id: 'B12', no: '1000710', group: 'Altyapı', description: 'Yağmur suyu drenaj hattı Ø600–Ø1000 betonarme boru', unit: 'm', qty: 8_450, poolMatch: 'Eşleşti', unitPrice: 142, source: 'Çizim A-301', confidence: 87 },
+  { id: 'B13', no: '1000722', group: 'Altyapı', description: 'Yangın hattı ve hidrant sistemi', unit: 'm', qty: 4_200, poolMatch: 'Eşleşti', unitPrice: 96, source: 'Çizim A-310', confidence: 81 },
+  { id: 'B14', no: '1000735', group: 'Altyapı', description: 'Atık su terfi merkezi (komple)', unit: 'ad', qty: 2, poolMatch: 'Benzer poz', unitPrice: 385_000, source: 'Çizim A-320', confidence: 78 },
+  { id: 'B15', no: '1000810', group: 'Elektrik', description: 'OG kablolama ve ring besleme (34,5 kV)', unit: 'm', qty: 6_800, poolMatch: 'Eşleşti', unitPrice: 128, source: 'Çizim E-401', confidence: 85 },
+  { id: 'B16', no: '1000822', group: 'Elektrik', description: 'Saha aydınlatma direği 30 m, projektörlü', unit: 'ad', qty: 42, poolMatch: 'Eşleşti', unitPrice: 24_600, source: 'Çizim E-406', confidence: 91 },
+  { id: 'B17', no: '1000835', group: 'Elektrik', description: 'RTG besleme hattı ve makaralı kanal sistemi', unit: 'm', qty: 3_150, poolMatch: 'Eşleşmedi',  source: 'Çizim E-412', confidence: 74, note: 'Ekipman markası netleşmedi' },
+  { id: 'B18', no: '1000910', group: 'Rıhtım Donanımı', description: 'Rıhtım babası 150 ton, montaj dâhil', unit: 'ad', qty: 36, poolMatch: 'Eşleşti', unitPrice: 12_800, source: 'Çizim D-220', confidence: 96 },
+  { id: 'B19', no: '1000922', group: 'Rıhtım Donanımı', description: 'Usturmaça sistemi (cell fender), montaj dâhil', unit: 'ad', qty: 28, poolMatch: 'Eşleşti', unitPrice: 46_500, source: 'Çizim D-222', confidence: 93 },
+  { id: 'B20', no: '1000935', group: 'Rıhtım Donanımı', description: 'Vinç rayı ve ankraj sistemi', unit: 'm', qty: 1_540, poolMatch: 'Eşleşti', unitPrice: 640, source: 'Çizim D-226', confidence: 88 },
+  { id: 'B21', no: '1001010', group: 'Çevre & Güvenlik', description: 'Çevre güvenlik duvarı ve kapı sistemleri', unit: 'm', qty: 2_100, poolMatch: 'Eşleşti', unitPrice: 285, source: 'Çizim P-130', confidence: 90 },
+  { id: 'B22', no: '1001022', group: 'Çevre & Güvenlik', description: 'CCTV ve saha güvenlik altyapısı', unit: 'Götürü', qty: 1, poolMatch: 'Eşleşmedi',  source: 'Teknik şartname 9.2', confidence: 69, note: 'Kapsam şartnamede net değil' },
 ]
 
 /* ---------------- 6. Teklif riskleri ---------------- */
@@ -298,3 +298,73 @@ export const certificates: Certificate[] = [
   { id: 'Z14', name: 'Banka Referans Mektubu', authority: 'Banka', required: true, owned: false, note: 'Teklif bedelinin %10’u kullanılmamış limit — banka yazısı bekleniyor' },
   { id: 'Z15', name: 'CAR (İnşaat All Risk) Poliçesi', authority: 'Sigorta şirketi', required: false, owned: false, note: 'Sözleşme sonrası; broker teklifi alındı' },
 ]
+
+/* ---------------- Birim Fiyat Havuzu (firma geneli, projeden bağımsız) ---------------- */
+
+export const unitPrices: UnitPrice[] = [
+  { id: 'U1', no: '1000458', description: 'Yumuşak zeminlerde makineli kazı yapılması', unit: 'm³', price: 4.85, currency: 'EUR', source: 'Kendi analizimiz', updatedAt: '2026-08-12', updatedBy: 'a.koc', usedIn: 7 },
+  { id: 'U2', no: '1000101', description: 'Şantiye kurulumu, geçici tesisler ve mobilizasyon', unit: 'Götürü', price: 2_450_000, currency: 'EUR', source: 'Kendi analizimiz', updatedAt: '2026-09-02', updatedBy: 'a.koc', usedIn: 3 },
+  { id: 'U3', no: '1000205', description: 'Mevcut saha kaplamasının sökümü ve taşınması', unit: 'm²', price: 9.4, currency: 'EUR', source: 'Geçmiş proje', updatedAt: '2026-06-28', updatedBy: 'm.demir', usedIn: 5 },
+  { id: 'U4', no: '1000312', description: 'Deniz tabanı tarama (dredging), yumuşak zemin', unit: 'm³', price: 11.8, currency: 'EUR', source: 'Piyasa teklifi', updatedAt: '2026-09-10', updatedBy: 's.kaya', usedIn: 2 },
+  { id: 'U5', no: '1000487', description: 'Çelik boru kazık Ø1220 mm temin ve çakım', unit: 'ton', price: 1_640, currency: 'EUR', source: 'Piyasa teklifi', updatedAt: '2026-09-14', updatedBy: 's.kaya', usedIn: 2 },
+  { id: 'U6', no: '1000520', description: 'Betonarme imalat C35/45, donatı dâhil', unit: 'm³', price: 268, currency: 'EUR', source: 'Kendi analizimiz', updatedAt: '2026-07-19', updatedBy: 'a.koc', usedIn: 11 },
+  { id: 'U7', no: '1000534', description: 'Prekast kiriş üretimi ve montajı', unit: 'ad', price: 14_900, currency: 'EUR', source: 'Kendi analizimiz', updatedAt: '2026-05-30', updatedBy: 'm.demir', usedIn: 4 },
+  { id: 'U8', no: '1000560', description: 'Blok taş anroşman (1–3 ton)', unit: 'ton', price: 27.5, currency: 'EUR', source: 'BCBS', updatedAt: '2026-04-11', updatedBy: 'sistem', usedIn: 6 },
+  { id: 'U9', no: '1000612', description: 'Granüler dolgu serilmesi ve sıkıştırılması', unit: 'm³', price: 6.9, currency: 'EUR', source: 'BCBS', updatedAt: '2026-04-11', updatedBy: 'sistem', usedIn: 9 },
+  { id: 'U10', no: '1000625', description: 'Alt temel ve temel (kırmataş) serilmesi', unit: 'm³', price: 18.2, currency: 'EUR', source: 'BCBS', updatedAt: '2026-04-11', updatedBy: 'sistem', usedIn: 8 },
+  { id: 'U11', no: '1000640', description: 'Ağır hizmet beton parke kaplama 100 mm', unit: 'm²', price: 31.4, currency: 'EUR', source: 'Kendi analizimiz', updatedAt: '2026-08-01', updatedBy: 'a.koc', usedIn: 5 },
+  { id: 'U12', no: '1000655', description: 'Bitümlü sıcak karışım (BSK) asfalt kaplama', unit: 'ton', price: 88, currency: 'EUR', source: 'BCBS', updatedAt: '2026-04-11', updatedBy: 'sistem', usedIn: 12 },
+  { id: 'U13', no: '1000710', description: 'Betonarme boru döşenmesi Ø600–Ø1000', unit: 'm', price: 142, currency: 'EUR', source: 'Geçmiş proje', updatedAt: '2026-03-22', updatedBy: 'm.demir', usedIn: 7 },
+  { id: 'U14', no: '1000722', description: 'Yangın hattı ve hidrant sistemi', unit: 'm', price: 96, currency: 'EUR', source: 'Kendi analizimiz', updatedAt: '2026-02-14', updatedBy: 'a.koc', usedIn: 3 },
+  { id: 'U15', no: '1000810', description: 'OG kablolama ve ring besleme (34,5 kV)', unit: 'm', price: 128, currency: 'EUR', source: 'Piyasa teklifi', updatedAt: '2026-09-05', updatedBy: 's.kaya', usedIn: 2 },
+  { id: 'U16', no: '1000822', description: 'Saha aydınlatma direği 30 m, projektörlü', unit: 'ad', price: 24_600, currency: 'EUR', source: 'Piyasa teklifi', updatedAt: '2026-08-22', updatedBy: 's.kaya', usedIn: 3 },
+  { id: 'U17', no: '1000910', description: 'Rıhtım babası 150 ton, montaj dâhil', unit: 'ad', price: 12_800, currency: 'EUR', source: 'Geçmiş proje', updatedAt: '2026-01-30', updatedBy: 'm.demir', usedIn: 2 },
+  { id: 'U18', no: '1000922', description: 'Usturmaça sistemi (cell fender), montaj dâhil', unit: 'ad', price: 46_500, currency: 'EUR', source: 'Piyasa teklifi', updatedAt: '2026-09-08', updatedBy: 's.kaya', usedIn: 2 },
+  { id: 'U19', no: '1000935', description: 'Vinç rayı ve ankraj sistemi', unit: 'm', price: 640, currency: 'EUR', source: 'Kendi analizimiz', updatedAt: '2026-06-02', updatedBy: 'a.koc', usedIn: 1 },
+  { id: 'U20', no: '1001010', description: 'Çevre güvenlik duvarı ve kapı sistemleri', unit: 'm', price: 285, currency: 'EUR', source: 'BCBS', updatedAt: '2026-04-11', updatedBy: 'sistem', usedIn: 4 },
+]
+
+/* ---------------- Kapsam bilgisi (İhale Bilgi Paneli altında) ---------------- */
+
+export const scopeSections: ScopeSection[] = [
+  {
+    id: 'K1', title: 'İşin tanımı',
+    body: 'Mevcut konteyner limanının doğu yönünde 420 m uzunluğunda yeni rıhtım yapılması, rıhtım gerisinde 18,2 hektar konteyner sahasının teşkili ve bu sahanın altyapı, elektrik ve güvenlik sistemlerinin tamamlanması işidir. İş, liman operasyonu devam ederken yürütülecektir.',
+    source: 'İdari Şartname md. 2 · Teknik Şartname bölüm 1',
+  },
+  {
+    id: 'K2', title: 'Ana imalat kalemleri',
+    body: '• Deniz tabanı taraması ve −16,00 kotuna düzeltme\n• Ø1220 mm çelik boru kazık çakımı ve kazık başlığı betonu\n• Prekast kiriş üretimi, montajı ve rıhtım tabliyesi\n• Blok taş anroşman ve şev koruma\n• Saha dolgusu, alt temel ve ağır hizmet beton parke kaplama\n• Drenaj, yangın hattı, atık su terfi merkezi\n• OG kablolama, saha aydınlatması, RTG besleme hattı\n• Rıhtım babası, usturmaça ve vinç rayı montajı',
+    source: 'Teknik Şartname bölüm 3–9 · Birim Fiyat Teklif Cetveli',
+  },
+  {
+    id: 'K3', title: 'İşveren tarafından sağlanacaklar',
+    body: 'Saha dolgusunda kullanılacak granüler malzeme, İdare’nin Karaduvar stok sahasından yükleniciye bedelsiz teslim edilecektir. Tarama malzemesinin döküm sahası izni İdare tarafından alınacaktır. Elektrik ve su bağlantı noktaları saha sınırında İdare tarafından hazır edilecektir.',
+    source: 'Zeyilname-01 md. 2 · Teknik Şartname 2.4',
+  },
+  {
+    id: 'K4', title: 'Kapsam dışı',
+    body: 'RTG vinçlerinin temini ve montajı, liman işletme yazılımı, gümrük binası ve idari bina yapımı bu ihalenin kapsamı dışındadır. Bu işler ayrı ihaleyle yapılacaktır.',
+    source: 'İdari Şartname md. 2.3',
+  },
+  {
+    id: 'K5', title: 'Çalışma koşulları ve kısıtlar',
+    body: 'Saha çalışmaları liman operasyonunu aksatmayacak şekilde 07:00–17:00 arasında yürütülecektir. Anlamlı dalga yüksekliğinin 1,5 m’yi aşması hâlinde deniz üstü imalatlar durdurulur. Gemi yanaşma programı İdare tarafından haftalık olarak bildirilir.',
+    source: 'Teknik Şartname 2.7 ve 5.4',
+  },
+  {
+    id: 'K6', title: 'Belirsiz / netleştirilmesi gereken kapsam',
+    body: 'CCTV ve saha güvenlik sistemlerinin kapsamı şartnamede net değildir (kamera sayısı, kayıt süresi, entegrasyon). RTG besleme hattında ekipman markası belirtilmemiştir. Her iki konu için idareye soru sorulacaktır.',
+    source: 'Teknik Şartname 9.2 · AI kapsam taraması',
+  },
+]
+
+/* ---------------- Önizleme paneli için örnek sayfa metinleri ---------------- */
+
+export const previewBodies: Record<string, string> = {
+  D1: 'Madde 31.4 — Gecikme cezası: Yüklenici, sözleşmede öngörülen süre içinde işi tamamlamadığı takdirde, gecikilen her takvim günü için sözleşme bedelinin on binde beşi oranında gecikme cezası öder. Toplam ceza tutarı sözleşme bedelinin %15’ini geçemez. Gecikme cezası, hakedişlerden veya kesin teminattan kesilir. Cezanın uygulanması, İdare’nin sözleşmeyi feshetme hakkını ortadan kaldırmaz.',
+  D2: 'Sub-Clause 14.7 [Payment] — The Employer shall pay the amount certified within 90 days after the Engineer receives the Statement and supporting documents. Payment shall be made in the currencies stated in the Appendix to Tender. No financing charges shall be payable by the Employer in respect of any delay in certification attributable to insufficient supporting documents submitted by the Contractor.',
+  D3: 'Madde 2.7 — Çalışma saatleri: Saha çalışmaları, liman operasyonlarını aksatmamak üzere 07:00–17:00 saatleri arasında yürütülecektir. Bu saatler dışında çalışma yapılabilmesi için İdare’den yazılı izin alınması zorunludur. Gece çalışması talepleri, gemi yanaşma programı dikkate alınarak değerlendirilir.',
+  D5: 'Bölüm 4.3 — Zemin profili: SK-11 ve SK-12 numaralı sondajlar arasındaki bölgede zemin profili enterpolasyon ile öngörülmüştür. Bu bölgede yapılacak kazık imalatlarında, uygulama öncesi ilave sondaj yapılması tavsiye edilir. Kazık boyları, uygulama sırasında çakma direncine göre revize edilebilir.',
+  D7: 'Madde 2 — Saha dolgusunda kullanılacak granüler malzeme, İdare’nin Karaduvar stok sahasından yükleniciye bedelsiz teslim edilecektir. Malzemenin yüklenmesi, nakliyesi, serilmesi ve sıkıştırılması yükleniciye aittir. Stok sahasından çekilecek günlük azami miktar 4.000 m³ ile sınırlıdır.',
+}
