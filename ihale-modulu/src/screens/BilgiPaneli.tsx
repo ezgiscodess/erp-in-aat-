@@ -20,8 +20,8 @@ export function BilgiPaneli({ writable, role }: { writable: boolean; role: strin
     { label: 'Avans', value: 'Yok', note: 'Mobilizasyon özkaynakla', tone: 'crit' },
     { label: 'Fiyat farkı', value: 'Ödenmeyecek', note: 'Özel Şartlar 13.8', tone: 'crit' },
     { label: 'Ödeme süresi', value: '90 gün', note: 'İdari Şartname 60 gün diyor — çelişki', tone: 'crit' },
-    { label: 'Geçici teminat', value: '%3 (≈ 4,45 M EUR)' },
-    { label: 'Kesin teminat', value: '%6 (≈ 8,9 M EUR)' },
+    { label: 'Geçici teminat', value: '%3 (≈ 2,46 M EUR)' },
+    { label: 'Kesin teminat', value: '%6 (≈ 4,92 M EUR)' },
     { label: 'Gecikme cezası', value: 'Günlük ‰0,5 · tavan %15', note: 'Piyasa pratiği %10', tone: 'crit' },
     { label: 'İş deneyimi', value: 'Teklif bedelinin %80’i', note: 'Tek başımıza %62', tone: 'warn' },
   ]

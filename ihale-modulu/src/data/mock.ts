@@ -18,7 +18,7 @@ export const project: TenderProject = {
   contractType: 'FIDIC Red Book 1999 (Özel Şartlarla)',
   deliveryModel: 'Birim fiyat + götürü bedel karması',
   currency: 'EUR',
-  estimatedValue: 148_500_000,
+  estimatedValue: 82_000_000,
   durationDays: 720,
   bidDueAt: '2026-10-14',
   siteVisitAt: '2026-09-25',
@@ -85,7 +85,7 @@ export const findings: Finding[] = [
   {
     id: 'F5', kind: 'Risk', severity: 'Yüksek',
     title: 'Gecikme cezası tavanı yok denecek kadar yüksek: sözleşme bedelinin %15’i',
-    explanation: 'Günlük ceza on binde 5 ve üst sınır %15. Piyasa pratiği %10. 60 günlük bir gecikme yaklaşık 4,4 milyon EUR ceza anlamına geliyor.',
+    explanation: 'Günlük ceza on binde 5 ve üst sınır %15. Piyasa pratiği %10. 60 günlük bir gecikme yaklaşık 2,5 milyon EUR ceza anlamına geliyor.',
     confidence: 0.9, docId: 'D1', docName: 'Idari Sartname.pdf', page: 41, clause: '31.4',
     quote: 'Gecikme cezası, gecikilen her takvim günü için sözleşme bedelinin on binde beşi oranında uygulanır; toplam ceza sözleşme bedelinin %15’ini geçemez.',
     verification: 'exact', status: 'Kabul',
@@ -149,7 +149,7 @@ export const goNoGoCriteria: GoNoGoCriterion[] = [
   { id: 'G4', group: 'Teknik yeterlilik', label: 'Ekipman ve deniz filosu', weight: 10, score: 55, note: 'Deniz vinci ve şahmerdan kiralanacak', source: 'Ekipman envanteri' },
   { id: 'G5', group: 'Teknik yeterlilik', label: 'Anahtar personel uygunluğu', weight: 6, score: 80, note: 'Liman tecrübeli şantiye şefi mevcut', source: 'İK havuzu' },
   { id: 'G6', group: 'Ticari', label: 'Tahmini kâr marjı', weight: 14, score: 58, note: 'Baz senaryoda %7,4 — hedefin altında', source: 'Ön maliyet çalışması' },
-  { id: 'G7', group: 'Ticari', label: 'Nakit akışı yükü (avans yok, 90 gün ödeme)', weight: 12, score: 38, note: 'İlk 6 ayda ~18 M EUR negatif nakit', source: 'Kritik şartlar analizi' },
+  { id: 'G7', group: 'Ticari', label: 'Nakit akışı yükü (avans yok, 90 gün ödeme)', weight: 12, score: 38, note: 'İlk 6 ayda ~10 M EUR negatif nakit', source: 'Kritik şartlar analizi' },
   { id: 'G8', group: 'Ticari', label: 'Teminat ve kredi limiti uygunluğu', weight: 8, score: 62, note: 'Kesin teminat için ek limit gerekli', source: 'Finans birimi' },
   { id: 'G9', group: 'Sözleşmesel risk', label: 'Risk paylaşımı dengesi', weight: 12, score: 35, note: 'Fiyat farkı yok, ceza tavanı %15', source: 'Kontrat analizi' },
   { id: 'G10', group: 'Sözleşmesel risk', label: 'Bildirim ve süre sınırı yükü', weight: 4, score: 55, note: '48 saat / 28 gün kuralları disiplin gerektiriyor', source: 'Kontrat analizi' },
@@ -160,12 +160,12 @@ export const goNoGoCriteria: GoNoGoCriterion[] = [
 /* ---------------- 4. Kritik ihale şartları ---------------- */
 
 export const criticalTerms: CriticalTerm[] = [
-  { id: 'K1', topic: 'Geçici teminat', requirement: 'Teklif bedelinin %3’ü, süresiz banka teminat mektubu', clause: 'İdari Ş. 25.1', page: 28, severity: 'Yüksek', impact: '≈ 4,45 M EUR limit', action: 'Banka limiti teyit edildi, mektup hazırlanıyor', owner: 'Finans', state: 'İnceleniyor' },
-  { id: 'K2', topic: 'Kesin teminat', requirement: 'Sözleşme bedelinin %6’sı', clause: 'İdari Ş. 25.3', page: 29, severity: 'Yüksek', impact: '≈ 8,9 M EUR limit', action: 'Ek limit talebi bankaya iletildi', owner: 'Finans', state: 'Eksik' },
-  { id: 'K3', topic: 'Gecikme cezası', requirement: 'Günlük on binde 5, üst sınır %15', clause: 'İdari Ş. 31.4', page: 41, severity: 'Kritik', impact: '60 gün gecikme ≈ 4,4 M EUR', action: 'Zeyilname ile %10’a indirilmesi talep edilecek', owner: 'Teklif', state: 'Karşılanmıyor' },
-  { id: 'K4', topic: 'Ödeme süresi', requirement: 'Hakediş onayından sonra 90 gün', clause: 'Özel Ş. 14.7', page: 71, severity: 'Kritik', impact: 'İlk 6 ayda ~18 M EUR nakit ihtiyacı', action: 'Nakit akışı 90 güne göre revize edildi', owner: 'Finans', state: 'İnceleniyor' },
+  { id: 'K1', topic: 'Geçici teminat', requirement: 'Teklif bedelinin %3’ü, süresiz banka teminat mektubu', clause: 'İdari Ş. 25.1', page: 28, severity: 'Yüksek', impact: '≈ 2,46 M EUR limit', action: 'Banka limiti teyit edildi, mektup hazırlanıyor', owner: 'Finans', state: 'İnceleniyor' },
+  { id: 'K2', topic: 'Kesin teminat', requirement: 'Sözleşme bedelinin %6’sı', clause: 'İdari Ş. 25.3', page: 29, severity: 'Yüksek', impact: '≈ 4,92 M EUR limit', action: 'Ek limit talebi bankaya iletildi', owner: 'Finans', state: 'Eksik' },
+  { id: 'K3', topic: 'Gecikme cezası', requirement: 'Günlük on binde 5, üst sınır %15', clause: 'İdari Ş. 31.4', page: 41, severity: 'Kritik', impact: '60 gün gecikme ≈ 2,46 M EUR', action: 'Zeyilname ile %10’a indirilmesi talep edilecek', owner: 'Teklif', state: 'Karşılanmıyor' },
+  { id: 'K4', topic: 'Ödeme süresi', requirement: 'Hakediş onayından sonra 90 gün', clause: 'Özel Ş. 14.7', page: 71, severity: 'Kritik', impact: 'İlk 6 ayda ~10 M EUR nakit ihtiyacı', action: 'Nakit akışı 90 güne göre revize edildi', owner: 'Finans', state: 'İnceleniyor' },
   { id: 'K5', topic: 'Avans', requirement: 'Avans verilmeyecek', clause: 'İdari Ş. 25.1', page: 28, severity: 'Yüksek', impact: 'Mobilizasyon özkaynakla', action: 'Kredi ön onayı alındı', owner: 'Finans', state: 'Karşılanıyor' },
-  { id: 'K6', topic: 'İş deneyimi', requirement: 'Son 15 yılda teklif bedelinin %80’i oranında benzer iş', clause: 'İdari Ş. 7.5', page: 17, severity: 'Kritik', impact: '≈ 118,8 M EUR belge gerekli', action: 'Adana + Bandırma belgeleri birleştirilecek; iş ortaklığı değerlendiriliyor', owner: 'PMO', state: 'İnceleniyor' },
+  { id: 'K6', topic: 'İş deneyimi', requirement: 'Son 15 yılda teklif bedelinin %80’i oranında benzer iş', clause: 'İdari Ş. 7.5', page: 17, severity: 'Kritik', impact: '≈ 65,6 M EUR belge gerekli', action: 'Adana + Bandırma belgeleri birleştirilecek; iş ortaklığı değerlendiriliyor', owner: 'PMO', state: 'İnceleniyor' },
   { id: 'K7', topic: 'Fiyat farkı', requirement: 'Fiyat farkı ödenmeyecek', clause: 'Özel Ş. 13.8', page: 63, severity: 'Kritik', impact: '24 ayda %18–25 maliyet artış riski', action: 'Teklife eskalasyon karşılığı eklendi (%6,5)', owner: 'Teklif', state: 'Karşılanmıyor' },
   { id: 'K8', topic: 'İş programı', requirement: 'Sözleşmeden sonra 14 gün içinde sunum', clause: 'İdari Ş. 21.1', page: 33, severity: 'Orta', impact: 'Çelişki: Sözleşme 8.3 → 28 gün', action: 'Açıklama talebi soru listesine eklendi', owner: 'PMO', state: 'İnceleniyor' },
   { id: 'K9', topic: 'Sigorta', requirement: 'CAR + üçüncü şahıs 25 M EUR limit', clause: 'Özel Ş. 18.3', page: 84, severity: 'Orta', impact: 'Prim tahmini 780 bin EUR', action: 'Broker teklifi alındı', owner: 'Finans', state: 'Karşılanıyor' },
@@ -217,18 +217,18 @@ export const boqItems: BoqItem[] = [
 /* ---------------- 6. Teklif riskleri ---------------- */
 
 export const bidRisks: BidRisk[] = [
-  { id: 'R1', category: 'Sözleşmesel', title: 'Fiyat farkı ödenmemesi', description: '24 aylık işte malzeme ve işçilik artışının tamamı yüklenicide. Özellikle çelik kazık ve çimento fiyatları kritik.', probability: 5, impact: 5, costImpact: 9_600_000, timeImpact: 0, mitigation: 'Teklife %6,5 eskalasyon karşılığı; çelik için erken tedarik ve fiyat kilidi', owner: 'Teklif', state: 'Açık' },
-  { id: 'R2', category: 'Zemin', title: 'Doğu uçta kazık boyu belirsizliği', description: '180 m’lik bölümde sondaj yok. Kazık boyu %15 artarsa doğrudan maliyet artışı.', probability: 4, impact: 4, costImpact: 2_400_000, timeImpact: 35, mitigation: 'İdareden ek sondaj talebi; kazık kalemi birim fiyatlı kalsın', owner: 'Teknik', state: 'Açık' },
-  { id: 'R3', category: 'Finansal', title: '90 gün ödeme + avans yok', description: 'İlk 6 ayda yaklaşık 18 M EUR negatif nakit. Kredi maliyeti tekliften eksilir.', probability: 5, impact: 4, costImpact: 3_100_000, timeImpact: 0, mitigation: 'Kredi limiti ön onayı, hakediş kesme sıklığının artırılması talebi', owner: 'Finans', state: 'İzleniyor' },
-  { id: 'R4', category: 'Program', title: 'Liman operasyonu nedeniyle 10 saatlik çalışma penceresi', description: 'Vardiya kısıtı üretkenliği düşürüyor; program sıkışırsa ceza riski.', probability: 4, impact: 3, costImpact: 1_450_000, timeImpact: 45, mitigation: 'Gece çalışma izni talebi; kritik imalatlarda paralel ekip', owner: 'PMO', state: 'Açık' },
-  { id: 'R5', category: 'Program', title: 'Kış döneminde dalga kaynaklı duraklamalar', description: 'Kasım–Mart arasında deniz imalatlarında tahmini %20 verimlilik kaybı.', probability: 4, impact: 3, costImpact: 980_000, timeImpact: 30, mitigation: 'Deniz işlerini yaz penceresine öne çeken program kurgusu', owner: 'PMO', state: 'İzleniyor' },
-  { id: 'R6', category: 'Sözleşmesel', title: 'Gecikme cezası tavanının %15 olması', description: 'Ceza tavanı piyasa pratiğinin üzerinde; program riski doğrudan bilançoya yansıyor.', probability: 3, impact: 5, costImpact: 4_400_000, timeImpact: 0, mitigation: 'Zeyilname ile %10 talebi; kabul edilmezse teklife risk primi', owner: 'C-Suite', state: 'Açık' },
-  { id: 'R7', category: 'Tedarik', title: 'Çelik boru kazık temin süresi', description: 'Ø1220 mm boru için üretim + teslim süresi 5–7 ay. Gecikme kritik yolu doğrudan etkiler.', probability: 3, impact: 4, costImpact: 1_200_000, timeImpact: 60, mitigation: 'Sözleşme öncesi tedarikçi ön anlaşması, iki alternatif üretici', owner: 'Satınalma', state: 'Açık' },
-  { id: 'R8', category: 'Kur', title: 'EUR gelir – TL gider uyumsuzluğu', description: 'Gelir EUR, maliyetin %55’i TL. Kur gerilerse marj erir.', probability: 3, impact: 3, costImpact: 1_750_000, timeImpact: 0, mitigation: 'Doğal hedge oranının artırılması, forward değerlendirmesi', owner: 'Finans', state: 'İzleniyor' },
+  { id: 'R1', category: 'Sözleşmesel', title: 'Fiyat farkı ödenmemesi', description: '24 aylık işte malzeme ve işçilik artışının tamamı yüklenicide. Özellikle çelik kazık ve çimento fiyatları kritik.', probability: 5, impact: 5, costImpact: 5_200_000, timeImpact: 0, mitigation: 'Teklife %6,5 eskalasyon karşılığı; çelik için erken tedarik ve fiyat kilidi', owner: 'Teklif', state: 'Açık' },
+  { id: 'R2', category: 'Zemin', title: 'Doğu uçta kazık boyu belirsizliği', description: '180 m’lik bölümde sondaj yok. Kazık boyu %15 artarsa doğrudan maliyet artışı.', probability: 4, impact: 4, costImpact: 1_900_000, timeImpact: 35, mitigation: 'İdareden ek sondaj talebi; kazık kalemi birim fiyatlı kalsın', owner: 'Teknik', state: 'Açık' },
+  { id: 'R3', category: 'Finansal', title: '90 gün ödeme + avans yok', description: 'İlk 6 ayda yaklaşık 18 M EUR negatif nakit. Kredi maliyeti tekliften eksilir.', probability: 5, impact: 4, costImpact: 2_050_000, timeImpact: 0, mitigation: 'Kredi limiti ön onayı, hakediş kesme sıklığının artırılması talebi', owner: 'Finans', state: 'İzleniyor' },
+  { id: 'R4', category: 'Program', title: 'Liman operasyonu nedeniyle 10 saatlik çalışma penceresi', description: 'Vardiya kısıtı üretkenliği düşürüyor; program sıkışırsa ceza riski.', probability: 4, impact: 3, costImpact: 1_100_000, timeImpact: 45, mitigation: 'Gece çalışma izni talebi; kritik imalatlarda paralel ekip', owner: 'PMO', state: 'Açık' },
+  { id: 'R5', category: 'Program', title: 'Kış döneminde dalga kaynaklı duraklamalar', description: 'Kasım–Mart arasında deniz imalatlarında tahmini %20 verimlilik kaybı.', probability: 4, impact: 3, costImpact: 740_000, timeImpact: 30, mitigation: 'Deniz işlerini yaz penceresine öne çeken program kurgusu', owner: 'PMO', state: 'İzleniyor' },
+  { id: 'R6', category: 'Sözleşmesel', title: 'Gecikme cezası tavanının %15 olması', description: 'Ceza tavanı piyasa pratiğinin üzerinde; program riski doğrudan bilançoya yansıyor.', probability: 3, impact: 5, costImpact: 2_460_000, timeImpact: 0, mitigation: 'Zeyilname ile %10 talebi; kabul edilmezse teklife risk primi', owner: 'C-Suite', state: 'Açık' },
+  { id: 'R7', category: 'Tedarik', title: 'Çelik boru kazık temin süresi', description: 'Ø1220 mm boru için üretim + teslim süresi 5–7 ay. Gecikme kritik yolu doğrudan etkiler.', probability: 3, impact: 4, costImpact: 900_000, timeImpact: 60, mitigation: 'Sözleşme öncesi tedarikçi ön anlaşması, iki alternatif üretici', owner: 'Satınalma', state: 'Açık' },
+  { id: 'R8', category: 'Kur', title: 'EUR gelir – TL gider uyumsuzluğu', description: 'Gelir EUR, maliyetin %55’i TL. Kur gerilerse marj erir.', probability: 3, impact: 3, costImpact: 1_180_000, timeImpact: 0, mitigation: 'Doğal hedge oranının artırılması, forward değerlendirmesi', owner: 'Finans', state: 'İzleniyor' },
   { id: 'R9', category: 'Yeterlilik', title: 'İş deneyim belgesi yetersizliği', description: 'Tek başına %80 kriteri karşılanmıyor; iş ortaklığı gerekebilir.', probability: 3, impact: 5, costImpact: 0, timeImpact: 0, mitigation: 'Pilot ortak olarak ortaklık kurgusu; belge birleştirme', owner: 'PMO', state: 'Açık' },
-  { id: 'R10', category: 'Kapsam', title: 'CCTV / güvenlik sistemleri kapsamının belirsizliği', description: 'Teknik şartnamede kapsam net değil; götürü kalem risk taşıyor.', probability: 3, impact: 2, costImpact: 620_000, timeImpact: 0, mitigation: 'Soru listesine eklendi; kapsam netleşmezse ihtirazi kayıt', owner: 'Teknik', state: 'Açık' },
-  { id: 'R11', category: 'Çevre', title: 'Tarama malzemesinin bertaraf izni', description: 'Dip tarama malzemesinin döküm sahası izni idarede; gecikirse deniz işleri başlayamaz.', probability: 2, impact: 4, costImpact: 540_000, timeImpact: 40, mitigation: 'İzin durumunun teklif öncesi yazılı teyidi', owner: 'PMO', state: 'İzleniyor' },
-  { id: 'R12', category: 'Kaynak', title: 'Deniz ekipmanı (şahmerdan, vinç) kiralama maliyeti', description: 'Filo bizde yok; kira piyasası dar ve fiyat dalgalı.', probability: 3, impact: 3, costImpact: 1_320_000, timeImpact: 20, mitigation: 'İki tedarikçiden bağlayıcı teklif; uzun dönem kira opsiyonu', owner: 'Satınalma', state: 'Açık' },
+  { id: 'R10', category: 'Kapsam', title: 'CCTV / güvenlik sistemleri kapsamının belirsizliği', description: 'Teknik şartnamede kapsam net değil; götürü kalem risk taşıyor.', probability: 3, impact: 2, costImpact: 470_000, timeImpact: 0, mitigation: 'Soru listesine eklendi; kapsam netleşmezse ihtirazi kayıt', owner: 'Teknik', state: 'Açık' },
+  { id: 'R11', category: 'Çevre', title: 'Tarama malzemesinin bertaraf izni', description: 'Dip tarama malzemesinin döküm sahası izni idarede; gecikirse deniz işleri başlayamaz.', probability: 2, impact: 4, costImpact: 410_000, timeImpact: 40, mitigation: 'İzin durumunun teklif öncesi yazılı teyidi', owner: 'PMO', state: 'İzleniyor' },
+  { id: 'R12', category: 'Kaynak', title: 'Deniz ekipmanı (şahmerdan, vinç) kiralama maliyeti', description: 'Filo bizde yok; kira piyasası dar ve fiyat dalgalı.', probability: 3, impact: 3, costImpact: 990_000, timeImpact: 20, mitigation: 'İki tedarikçiden bağlayıcı teklif; uzun dönem kira opsiyonu', owner: 'Satınalma', state: 'Açık' },
 ]
 
 /* ---------------- 7. Kontrat analizi ---------------- */

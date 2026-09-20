@@ -143,11 +143,11 @@ export function TeklifRiskleri({ writable, role }: { writable: boolean; role: st
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-2 text-[12.5px]">
                 {[
-                  { l: 'Eskalasyon karşılığı (fiyat farkı yok)', v: 9_600_000 },
-                  { l: 'Finansman maliyeti (90 gün ödeme)', v: 3_100_000 },
-                  { l: 'Zemin belirsizliği karşılığı', v: 2_400_000 },
-                  { l: 'Program / verimlilik karşılığı', v: 2_430_000 },
-                  { l: 'Diğer riskler', v: 4_800_000 },
+                  { l: 'Eskalasyon karşılığı (fiyat farkı yok)', v: 3_900_000 },
+                  { l: 'Finansman maliyeti (90 gün ödeme)', v: 1_650_000 },
+                  { l: 'Zemin belirsizliği karşılığı', v: 1_400_000 },
+                  { l: 'Program / verimlilik karşılığı', v: 1_100_000 },
+                  { l: 'Diğer riskler', v: 850_000 },
                 ].map((r) => (
                   <div key={r.l} className="flex items-center gap-2 border-b border-[var(--border)] pb-2 last:border-0">
                     <span className="text-[var(--ink)]">{r.l}</span>
@@ -156,16 +156,17 @@ export function TeklifRiskleri({ writable, role }: { writable: boolean; role: st
                 ))}
                 <div className="flex items-center gap-2 pt-1 text-[13px] font-bold">
                   <span className="text-[var(--ink)]">Toplam karşılık</span>
-                  <span className="ml-auto tnum text-[var(--crit)]">{money(22_330_000, project.currency)}</span>
+                  <span className="ml-auto tnum text-[var(--crit)]">{money(8_900_000, project.currency)}</span>
                 </div>
               </div>
               <div className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] p-3 text-[12.5px] leading-relaxed text-[var(--muted)]">
-                <b className="text-[var(--ink)]">Yorum:</b> Risk karşılıkları yaklaşık bedelin {pct(15, 0)}’ine denk geliyor.
-                Bu seviye rekabetçi bir teklifi zorlaştırır. Gecikme cezası tavanı ve ödeme süresi zeyilname ile iyileştirilirse
-                karşılığın yaklaşık {moneyShort(4_300_000, project.currency)} kadarı geri kazanılabilir.
+                <b className="text-[var(--ink)]">Yorum:</b> Risk karşılıkları ön teklif bedelinin yaklaşık {pct(12, 0)}’sine denk geliyor.
+                En kötü senaryo toplamı {moneyShort(totalCost, project.currency)}; karşılık bunun yarısı kadar tutuluyor.
+                Gecikme cezası tavanı ve ödeme süresi zeyilname ile iyileştirilirse karşılığın yaklaşık
+                {' '}{moneyShort(1_900_000, project.currency)} kadarı geri kazanılabilir.
                 <div className="mt-2 flex gap-2">
-                  <Badge tone="warn">Karşılık payı {pct(15)}</Badge>
-                  <Badge tone="ok">İyileştirme potansiyeli {moneyShort(4_300_000, project.currency)}</Badge>
+                  <Badge tone="warn">Karşılık payı {pct(12)}</Badge>
+                  <Badge tone="ok">İyileştirme potansiyeli {moneyShort(1_900_000, project.currency)}</Badge>
                 </div>
               </div>
             </div>

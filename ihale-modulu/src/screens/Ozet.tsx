@@ -12,14 +12,16 @@ import { date, daysLabel, money, moneyShort, num, pct } from '../lib/format'
 export function Ozet({ onGo }: { onGo: (t: TabKey) => void }) {
   const score = goNoGoCriteria.reduce((a, c) => a + c.weight * c.score, 0) / goNoGoCriteria.reduce((a, c) => a + c.weight, 0)
   const boqTotal = boqItems.reduce((a, b) => a + b.qty * b.unitPrice, 0)
-  const riskProvision = 22_330_000
+  const riskProvision = 8_900_000
+  const overhead = 6_400_000      // şantiye genel giderleri + merkez payı
+  const profit = 5_500_000        // hedeflenen kâr
   const critFindings = findings.filter((f) => f.severity === 'Kritik')
   const openTerms = criticalTerms.filter((t) => ['Eksik', 'Karşılanmıyor'].includes(t.state))
   const missingCerts = certificates.filter((c) => c.required && !c.owned)
   const against = clauses.filter((c) => c.position === 'Yüklenici aleyhine')
   const topRisks = [...bidRisks].sort((a, b) => b.probability * b.impact - a.probability * a.impact).slice(0, 4)
-  const bidPrice = boqTotal + riskProvision
-  const margin = 7.4
+  const bidPrice = boqTotal + overhead + riskProvision + profit
+  const margin = (profit / bidPrice) * 100
 
   const actions = [
     { p: 'Kritik', t: 'Gecikme cezası tavanının %10’a indirilmesi için zeyilname talebi gönderilsin', o: 'Teklif', d: '2026-09-30', tab: 'kritik_sartlar' as TabKey },
@@ -81,8 +83,8 @@ export function Ozet({ onGo }: { onGo: (t: TabKey) => void }) {
 
         <div className="lg:col-span-8">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Kpi label="Ön teklif bedeli" value={moneyShort(bidPrice, project.currency)} sub={`Metraj ${moneyShort(boqTotal, project.currency)} + karşılık`} tone="accent" />
-            <Kpi label="Risk karşılığı" value={moneyShort(riskProvision, project.currency)} sub={`Bedelin ${pct(15)}’i`} tone="crit" />
+            <Kpi label="Ön teklif bedeli" value={moneyShort(bidPrice, project.currency)} sub={`Direkt ${moneyShort(boqTotal, project.currency)} + genel gider + risk + kâr`} tone="accent" />
+            <Kpi label="Risk karşılığı" value={moneyShort(riskProvision, project.currency)} sub={`Teklifin ${pct((riskProvision / bidPrice) * 100)}’i`} tone="crit" />
             <Kpi label="Beklenen marj" value={pct(margin, 1)} sub="Hedef %10" tone="warn" />
             <Kpi label="İdare yaklaşık bedeli" value={moneyShort(project.estimatedValue, project.currency)} sub={`Fark ${pct(((bidPrice - project.estimatedValue) / project.estimatedValue) * 100, 1)}`} />
             <Kpi label="Kritik bulgu" value={critFindings.length} sub={`${findings.length} bulgu içinde`} tone="crit" />
@@ -264,7 +266,7 @@ export function Ozet({ onGo }: { onGo: (t: TabKey) => void }) {
               Ancak sözleşme üç noktada belirgin biçimde işveren lehine: <b>fiyat farkı yok</b>, <b>90 gün ödeme ve avans yok</b>,
               <b> gecikme cezası tavanı %15</b>. Bu üç madde, teklife yaklaşık {money(riskProvision, project.currency)} karşılık eklenmesini
               gerektiriyor ve marjı hedefin altına, {pct(margin, 1)} seviyesine indiriyor.
-              Zeyilname ile ceza tavanı ve ödeme süresi iyileştirilirse yaklaşık {moneyShort(4_300_000, project.currency)} geri kazanılır;
+              Zeyilname ile ceza tavanı ve ödeme süresi iyileştirilirse yaklaşık {moneyShort(1_900_000, project.currency)} geri kazanılır;
               bu durumda teklif rekabetçi olur. İş deneyim oranı tek başımıza karşılanmadığı için iş ortaklığı kararı
               2 Ekim’e kadar netleşmelidir.
             </p>
