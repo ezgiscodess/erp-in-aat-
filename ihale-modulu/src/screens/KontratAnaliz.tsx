@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { clauses } from '../data/mock'
 import type { ClauseAnalysis } from '../data/types'
 import {
-  Badge, Bar, Btn, Card, Chips, Kpi, PageHead, PreviewPane, ReadOnlyNote, SeverityBadge, Table, Td, Th,
+  Badge, Bar, Btn, Card, Chips, Kpi, PageHead, PreviewPane, ReadOnlyNote, SeverityBadge, StickyPane, Table, Td, Th,
 } from '../components/ui'
 import { pct } from '../lib/format'
 
@@ -50,9 +50,10 @@ export function KontratAnaliz({ writable, role }: { writable: boolean; role: str
         <Kpi label="En kısa süre" value="48 saat" sub="Sözlü talimat teyidi" tone="crit" />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-        <div className="lg:col-span-7">
-          <div className="mb-3">
+      {/* Solda madde listesi ve analiz kartları, sağda yalnızca doküman önizlemesi */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <div className="flex flex-col gap-4">
+          <div>
             <Chips<Filter> value={filter} onChange={setFilter} items={[
               { key: 'Tümü', label: 'Tümü', count: clauses.length },
               { key: 'Aleyhine', label: 'Aleyhimize', count: against },
@@ -64,12 +65,11 @@ export function KontratAnaliz({ writable, role }: { writable: boolean; role: str
           <Card title={`Maddeler (${list.length})`} help="Satıra tıklayınca maddenin sözleşmedeki asıl metni sağdaki önizlemede vurgulanarak açılır." pad={false}>
             <Table head={
               <tr>
-                <Th w={80}>Madde</Th>
-                <Th w={220}>Başlık</Th>
-                <Th w={110}>Kategori</Th>
-                <Th w={140}>Konum</Th>
-                <Th w={90}>Önem</Th>
-                <Th w={90}>Süre</Th>
+                <Th w={74}>Madde</Th>
+                <Th w={195}>Başlık ve kategori</Th>
+                <Th w={110}>Konum</Th>
+                <Th w={74}>Önem</Th>
+                <Th w={70}>Süre</Th>
               </tr>
             }>
               {list.map((c) => (
@@ -78,9 +78,9 @@ export function KontratAnaliz({ writable, role }: { writable: boolean; role: str
                   <Td mono nowrap><span className="text-[var(--accent)]">{c.clause}</span></Td>
                   <Td>
                     <div className="text-[12.5px] font-medium text-[var(--ink)]">{c.title}</div>
+                    <div className="mt-0.5 text-[11px] text-[var(--faint)]">{c.category}</div>
                     {c.conflictWith && <div className="mt-0.5 text-[11px] text-[var(--warn)]">⚠ Çelişki: {c.conflictWith}</div>}
                   </Td>
-                  <Td nowrap><span className="text-[var(--muted)]">{c.category}</span></Td>
                   <Td nowrap><Badge tone={positionTone(c.position)} dot>{c.position.replace('Yüklenici ', '')}</Badge></Td>
                   <Td nowrap><SeverityBadge value={c.severity} /></Td>
                   <Td nowrap>{c.timeBarDays ? <Badge tone="warn">{c.timeBarDays < 3 ? '48 saat' : `${c.timeBarDays} gün`}</Badge> : <span className="text-[var(--faint)]">—</span>}</Td>
@@ -88,35 +88,6 @@ export function KontratAnaliz({ writable, role }: { writable: boolean; role: str
               ))}
             </Table>
           </Card>
-        </div>
-
-        <div className="flex flex-col gap-4 lg:col-span-5">
-          <PreviewPane
-            title={`${sel.clause} — ${sel.title}`}
-            preview={{
-              doc: 'Sozlesme Tasarisi (Ozel Sartlar).pdf',
-              page: sel.page,
-              pages: 126,
-              clause: sel.clause,
-              highlight: sel.quote,
-              body: `${sel.quote}\n\n${sel.summary}`,
-            }}
-            footer={
-              <div className="flex flex-col gap-2">
-                <div className="flex flex-wrap gap-2">
-                  <Badge tone={positionTone(sel.position)} dot>{sel.position}</Badge>
-                  <SeverityBadge value={sel.severity} />
-                  {sel.timeBarDays && <Badge tone="warn">Süre sınırı: {sel.timeBarDays < 3 ? '48 saat' : `${sel.timeBarDays} gün`}</Badge>}
-                  {sel.conflictWith && <Badge tone="crit">Çelişki: {sel.conflictWith}</Badge>}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Btn small disabled={!writable}>Soru listesine ekle</Btn>
-                  <Btn small disabled={!writable}>Revizyon öner</Btn>
-                  <Btn small primary disabled={!writable}>Yükümlülük olarak izle</Btn>
-                </div>
-              </div>
-            }
-          />
 
           <Card title="Risk paylaşımı dengesi" help="Maddelerin hangi tarafın lehine olduğunun dağılımı. Standart FIDIC dengesine göre sapma, revizyon talebi için gerekçedir.">
             <div className="flex flex-col gap-3">
@@ -154,6 +125,37 @@ export function KontratAnaliz({ writable, role }: { writable: boolean; role: str
             </div>
           </Card>
         </div>
+
+        <StickyPane>
+          <PreviewPane
+            title={`${sel.clause} — ${sel.title}`}
+            preview={{
+              doc: 'Sozlesme Tasarisi (Ozel Sartlar).pdf',
+              page: sel.page,
+              pages: 126,
+              clause: sel.clause,
+              highlight: sel.quote,
+              body: `${sel.quote}\n\n${sel.summary}`,
+            }}
+            paper
+            height={340}
+            footer={
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <Badge tone={positionTone(sel.position)} dot>{sel.position}</Badge>
+                  <SeverityBadge value={sel.severity} />
+                  {sel.timeBarDays && <Badge tone="warn">Süre sınırı: {sel.timeBarDays < 3 ? '48 saat' : `${sel.timeBarDays} gün`}</Badge>}
+                  {sel.conflictWith && <Badge tone="crit">Çelişki: {sel.conflictWith}</Badge>}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Btn small disabled={!writable}>Soru listesine ekle</Btn>
+                  <Btn small disabled={!writable}>Revizyon öner</Btn>
+                  <Btn small primary disabled={!writable}>Yükümlülük olarak izle</Btn>
+                </div>
+              </div>
+            }
+          />
+        </StickyPane>
       </div>
     </>
   )

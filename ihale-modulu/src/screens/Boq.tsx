@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react'
-import { boqItems, project } from '../data/mock'
-import type { BoqItem, TabKey } from '../data/types'
-import { Badge, Btn, Card, Chips, Kpi, PageHead, PreviewPane, ReadOnlyNote, Search, Table, Td, Th } from '../components/ui'
+import { useState } from 'react'
+import { boqItems, project, workGroups } from '../data/mock'
+import type { BoqItem, TabKey, WorkGroup } from '../data/types'
+import { Badge, Btn, Card, Chips, Kpi, PageHead, PreviewPane, ReadOnlyNote, Search, StickyPane, Table, Td, Th } from '../components/ui'
 import { num } from '../lib/format'
 
 /**
@@ -9,11 +9,16 @@ import { num } from '../lib/format'
  * İhale dokümanında birim fiyat bulunmaz; fiyat, firmanın Birim Fiyat Havuzu'ndan eşleşir.
  */
 export function Boq({ writable, role, onGo }: { writable: boolean; role: string; onGo: (t: TabKey) => void }) {
-  const [group, setGroup] = useState<string>('Tümü')
+  const [group, setGroup] = useState<'Tümü' | WorkGroup>('Tümü')
   const [q, setQ] = useState('')
-  const [sel, setSel] = useState<BoqItem>(boqItems[3])
+  const [sel, setSel] = useState<BoqItem>(boqItems[5])
 
-  const groups = useMemo(() => ['Tümü', ...new Set(boqItems.map((b) => b.group))], [])
+  /** Çipler sabit iş grubu listesinden gelir: kalemi olmayan grup da görünür. */
+  const chips = [
+    { key: 'Tümü' as const, label: 'Tümü', count: boqItems.length },
+    ...workGroups.map((g) => ({ key: g, label: g, count: boqItems.filter((b) => b.group === g).length })),
+  ]
+
   const rows = boqItems.filter((b) => {
     if (group !== 'Tümü' && b.group !== group) return false
     if (q.trim()) {
@@ -51,10 +56,10 @@ export function Boq({ writable, role, onGo }: { writable: boolean; role: string;
           help="Metrajı çıkarılmış çizim sayısı. Eksik çizimlerde metraj geçici olarak idare cetvelinden alınır." />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-        <div className="xl:col-span-8">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <div>
           <div className="mb-3 flex flex-wrap items-center gap-2">
-            <Chips value={group} onChange={setGroup} items={groups.map((g) => ({ key: g, label: g }))} />
+            <Chips<'Tümü' | WorkGroup> value={group} onChange={setGroup} items={chips} />
             <div className="ml-auto"><Search value={q} onChange={setQ} placeholder="Poz ara…" /></div>
           </div>
 
@@ -65,12 +70,11 @@ export function Boq({ writable, role, onGo }: { writable: boolean; role: string;
           >
             <Table head={
               <tr>
-                <Th w={80}>Poz no</Th>
-                <Th w={250}>İş kalemi</Th>
-                <Th w={60}>Birim</Th>
-                <Th w={85} right>Metraj</Th>
-                <Th w={120}>Metraj kaynağı</Th>
-                <Th w={130}>Havuz fiyatı</Th>
+                <Th w={72}>Poz no</Th>
+                <Th w={210}>İş kalemi ve metraj kaynağı</Th>
+                <Th w={46}>Birim</Th>
+                <Th w={76} right>Metraj</Th>
+                <Th w={118}>Havuz fiyatı</Th>
               </tr>
             }>
               {rows.map((b) => {
@@ -83,12 +87,12 @@ export function Boq({ writable, role, onGo }: { writable: boolean; role: string;
                     <Td mono nowrap>{b.no}</Td>
                     <Td>
                       <div className="text-[12.5px] text-[var(--ink)]">{b.description}</div>
+                      <div className="mt-0.5 text-[11px] text-[var(--faint)]">{b.source}</div>
                       {b.note && <div className="mt-0.5 text-[11px] text-[var(--warn)]">⚠ {b.note}</div>}
                       {low && !b.note && <div className="mt-0.5 text-[11px] text-[var(--warn)]">⚠ Ölçüm güveni %{b.confidence} — elle kontrol edilmeli</div>}
                     </Td>
                     <Td nowrap><span className="text-[var(--muted)]">{b.unit}</span></Td>
                     <Td right>{num(b.qty)}</Td>
-                    <Td nowrap><span className="text-[11.5px] text-[var(--muted)]">{b.source}</span></Td>
                     <Td nowrap>
                       {b.unitPrice != null ? (
                         <span className="flex items-center gap-1.5">
@@ -112,13 +116,13 @@ export function Boq({ writable, role, onGo }: { writable: boolean; role: string;
                 <Td className="bg-[var(--surface-2)]">{''}</Td>
                 <Td className="bg-[var(--surface-2)]">{''}</Td>
                 <Td className="bg-[var(--surface-2)]">{''}</Td>
-                <Td className="bg-[var(--surface-2)]">{''}</Td>
               </tr>
             </Table>
           </Card>
         </div>
 
-        <div className="flex flex-col gap-4 xl:col-span-4">
+        <StickyPane>
+        <div className="flex flex-col gap-4">
           <PreviewPane
             title="Metraj kaynağı"
             preview={{
@@ -127,6 +131,8 @@ export function Boq({ writable, role, onGo }: { writable: boolean; role: string;
               clause: sel.no,
               body: `${sel.description}\n\nMetraj: ${num(sel.qty)} ${sel.unit}\nKaynak: ${sel.source}\nÖlçüm güveni: %${sel.confidence}\n\n${sel.note ?? 'Bu kalemin metrajı çizimden otomatik çıkarılmıştır. Ölçüm güveni %80 ve üzerindeyse teklife doğrudan girebilir.'}`,
             }}
+            paper
+            height={230}
             footer={
               <div className="flex flex-wrap items-center gap-2">
                 <Btn small disabled={!writable}>Metrajı elle düzelt</Btn>
@@ -168,6 +174,7 @@ export function Boq({ writable, role, onGo }: { writable: boolean; role: string;
             </div>
           </Card>
         </div>
+        </StickyPane>
       </div>
     </>
   )

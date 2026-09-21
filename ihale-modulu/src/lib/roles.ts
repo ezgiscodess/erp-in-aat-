@@ -1,4 +1,4 @@
-import type { Access, Role, RoleKey, TabDef, TabKey } from '../data/types'
+import type { Access, Period, Role, RoleKey, TabDef, TabKey } from '../data/types'
 
 /**
  * Roller ve yetki matrisi — gereksinim tablosundaki kurguyla birebir:
@@ -22,6 +22,7 @@ export const tabs: TabDef[] = [
   { key: 'kritik_sartlar', label: 'Kritik İhale Şartları', note: 'Teklifi ve sözleşmeyi bağlayan kritik şartlar ve durumları' },
   { key: 'boq', label: 'Metraj (BoQ / Take-off)', addon: true, note: 'İhale dokümanındaki poz listesi ve metrajlar. İhale dokümanında birim fiyat bulunmaz; fiyatlar Birim Fiyat Havuzu’ndan eşleşir.' },
   { key: 'birim_fiyat', label: 'Birim Fiyat Havuzu', note: 'Firmanın kendi poz numarası ve iş kalemi bazlı birim fiyat havuzu. Projeye değil firmaya aittir; metraj kalemleri buradan fiyatlanır.' },
+  { key: 'is_programi', label: 'İş Programı', addon: true, note: 'Metrajdan türetilen iş programı: imalat süreleri, kritik yol ve sözleşmeden gelen kilometre taşları.' },
   { key: 'teklif_riskleri', label: 'Teklif Riskleri', note: 'Risk matrisi, bedel ve süre etkisi, önlemler' },
   { key: 'kontrat_analiz', label: 'Kontrat Analiz', note: 'Madde bazlı analiz, çelişkiler ve süre sınırları' },
   { key: 'kontrat_hazirlama', label: 'Kontrat Hazırlama', addon: true, note: 'Şablondan sözleşme taslağı üretimi' },
@@ -50,6 +51,14 @@ export function accessFor(tab: TabKey, role: RoleKey): Access {
 
 export function canWrite(tab: TabKey, role: RoleKey): boolean {
   return accessFor(tab, role) === 'RW'
+}
+
+/**
+ * Rol panelden seçilmez: talep üzerine arka planda tanımlanır.
+ * Modül, açılan işin dönemine göre veri girişi yapan rolle çalışır.
+ */
+export function defaultRole(period: Period): RoleKey {
+  return period === 'ihale' ? 'teklif' : 'teknik'
 }
 
 export function roleLabel(key: RoleKey): string {

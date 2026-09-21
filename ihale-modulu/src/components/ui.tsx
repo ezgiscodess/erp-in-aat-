@@ -305,7 +305,7 @@ export interface EditLogEntry {
  * Sağ tarafta duran doküman önizleme ekranı.
  * `editable` verilirse metin elle düzeltilebilir ve her kayıt "Manuel düzeltme" olarak loga düşer.
  */
-export function PreviewPane({ title, preview, editable, user = 'e.yilmaz', log = [], onSave, footer }: {
+export function PreviewPane({ title, preview, editable, user = 'e.yilmaz', log = [], onSave, footer, height, paper }: {
   title?: string
   preview: PreviewDoc
   editable?: boolean
@@ -313,6 +313,10 @@ export function PreviewPane({ title, preview, editable, user = 'e.yilmaz', log =
   log?: EditLogEntry[]
   onSave?: (text: string, entry: EditLogEntry) => void
   footer?: ReactNode
+  /** Metin alanının sabit yüksekliği — soldaki tabloyla eşit görünmesi için */
+  height?: number
+  /** Orijinal dosya görünümü: beyaz sayfa çerçevesi içinde gösterir */
+  paper?: boolean
 }) {
   const [editing, setEditing] = useState(false)
   const [text, setText] = useState(preview.body)
@@ -361,7 +365,7 @@ export function PreviewPane({ title, preview, editable, user = 'e.yilmaz', log =
           </span>
         </header>
 
-        <div className="p-4">
+        <div className={`overflow-y-auto ${paper ? 'bg-[var(--surface-2)] p-4' : 'p-4'}`} style={height ? { height } : undefined}>
           {editing ? (
             <textarea
               value={text}
@@ -370,7 +374,7 @@ export function PreviewPane({ title, preview, editable, user = 'e.yilmaz', log =
               className="w-full resize-y rounded-md border border-[var(--accent)] bg-[var(--surface)] p-3 text-[12.5px] leading-relaxed text-[var(--ink)] outline-none"
             />
           ) : (
-            <div className="text-[12.5px] leading-[1.9] text-[var(--ink)]">
+            <div className={`text-[12.5px] leading-[1.9] text-[var(--ink)] ${paper ? 'mx-auto max-w-[620px] rounded-sm border border-[var(--border)] bg-white px-7 py-6 shadow-sm' : ''}`}>
               <div className="mb-3 h-2 w-1/3 rounded bg-[var(--surface-3)]" />
               {parts ? (
                 <p>{parts[0]}<mark className="evidence">{preview.highlight}</mark>{parts.slice(1).join(preview.highlight)}</p>
@@ -380,6 +384,14 @@ export function PreviewPane({ title, preview, editable, user = 'e.yilmaz', log =
               <div className="mt-3 h-2 w-full rounded bg-[var(--surface-3)]" />
               <div className="mt-1 h-2 w-5/6 rounded bg-[var(--surface-3)]" />
               <div className="mt-1 h-2 w-4/6 rounded bg-[var(--surface-3)]" />
+              {paper && <>
+                <div className="mt-4 h-2 w-full rounded bg-[var(--surface-3)]" />
+                <div className="mt-1 h-2 w-11/12 rounded bg-[var(--surface-3)]" />
+                <div className="mt-1 h-2 w-3/4 rounded bg-[var(--surface-3)]" />
+                <div className="mt-4 h-2 w-2/3 rounded bg-[var(--surface-3)]" />
+                <div className="mt-1 h-2 w-full rounded bg-[var(--surface-3)]" />
+                <div className="mt-1 h-2 w-5/6 rounded bg-[var(--surface-3)]" />
+              </>}
             </div>
           )}
         </div>
@@ -462,6 +474,98 @@ export function AiChat({ suggestions, answers, compact }: {
           className="flex-1 bg-transparent text-[13px] text-[var(--ink)] outline-none placeholder:text-[var(--faint)]" />
         <Btn small primary onClick={() => q.trim() && ask(q)}>Sor</Btn>
       </div>
+    </div>
+  )
+}
+
+/* ---------------- Sağ panel sarmalayıcı ---------------- */
+
+/** Sayfa kaydırılırken sağdaki önizlemenin ekranda kalmasını sağlar. */
+export function StickyPane({ children }: { children: ReactNode }) {
+  return <div className="xl:sticky xl:top-[62px]">{children}</div>
+}
+
+/* ---------------- Form alanı ---------------- */
+
+export function Field({ label, value, onChange, placeholder, type = 'text', hint }: {
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; hint?: string
+}) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">{label}</span>
+      <input
+        type={type} value={value} placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-2 text-[13px] text-[var(--ink)] outline-none focus:border-[var(--accent)]"
+      />
+      {hint && <span className="text-[11px] text-[var(--faint)]">{hint}</span>}
+    </label>
+  )
+}
+
+/* ---------------- Pencere ---------------- */
+
+/** Ortada açılan pencere — ihale/proje yükleme gibi kısa akışlar için. */
+export function Modal({ title, note, onClose, children, footer, wide }: {
+  title: string; note?: string; onClose: () => void; children: ReactNode; footer?: ReactNode; wide?: boolean
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[rgba(16,24,40,0.45)] p-6" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className={`mt-10 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl ${wide ? 'max-w-3xl' : 'max-w-xl'}`}
+      >
+        <header className="flex items-start gap-3 border-b border-[var(--border)] px-5 py-3.5">
+          <div className="min-w-0">
+            <h3 className="text-[14.5px] font-bold text-[var(--ink)]">{title}</h3>
+            {note && <p className="mt-0.5 text-[12px] leading-relaxed text-[var(--muted)]">{note}</p>}
+          </div>
+          <button onClick={onClose} aria-label="Kapat"
+            className="ml-auto grid h-7 w-7 flex-shrink-0 place-items-center rounded-md border border-[var(--border)] text-[14px] text-[var(--muted)] hover:bg-[var(--surface-2)]">×</button>
+        </header>
+        <div className="px-5 py-4">{children}</div>
+        {footer && <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] bg-[var(--surface-2)] px-5 py-3">{footer}</div>}
+      </div>
+    </div>
+  )
+}
+
+/* ---------------- Dosya bırakma alanı ---------------- */
+
+/** Görsel prototipte gerçek yükleme yapılmaz; seçilen dosyalar listelenir. */
+export function Dropzone({ files, onAdd, onRemove }: {
+  files: string[]; onAdd: (names: string[]) => void; onRemove: (name: string) => void
+}) {
+  const samples = [
+    'Idari Sartname.pdf', 'Sozlesme Tasarisi.pdf', 'Teknik Sartname.pdf',
+    'Birim Fiyat Teklif Cetveli.xlsx', 'Cizimler.pdf', 'Zeyilname-01.pdf',
+  ]
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="rounded-lg border-2 border-dashed border-[var(--border-strong)] bg-[var(--surface-2)] px-4 py-6 text-center">
+        <div className="text-[20px]">📄</div>
+        <div className="mt-1 text-[13px] font-medium text-[var(--ink)]">Dosyaları buraya sürükleyin</div>
+        <div className="mt-0.5 text-[11.5px] text-[var(--muted)]">PDF, Word, Excel ve çizim dosyaları · taranmış belgeler OCR ile okunur</div>
+        <div className="mt-3 flex flex-wrap justify-center gap-1.5">
+          {samples.filter((s) => !files.includes(s)).slice(0, 3).map((s) => (
+            <button key={s} onClick={() => onAdd([s])}
+              className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 text-[11.5px] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]">
+              + {s}
+            </button>
+          ))}
+        </div>
+      </div>
+      {files.length > 0 && (
+        <ul className="flex flex-col gap-1">
+          {files.map((f) => (
+            <li key={f} className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-[12.5px]">
+              <span className="text-[var(--ink)]">{f}</span>
+              <Badge tone="warn">yüklenecek</Badge>
+              <button onClick={() => onRemove(f)} className="ml-auto text-[12px] text-[var(--faint)] hover:text-[var(--crit)]">kaldır</button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }

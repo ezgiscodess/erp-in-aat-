@@ -27,8 +27,8 @@ export function Sertifikalar({ writable, role }: { writable: boolean; role: stri
         note="İhale dokümanında istenen belgeler otomatik çıkarılır ve firmanın belge havuzuyla karşılaştırılır."
         right={<>
           <AddonBadge />
-          <Btn disabled={!writable}>+ Belge yükle</Btn>
           <Btn>Eksik listesi (PDF)</Btn>
+          <Btn primary disabled={!writable}>+ Sertifika Ekle</Btn>
         </>}
       />
 
@@ -69,7 +69,7 @@ export function Sertifikalar({ writable, role }: { writable: boolean; role: stri
             <Th w={90}>Durum</Th>
             <Th w={130}>Belge no</Th>
             <Th w={120}>Geçerlilik</Th>
-            <Th w={220}>Not</Th>
+            <Th w={220}>Açıklama</Th>
             <Th w={110}>İşlem</Th>
           </tr>
         }>
@@ -120,7 +120,7 @@ export function Sertifikalar({ writable, role }: { writable: boolean; role: stri
           </div>
         </Card>
 
-        <Card title="Nasıl çalışıyor?">
+        <Card title="Nasıl çalışıyor?" help="Sertifika listesi ihale dokümanından otomatik çıkarılır; firma belge havuzuyla karşılaştırılır.">
           <ol className="flex list-decimal flex-col gap-2 pl-4 text-[12.5px] leading-relaxed text-[var(--muted)]">
             <li>İdari şartnamedeki “istenen belgeler” maddesi AI ile çıkarılır ve bu listeye düşer.</li>
             <li>Liste, firmanın belge havuzuyla eşleştirilir; eksikler ve süresi dolanlar kırmızı işaretlenir.</li>

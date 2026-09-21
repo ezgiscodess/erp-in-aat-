@@ -26,6 +26,7 @@ export type TabKey =
   | 'kritik_sartlar'
   | 'boq'
   | 'birim_fiyat'
+  | 'is_programi'
   | 'teklif_riskleri'
   | 'kontrat_analiz'
   | 'kontrat_hazirlama'
@@ -38,6 +39,32 @@ export interface TabDef {
   /** Ek pakette satılan sekmeler (gereksinim tablosunda sarı işaretli) */
   addon?: boolean
   note: string
+}
+
+/* ---------------- Yüklü işler (giriş sonrası ara sayfa) ---------------- */
+
+/**
+ * Ara sayfadaki kart: şirkete yüklenmiş bir ihale ya da yürüyen bir proje.
+ * "Yükle" ile yeni bir ihale/proje dosyası eklenir; "Aç" ile modül o işin verisiyle açılır.
+ */
+export interface LibraryItem {
+  id: string
+  kind: Period
+  code: string
+  name: string
+  employer: string
+  location: string
+  /** İhalede teklif tarihi, projede sözleşme bitiş tarihi */
+  dueAt: string
+  daysLeft: number
+  value: number
+  currency: string
+  status: string
+  /** Yüklenen doküman sayısı ve analiz ilerlemesi */
+  docCount: number
+  progress: number
+  updatedAt: string
+  updatedBy: string
 }
 
 /* ---------------- Proje / ihale künyesi ---------------- */
@@ -126,14 +153,37 @@ export interface CriticalTerm {
   action: string
   owner: string
   state: 'Karşılanıyor' | 'Eksik' | 'İnceleniyor' | 'Karşılanmıyor'
+  /** Şartın çıkarıldığı doküman (docs listesindeki id) */
+  docId: string
+  /** Doküman sayfasındaki asıl paragraf — sağdaki önizlemede gösterilir */
+  context: string
+  /** Paragraf içinde boyanacak cümle — şartın bahsi geçen kısmı */
+  quote: string
 }
 
 /* ---------------- 5. BoQ / Take-off ---------------- */
 
+/**
+ * Metraj kalemlerinin iş grupları — imalat sırasına göre, her projede aynı.
+ * Liste sabittir; kalemi olmayan grup da çipte görünür ve boş olduğu anlaşılır.
+ */
+export type WorkGroup =
+  | 'Mobilizasyon'
+  | 'Kazı İşleri'
+  | 'Zemin İşleri'
+  | 'Betonarme İşleri'
+  | 'İnce İşler'
+  | 'Mekanik İşleri'
+  | 'Elektrik İşleri'
+  | 'IT'
+  | 'Cephe & Çatı İşleri'
+  | 'Peyzaj'
+  | 'Test ve Devreye Alma'
+
 export interface BoqItem {
   id: string
   no: string
-  group: string
+  group: WorkGroup
   description: string
   unit: string
   qty: number
@@ -187,6 +237,20 @@ export interface BidRisk {
   mitigation: string
   owner: string
   state: 'Açık' | 'İzleniyor' | 'Kapandı'
+  /**
+   * Bedel etkisinin nereden çıktığı — metraj × birim fiyat × oran biçiminde açık hesap.
+   * Fiyatlandırmanın en zor kısmı bu sayının savunulabilir olmasıdır; kaynağı görünür tutulur.
+   */
+  basis: string
+  /** Hesabın dayandığı poz veya kalem (Metraj / Birim Fiyat Havuzu bağlantısı) */
+  basisRef?: string
+  /**
+   * Teklife eklenecek karşılık. Beklenen değerden farklı olabilir:
+   * bazı riskler için sözleşmeye şerh düşülür, bazıları için tam karşılık ayrılır.
+   */
+  provision: number
+  /** Karşılık teklif fiyatına dâhil edilsin mi */
+  inBid: boolean
 }
 
 /* ---------------- 7. Kontrat analizi ---------------- */
@@ -239,6 +303,41 @@ export interface Certificate {
   /** Kalan gün; negatifse süresi dolmuş */
   daysLeft?: number
   note: string
+}
+
+/* ---------------- İş programı ---------------- */
+
+/**
+ * Teklifle birlikte verilen iş programının satırı.
+ * Süreler metrajdan (miktar ÷ günlük kapasite) türetilir; başlangıç işe başlama gününe göre ay cinsindendir.
+ */
+export interface ScheduleTask {
+  id: string
+  wbs: string
+  name: string
+  group: WorkGroup | 'Genel'
+  /** İşe başlamadan itibaren kaçıncı ayda başlıyor (0 = ilk ay) */
+  startMonth: number
+  /** Kaç ay sürüyor */
+  months: number
+  /** Kritik yolda mı — gecikmesi bitiş tarihini doğrudan öteler */
+  critical: boolean
+  /** Bağlı olduğu iş (WBS no) */
+  dependsOn?: string
+  /** Süreyi belirleyen kaynak veya kapasite varsayımı */
+  assumption: string
+  /** Programı besleyen metraj kalemi */
+  boqRef?: string
+  progress: number
+}
+
+/** Sözleşmeden gelen, programda sabit duran tarihler */
+export interface ScheduleMilestone {
+  id: string
+  label: string
+  month: number
+  source: string
+  kind: 'Sözleşme' | 'İdare' | 'İç hedef'
 }
 
 /* ---------------- 10. Özet ---------------- */

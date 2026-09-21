@@ -4,7 +4,8 @@
  */
 import type {
   BidRisk, BoqItem, Certificate, ClauseAnalysis, ContractSection, ContractVariable,
-  CriticalTerm, Finding, GoNoGoCriterion, ScopeSection, TenderDoc, TenderProject, Timeline, UnitPrice,
+  CriticalTerm, Finding, GoNoGoCriterion, LibraryItem, ScheduleMilestone, ScheduleTask, ScopeSection,
+  TenderDoc, TenderProject, Timeline, UnitPrice, WorkGroup,
 } from './types'
 
 export const project: TenderProject = {
@@ -27,14 +28,6 @@ export const project: TenderProject = {
   daysLeft: 24,
   progress: 46,
 }
-
-/** Aynı şirketin diğer ihaleleri — proje seçicinin gerçekçi görünmesi için. */
-export const otherProjects = [
-  { id: 'TND-2026-014', name: 'Mersin Konteyner Limanı — Faz 2', status: 'Hazırlanıyor' },
-  { id: 'TND-2026-011', name: 'Bandırma OSB Altyapı ve Yol İşleri', status: 'Teklif Verildi' },
-  { id: 'TND-2026-009', name: 'Adana Şehir Hastanesi Ek Blok', status: 'Kazanıldı' },
-  { id: 'TND-2026-006', name: 'Kuzey Marmara Otoyolu K5 Viyadük', status: 'Kaybedildi' },
-]
 
 /* ---------------- 1. İhale dokümanı analizi ---------------- */
 
@@ -159,19 +152,95 @@ export const goNoGoCriteria: GoNoGoCriterion[] = [
 
 /* ---------------- 4. Kritik ihale şartları ---------------- */
 
+/**
+ * Her şart, geldiği dokümanın paragrafıyla birlikte tutulur:
+ * `context` sağdaki önizlemede açılan sayfa metni, `quote` ise o metinde boyanan cümledir.
+ */
 export const criticalTerms: CriticalTerm[] = [
-  { id: 'K1', topic: 'Geçici teminat', requirement: 'Teklif bedelinin %3’ü, süresiz banka teminat mektubu', clause: 'İdari Ş. 25.1', page: 28, severity: 'Yüksek', impact: '≈ 2,46 M EUR limit', action: 'Banka limiti teyit edildi, mektup hazırlanıyor', owner: 'Finans', state: 'İnceleniyor' },
-  { id: 'K2', topic: 'Kesin teminat', requirement: 'Sözleşme bedelinin %6’sı', clause: 'İdari Ş. 25.3', page: 29, severity: 'Yüksek', impact: '≈ 4,92 M EUR limit', action: 'Ek limit talebi bankaya iletildi', owner: 'Finans', state: 'Eksik' },
-  { id: 'K3', topic: 'Gecikme cezası', requirement: 'Günlük on binde 5, üst sınır %15', clause: 'İdari Ş. 31.4', page: 41, severity: 'Kritik', impact: '60 gün gecikme ≈ 2,46 M EUR', action: 'Zeyilname ile %10’a indirilmesi talep edilecek', owner: 'Teklif', state: 'Karşılanmıyor' },
-  { id: 'K4', topic: 'Ödeme süresi', requirement: 'Hakediş onayından sonra 90 gün', clause: 'Özel Ş. 14.7', page: 71, severity: 'Kritik', impact: 'İlk 6 ayda ~10 M EUR nakit ihtiyacı', action: 'Nakit akışı 90 güne göre revize edildi', owner: 'Finans', state: 'İnceleniyor' },
-  { id: 'K5', topic: 'Avans', requirement: 'Avans verilmeyecek', clause: 'İdari Ş. 25.1', page: 28, severity: 'Yüksek', impact: 'Mobilizasyon özkaynakla', action: 'Kredi ön onayı alındı', owner: 'Finans', state: 'Karşılanıyor' },
-  { id: 'K6', topic: 'İş deneyimi', requirement: 'Son 15 yılda teklif bedelinin %80’i oranında benzer iş', clause: 'İdari Ş. 7.5', page: 17, severity: 'Kritik', impact: '≈ 65,6 M EUR belge gerekli', action: 'Adana + Bandırma belgeleri birleştirilecek; iş ortaklığı değerlendiriliyor', owner: 'PMO', state: 'İnceleniyor' },
-  { id: 'K7', topic: 'Fiyat farkı', requirement: 'Fiyat farkı ödenmeyecek', clause: 'Özel Ş. 13.8', page: 63, severity: 'Kritik', impact: '24 ayda %18–25 maliyet artış riski', action: 'Teklife eskalasyon karşılığı eklendi (%6,5)', owner: 'Teklif', state: 'Karşılanmıyor' },
-  { id: 'K8', topic: 'İş programı', requirement: 'Sözleşmeden sonra 14 gün içinde sunum', clause: 'İdari Ş. 21.1', page: 33, severity: 'Orta', impact: 'Çelişki: Sözleşme 8.3 → 28 gün', action: 'Açıklama talebi soru listesine eklendi', owner: 'PMO', state: 'İnceleniyor' },
-  { id: 'K9', topic: 'Sigorta', requirement: 'CAR + üçüncü şahıs 25 M EUR limit', clause: 'Özel Ş. 18.3', page: 84, severity: 'Orta', impact: 'Prim tahmini 780 bin EUR', action: 'Broker teklifi alındı', owner: 'Finans', state: 'Karşılanıyor' },
-  { id: 'K10', topic: 'Kusur sorumluluğu (DLP)', requirement: '730 gün', clause: 'Özel Ş. 11.1', page: 58, severity: 'Orta', impact: 'Teminat 2 yıl bloke', action: 'Maliyete yansıtıldı', owner: 'Teklif', state: 'Karşılanıyor' },
-  { id: 'K11', topic: 'Yerli katkı', requirement: 'Teklif bedelinin en az %51’i yerli üretim', clause: 'İdari Ş. 9.2', page: 21, severity: 'Orta', impact: 'İthal ekipman payı sınırlanıyor', action: 'Tedarik planı kontrol ediliyor', owner: 'Satınalma', state: 'İnceleniyor' },
-  { id: 'K12', topic: 'İş ortaklığı', requirement: 'Pilot ortak payı en az %51', clause: 'İdari Ş. 8.1', page: 19, severity: 'Düşük', impact: 'Ortaklık kurgusunu belirliyor', action: 'Pilot ortak biz olacağız', owner: 'C-Suite', state: 'Karşılanıyor' },
+  {
+    id: 'K1', topic: 'Geçici teminat', requirement: 'Teklif bedelinin %3’ü, süresiz banka teminat mektubu',
+    clause: 'İdari Ş. 25.1', page: 28, severity: 'Yüksek', impact: '≈ 2,46 M EUR limit',
+    action: 'Banka limiti teyit edildi, mektup hazırlanıyor', owner: 'Finans', state: 'İnceleniyor', docId: 'D1',
+    context: 'Madde 25.1 — Teminatlar: İstekliler, teklif ettikleri bedelin %3’ünden az olmamak üzere kendi belirleyecekleri tutarda geçici teminat vereceklerdir. Geçici teminat olarak sunulan banka teminat mektuplarında süre sınırı bulunmayacaktır. Bu ihalede avans verilmeyecektir.',
+    quote: 'teklif ettikleri bedelin %3’ünden az olmamak üzere',
+  },
+  {
+    id: 'K2', topic: 'Kesin teminat', requirement: 'Sözleşme bedelinin %6’sı',
+    clause: 'İdari Ş. 25.3', page: 29, severity: 'Yüksek', impact: '≈ 4,92 M EUR limit',
+    action: 'Ek limit talebi bankaya iletildi', owner: 'Finans', state: 'Eksik', docId: 'D1',
+    context: 'Madde 25.3 — Kesin teminat: Sözleşmenin imzalanmasından önce, sözleşme bedelinin %6’sı oranında kesin teminat alınır. Kesin teminat mektubu, kabul işlemleri tamamlanıp kesin hesabı çıkarılıncaya kadar İdare’de kalır.',
+    quote: 'sözleşme bedelinin %6’sı oranında kesin teminat',
+  },
+  {
+    id: 'K3', topic: 'Gecikme cezası', requirement: 'Günlük on binde 5, üst sınır %15',
+    clause: 'İdari Ş. 31.4', page: 41, severity: 'Kritik', impact: '60 gün gecikme ≈ 2,46 M EUR',
+    action: 'Zeyilname ile %10’a indirilmesi talep edilecek', owner: 'Teklif', state: 'Karşılanmıyor', docId: 'D1',
+    context: 'Madde 31.4 — Gecikme cezası: Yüklenici, sözleşmede öngörülen süre içinde işi tamamlamadığı takdirde, gecikilen her takvim günü için sözleşme bedelinin on binde beşi oranında gecikme cezası öder. Toplam ceza tutarı sözleşme bedelinin %15’ini geçemez. Gecikme cezası, hakedişlerden veya kesin teminattan kesilir. Cezanın uygulanması, İdare’nin sözleşmeyi feshetme hakkını ortadan kaldırmaz.',
+    quote: 'gecikilen her takvim günü için sözleşme bedelinin on binde beşi',
+  },
+  {
+    id: 'K4', topic: 'Ödeme süresi', requirement: 'Hakediş onayından sonra 90 gün',
+    clause: 'Özel Ş. 14.7', page: 71, severity: 'Kritik', impact: 'İlk 6 ayda ~10 M EUR nakit ihtiyacı',
+    action: 'Nakit akışı 90 güne göre revize edildi', owner: 'Finans', state: 'İnceleniyor', docId: 'D2',
+    context: 'Sub-Clause 14.7 [Payment] — The Employer shall pay the amount certified within 90 days after the Engineer receives the Statement and supporting documents. Payment shall be made in the currencies stated in the Appendix to Tender. No financing charges shall be payable by the Employer in respect of any delay in certification.',
+    quote: 'within 90 days after the Engineer receives the Statement',
+  },
+  {
+    id: 'K5', topic: 'Avans', requirement: 'Avans verilmeyecek',
+    clause: 'İdari Ş. 25.1', page: 28, severity: 'Yüksek', impact: 'Mobilizasyon özkaynakla',
+    action: 'Kredi ön onayı alındı', owner: 'Finans', state: 'Karşılanıyor', docId: 'D1',
+    context: 'Madde 25.1 — Teminatlar ve ödemeler: Bu ihalede avans verilmeyecektir. Yüklenici, mobilizasyon ve ilk dönem finansmanını kendi kaynaklarından karşılar. Kesin teminat, sözleşme bedelinin %6’sı oranındadır.',
+    quote: 'Bu ihalede avans verilmeyecektir.',
+  },
+  {
+    id: 'K6', topic: 'İş deneyimi', requirement: 'Son 15 yılda teklif bedelinin %80’i oranında benzer iş',
+    clause: 'İdari Ş. 7.5', page: 17, severity: 'Kritik', impact: '≈ 65,6 M EUR belge gerekli',
+    action: 'Adana + Bandırma belgeleri birleştirilecek; iş ortaklığı değerlendiriliyor', owner: 'PMO', state: 'İnceleniyor', docId: 'D1',
+    context: 'Madde 7.5 — İş deneyimini gösteren belgeler: İsteklinin, son on beş yıl içinde bedel içeren bir sözleşme kapsamında taahhüt edilen ve teklif edilen bedelin %80’i oranından az olmamak üzere benzer işlere ait iş deneyimini gösteren belgeleri sunması zorunludur. İş ortaklığında pilot ortağın bu oranın en az %51’ini tek başına karşılaması gerekir.',
+    quote: 'teklif edilen bedelin %80’i oranından az olmamak üzere',
+  },
+  {
+    id: 'K7', topic: 'Fiyat farkı', requirement: 'Fiyat farkı ödenmeyecek',
+    clause: 'Özel Ş. 13.8', page: 63, severity: 'Kritik', impact: '24 ayda %18–25 maliyet artış riski',
+    action: 'Teklife eskalasyon karşılığı eklendi (%6,5)', owner: 'Teklif', state: 'Karşılanmıyor', docId: 'D2',
+    context: 'Sub-Clause 13.8 [Adjustments for Changes in Cost] shall be deemed deleted and no adjustment shall be made to the Contract Price for rises or falls in cost of labour, Goods and other inputs to the Works. The Contractor shall be deemed to have satisfied himself as to the sufficiency of the Accepted Contract Amount.',
+    quote: 'no adjustment shall be made to the Contract Price for rises or falls in cost',
+  },
+  {
+    id: 'K8', topic: 'İş programı', requirement: 'Sözleşmeden sonra 14 gün içinde sunum',
+    clause: 'İdari Ş. 21.1', page: 33, severity: 'Orta', impact: 'Çelişki: Sözleşme 8.3 → 28 gün',
+    action: 'Açıklama talebi soru listesine eklendi', owner: 'PMO', state: 'İnceleniyor', docId: 'D1',
+    context: 'Madde 21.1 — İş programı: Yüklenici, sözleşmenin imzalanmasını izleyen 14 takvim günü içinde ayrıntılı iş programını İdare’ye sunar. Program, kaynak ve nakit akışı planlarıyla birlikte verilir; İdare tarafından onaylanmadan imalata başlanamaz.',
+    quote: 'sözleşmenin imzalanmasını izleyen 14 takvim günü içinde',
+  },
+  {
+    id: 'K9', topic: 'Sigorta', requirement: 'CAR + üçüncü şahıs 25 M EUR limit',
+    clause: 'Özel Ş. 18.3', page: 84, severity: 'Orta', impact: 'Prim tahmini 780 bin EUR',
+    action: 'Broker teklifi alındı', owner: 'Finans', state: 'Karşılanıyor', docId: 'D2',
+    context: 'Sub-Clause 18.3 — The Contractor shall effect Contractor’s All Risks insurance together with third party liability cover with a limit of not less than EUR 25,000,000 per occurrence, the number of occurrences being unlimited, and shall maintain such cover until the Performance Certificate is issued.',
+    quote: 'a limit of not less than EUR 25,000,000 per occurrence',
+  },
+  {
+    id: 'K10', topic: 'Kusur sorumluluğu (DLP)', requirement: '730 gün',
+    clause: 'Özel Ş. 11.1', page: 58, severity: 'Orta', impact: 'Teminat 2 yıl bloke',
+    action: 'Maliyete yansıtıldı', owner: 'Teklif', state: 'Karşılanıyor', docId: 'D2',
+    context: 'Sub-Clause 11.1 — The Defects Notification Period shall be 730 days from the date stated in the Taking-Over Certificate. The Performance Security shall remain valid until the Contractor has executed and completed the Works and remedied any defects.',
+    quote: 'The Defects Notification Period shall be 730 days',
+  },
+  {
+    id: 'K11', topic: 'Yerli katkı', requirement: 'Teklif bedelinin en az %51’i yerli üretim',
+    clause: 'İdari Ş. 9.2', page: 21, severity: 'Orta', impact: 'İthal ekipman payı sınırlanıyor',
+    action: 'Tedarik planı kontrol ediliyor', owner: 'Satınalma', state: 'İnceleniyor', docId: 'D1',
+    context: 'Madde 9.2 — Yerli katkı oranı: Teklif bedelinin en az %51’ine karşılık gelen imalat ve malzemenin yerli üretim olması şarttır. İthal edilecek ekipman ve malzemenin payı, teklif ekinde liste hâlinde beyan edilir.',
+    quote: 'Teklif bedelinin en az %51’ine karşılık gelen imalat ve malzemenin yerli üretim olması',
+  },
+  {
+    id: 'K12', topic: 'İş ortaklığı', requirement: 'Pilot ortak payı en az %51',
+    clause: 'İdari Ş. 8.1', page: 19, severity: 'Düşük', impact: 'Ortaklık kurgusunu belirliyor',
+    action: 'Pilot ortak biz olacağız', owner: 'C-Suite', state: 'Karşılanıyor', docId: 'D1',
+    context: 'Madde 8.1 — İş ortaklığı: İhaleye iş ortaklığı olarak teklif verilebilir. Pilot ortağın hissesi en az %51 olmak zorundadır; özel ortakların her birinin hissesi %10’un altında olamaz. Ortaklık beyannamesi teklifle birlikte sunulur.',
+    quote: 'Pilot ortağın hissesi en az %51 olmak zorundadır',
+  },
 ]
 
 /* ---------------- 10. Zaman çizelgesi (Özet ekranı) ---------------- */
@@ -189,46 +258,166 @@ export const timeline: Timeline[] = [
 
 /* ---------------- 5. BoQ / Take-off ---------------- */
 
+/** Çip sırası da bu listedir: imalat akışına göre mobilizasyondan devreye almaya. */
+export const workGroups: WorkGroup[] = [
+  'Mobilizasyon', 'Kazı İşleri', 'Zemin İşleri', 'Betonarme İşleri', 'İnce İşler',
+  'Mekanik İşleri', 'Elektrik İşleri', 'IT', 'Cephe & Çatı İşleri', 'Peyzaj', 'Test ve Devreye Alma',
+]
+
 export const boqItems: BoqItem[] = [
-  { id: 'B1', no: '1000101', group: 'Hazırlık & Mobilizasyon', description: 'Şantiye kurulumu, geçici tesisler ve mobilizasyon', unit: 'Götürü', qty: 1, poolMatch: 'Eşleşti', unitPrice: 2_450_000, source: 'İdare cetveli', confidence: 100 },
-  { id: 'B2', no: '1000205', group: 'Hazırlık & Mobilizasyon', description: 'Mevcut saha kaplamasının sökümü ve taşınması', unit: 'm²', qty: 48_500, poolMatch: 'Eşleşti', unitPrice: 9.4, source: 'Çizim P-102', confidence: 93 },
-  { id: 'B3', no: '1000312', group: 'Deniz İşleri', description: 'Tarama (dredging), deniz tabanı düzeltme, −16,00 kotuna', unit: 'm³', qty: 386_000, poolMatch: 'Benzer poz', unitPrice: 11.8, source: 'Çizim D-201 + batimetri', confidence: 76, note: 'Batimetri 2024 tarihli; güncel ölçüm istenmeli' },
-  { id: 'B4', no: '1000487', group: 'Deniz İşleri', description: 'Çelik boru kazık Ø1220 mm, t=20 mm, temin ve çakım', unit: 'ton', qty: 9_850, poolMatch: 'Eşleşti', unitPrice: 1_640, source: 'Çizim D-204', confidence: 71, note: 'Kazık boyu doğu uçta belirsiz (sondaj yok)' },
-  { id: 'B5', no: '1000520', group: 'Deniz İşleri', description: 'Kazık başlığı betonu C35/45, donatı dâhil', unit: 'm³', qty: 12_400, poolMatch: 'Eşleşti', unitPrice: 268, source: 'Çizim D-206', confidence: 88 },
-  { id: 'B6', no: '1000534', group: 'Deniz İşleri', description: 'Rıhtım tabliyesi prekast kiriş üretimi ve montajı', unit: 'ad', qty: 268, poolMatch: 'Eşleşti', unitPrice: 14_900, source: 'Çizim D-211', confidence: 90 },
-  { id: 'B7', no: '1000560', group: 'Deniz İşleri', description: 'Blok taş anroşman (1–3 ton)', unit: 'ton', qty: 74_000, poolMatch: 'Eşleşti', unitPrice: 27.5, source: 'Çizim D-215', confidence: 84 },
-  { id: 'B8', no: '1000612', group: 'Saha İşleri', description: 'Granüler dolgu (idare stok sahasından, nakliye dâhil)', unit: 'm³', qty: 268_000, poolMatch: 'Eşleşti', unitPrice: 6.9, source: 'Çizim P-110 + Zeyilname-01', confidence: 95, note: 'Malzeme bedelsiz — yalnız nakliye ve serme' },
-  { id: 'B9', no: '1000625', group: 'Saha İşleri', description: 'Alt temel ve temel (kırmataş) serilmesi, sıkıştırma', unit: 'm³', qty: 96_500, poolMatch: 'Eşleşti', unitPrice: 18.2, source: 'Çizim P-112', confidence: 92 },
-  { id: 'B10', no: '1000640', group: 'Saha İşleri', description: 'Ağır hizmet beton parke kaplama 100 mm', unit: 'm²', qty: 182_000, poolMatch: 'Eşleşti', unitPrice: 31.4, source: 'Çizim P-118', confidence: 94 },
-  { id: 'B11', no: '1000655', group: 'Saha İşleri', description: 'Asfalt kaplama (BSK) 2 tabaka', unit: 'ton', qty: 21_600, poolMatch: 'Eşleşti', unitPrice: 88, source: 'Çizim P-120', confidence: 89 },
-  { id: 'B12', no: '1000710', group: 'Altyapı', description: 'Yağmur suyu drenaj hattı Ø600–Ø1000 betonarme boru', unit: 'm', qty: 8_450, poolMatch: 'Eşleşti', unitPrice: 142, source: 'Çizim A-301', confidence: 87 },
-  { id: 'B13', no: '1000722', group: 'Altyapı', description: 'Yangın hattı ve hidrant sistemi', unit: 'm', qty: 4_200, poolMatch: 'Eşleşti', unitPrice: 96, source: 'Çizim A-310', confidence: 81 },
-  { id: 'B14', no: '1000735', group: 'Altyapı', description: 'Atık su terfi merkezi (komple)', unit: 'ad', qty: 2, poolMatch: 'Benzer poz', unitPrice: 385_000, source: 'Çizim A-320', confidence: 78 },
-  { id: 'B15', no: '1000810', group: 'Elektrik', description: 'OG kablolama ve ring besleme (34,5 kV)', unit: 'm', qty: 6_800, poolMatch: 'Eşleşti', unitPrice: 128, source: 'Çizim E-401', confidence: 85 },
-  { id: 'B16', no: '1000822', group: 'Elektrik', description: 'Saha aydınlatma direği 30 m, projektörlü', unit: 'ad', qty: 42, poolMatch: 'Eşleşti', unitPrice: 24_600, source: 'Çizim E-406', confidence: 91 },
-  { id: 'B17', no: '1000835', group: 'Elektrik', description: 'RTG besleme hattı ve makaralı kanal sistemi', unit: 'm', qty: 3_150, poolMatch: 'Eşleşmedi',  source: 'Çizim E-412', confidence: 74, note: 'Ekipman markası netleşmedi' },
-  { id: 'B18', no: '1000910', group: 'Rıhtım Donanımı', description: 'Rıhtım babası 150 ton, montaj dâhil', unit: 'ad', qty: 36, poolMatch: 'Eşleşti', unitPrice: 12_800, source: 'Çizim D-220', confidence: 96 },
-  { id: 'B19', no: '1000922', group: 'Rıhtım Donanımı', description: 'Usturmaça sistemi (cell fender), montaj dâhil', unit: 'ad', qty: 28, poolMatch: 'Eşleşti', unitPrice: 46_500, source: 'Çizim D-222', confidence: 93 },
-  { id: 'B20', no: '1000935', group: 'Rıhtım Donanımı', description: 'Vinç rayı ve ankraj sistemi', unit: 'm', qty: 1_540, poolMatch: 'Eşleşti', unitPrice: 640, source: 'Çizim D-226', confidence: 88 },
-  { id: 'B21', no: '1001010', group: 'Çevre & Güvenlik', description: 'Çevre güvenlik duvarı ve kapı sistemleri', unit: 'm', qty: 2_100, poolMatch: 'Eşleşti', unitPrice: 285, source: 'Çizim P-130', confidence: 90 },
-  { id: 'B22', no: '1001022', group: 'Çevre & Güvenlik', description: 'CCTV ve saha güvenlik altyapısı', unit: 'Götürü', qty: 1, poolMatch: 'Eşleşmedi',  source: 'Teknik şartname 9.2', confidence: 69, note: 'Kapsam şartnamede net değil' },
+  { id: 'B1', no: '1000101', group: 'Mobilizasyon', description: 'Şantiye kurulumu, geçici tesisler ve mobilizasyon', unit: 'Götürü', qty: 1, poolMatch: 'Eşleşti', unitPrice: 2_450_000, source: 'İdare cetveli', confidence: 100 },
+  { id: 'B2', no: '1000118', group: 'Mobilizasyon', description: 'Şantiye içi geçici yol ve saha çitlemesi', unit: 'm', qty: 3_400, poolMatch: 'Benzer poz', unitPrice: 62, source: 'Çizim P-101', confidence: 86 },
+  { id: 'B3', no: '1000205', group: 'Kazı İşleri', description: 'Mevcut saha kaplamasının sökümü ve taşınması', unit: 'm²', qty: 48_500, poolMatch: 'Eşleşti', unitPrice: 9.4, source: 'Çizim P-102', confidence: 93 },
+  { id: 'B4', no: '1000458', group: 'Kazı İşleri', description: 'Yumuşak zeminde makineli kazı ve nakli (bina temelleri)', unit: 'm³', qty: 34_000, poolMatch: 'Eşleşti', unitPrice: 4.85, source: 'Çizim P-105', confidence: 90 },
+  { id: 'B5', no: '1000312', group: 'Kazı İşleri', description: 'Tarama (dredging), deniz tabanı düzeltme, −16,00 kotuna', unit: 'm³', qty: 386_000, poolMatch: 'Benzer poz', unitPrice: 11.8, source: 'Çizim D-201 + batimetri', confidence: 76, note: 'Batimetri 2024 tarihli; güncel ölçüm istenmeli' },
+  { id: 'B6', no: '1000487', group: 'Zemin İşleri', description: 'Çelik boru kazık Ø1220 mm, t=20 mm, temin ve çakım', unit: 'ton', qty: 9_850, poolMatch: 'Eşleşti', unitPrice: 1_640, source: 'Çizim D-204', confidence: 71, note: 'Kazık boyu doğu uçta belirsiz (sondaj yok)' },
+  { id: 'B7', no: '1000560', group: 'Zemin İşleri', description: 'Blok taş anroşman (1–3 ton)', unit: 'ton', qty: 74_000, poolMatch: 'Eşleşti', unitPrice: 27.5, source: 'Çizim D-215', confidence: 84 },
+  { id: 'B8', no: '1000612', group: 'Zemin İşleri', description: 'Granüler dolgu (idare stok sahasından, nakliye dâhil)', unit: 'm³', qty: 268_000, poolMatch: 'Eşleşti', unitPrice: 6.9, source: 'Çizim P-110 + Zeyilname-01', confidence: 95, note: 'Malzeme bedelsiz — yalnız nakliye ve serme' },
+  { id: 'B9', no: '1000625', group: 'Zemin İşleri', description: 'Alt temel ve temel (kırmataş) serilmesi, sıkıştırma', unit: 'm³', qty: 96_500, poolMatch: 'Eşleşti', unitPrice: 18.2, source: 'Çizim P-112', confidence: 92 },
+  { id: 'B10', no: '1000640', group: 'Zemin İşleri', description: 'Ağır hizmet beton parke kaplama 100 mm', unit: 'm²', qty: 182_000, poolMatch: 'Eşleşti', unitPrice: 31.4, source: 'Çizim P-118', confidence: 94 },
+  { id: 'B11', no: '1000655', group: 'Zemin İşleri', description: 'Asfalt kaplama (BSK) 2 tabaka', unit: 'ton', qty: 21_600, poolMatch: 'Eşleşti', unitPrice: 88, source: 'Çizim P-120', confidence: 89 },
+  { id: 'B12', no: '1000520', group: 'Betonarme İşleri', description: 'Kazık başlığı betonu C35/45, donatı dâhil', unit: 'm³', qty: 12_400, poolMatch: 'Eşleşti', unitPrice: 268, source: 'Çizim D-206', confidence: 88 },
+  { id: 'B13', no: '1000534', group: 'Betonarme İşleri', description: 'Rıhtım tabliyesi prekast kiriş üretimi ve montajı', unit: 'ad', qty: 268, poolMatch: 'Eşleşti', unitPrice: 14_900, source: 'Çizim D-211', confidence: 90 },
+  { id: 'B14', no: '1000548', group: 'Betonarme İşleri', description: 'Operasyon ve bakım binası betonarme imalatı', unit: 'm³', qty: 1_850, poolMatch: 'Benzer poz', unitPrice: 268, source: 'Çizim Y-101', confidence: 86 },
+  { id: 'B15', no: '1001110', group: 'İnce İşler', description: 'Operasyon binası iç imalatları (bölme, sıva, boya)', unit: 'm²', qty: 2_400, poolMatch: 'Eşleşti', unitPrice: 118, source: 'Çizim Y-110', confidence: 74, note: 'Mahal listesi şartnamede eksik' },
+  { id: 'B16', no: '1001125', group: 'İnce İşler', description: 'Zemin ve duvar kaplamaları (seramik, epoksi)', unit: 'm²', qty: 1_650, poolMatch: 'Eşleşti', unitPrice: 96, source: 'Çizim Y-112', confidence: 79, note: 'Kaplama sınıfı belirtilmemiş' },
+  { id: 'B17', no: '1000710', group: 'Mekanik İşleri', description: 'Yağmur suyu drenaj hattı Ø600–Ø1000 betonarme boru', unit: 'm', qty: 8_450, poolMatch: 'Eşleşti', unitPrice: 142, source: 'Çizim A-301', confidence: 87 },
+  { id: 'B18', no: '1000722', group: 'Mekanik İşleri', description: 'Yangın hattı ve hidrant sistemi', unit: 'm', qty: 4_200, poolMatch: 'Eşleşti', unitPrice: 96, source: 'Çizim A-310', confidence: 81 },
+  { id: 'B19', no: '1000735', group: 'Mekanik İşleri', description: 'Atık su terfi merkezi (komple)', unit: 'ad', qty: 2, poolMatch: 'Benzer poz', unitPrice: 385_000, source: 'Çizim A-320', confidence: 78, note: 'Ölçüm güveni %78 — elle kontrol edilmeli' },
+  { id: 'B20', no: '1000910', group: 'Mekanik İşleri', description: 'Rıhtım babası 150 ton, montaj dâhil', unit: 'ad', qty: 36, poolMatch: 'Eşleşti', unitPrice: 12_800, source: 'Çizim D-220', confidence: 96 },
+  { id: 'B21', no: '1000922', group: 'Mekanik İşleri', description: 'Usturmaça sistemi (cell fender), montaj dâhil', unit: 'ad', qty: 28, poolMatch: 'Eşleşti', unitPrice: 46_500, source: 'Çizim D-222', confidence: 93 },
+  { id: 'B22', no: '1000935', group: 'Mekanik İşleri', description: 'Vinç rayı ve ankraj sistemi', unit: 'm', qty: 1_540, poolMatch: 'Eşleşti', unitPrice: 640, source: 'Çizim D-226', confidence: 88 },
+  { id: 'B23', no: '1000810', group: 'Elektrik İşleri', description: 'OG kablolama ve ring besleme (34,5 kV)', unit: 'm', qty: 6_800, poolMatch: 'Eşleşti', unitPrice: 128, source: 'Çizim E-401', confidence: 85 },
+  { id: 'B24', no: '1000822', group: 'Elektrik İşleri', description: 'Saha aydınlatma direği 30 m, projektörlü', unit: 'ad', qty: 42, poolMatch: 'Eşleşti', unitPrice: 24_600, source: 'Çizim E-406', confidence: 91 },
+  { id: 'B25', no: '1000835', group: 'Elektrik İşleri', description: 'RTG besleme hattı ve makaralı kanal sistemi', unit: 'm', qty: 3_150, poolMatch: 'Eşleşmedi', source: 'Çizim E-412', confidence: 74, note: 'Ekipman markası netleşmedi' },
+  { id: 'B26', no: '1001035', group: 'IT', description: 'Saha veri ağı, fiber omurga ve saha kabinetleri', unit: 'm', qty: 5_600, poolMatch: 'Eşleşti', unitPrice: 54, source: 'Çizim IT-201', confidence: 72, note: 'Liman işletme yazılımı kapsam dışı' },
+  { id: 'B27', no: '1001022', group: 'IT', description: 'CCTV ve saha güvenlik altyapısı', unit: 'Götürü', qty: 1, poolMatch: 'Eşleşmedi', source: 'Teknik şartname 9.2', confidence: 69, note: 'Kapsam şartnamede net değil' },
+  { id: 'B28', no: '1001210', group: 'Cephe & Çatı İşleri', description: 'Operasyon binası cephe kaplaması (kompozit panel)', unit: 'm²', qty: 1_280, poolMatch: 'Eşleşti', unitPrice: 168, source: 'Çizim Y-120', confidence: 80 },
+  { id: 'B29', no: '1001222', group: 'Cephe & Çatı İşleri', description: 'Çatı su yalıtımı ve membran örtü', unit: 'm²', qty: 1_450, poolMatch: 'Eşleşti', unitPrice: 42, source: 'Çizim Y-122', confidence: 83 },
+  { id: 'B30', no: '1001010', group: 'Peyzaj', description: 'Çevre güvenlik duvarı ve kapı sistemleri', unit: 'm', qty: 2_100, poolMatch: 'Eşleşti', unitPrice: 285, source: 'Çizim P-130', confidence: 90 },
+  { id: 'B31', no: '1001310', group: 'Peyzaj', description: 'Peyzaj düzenlemesi, ağaçlandırma ve yeşil alan', unit: 'm²', qty: 6_800, poolMatch: 'Eşleşti', unitPrice: 24, source: 'Çizim P-135', confidence: 82 },
+  { id: 'B32', no: '1001410', group: 'Test ve Devreye Alma', description: 'Kazık statik ve dinamik yükleme deneyleri', unit: 'ad', qty: 12, poolMatch: 'Benzer poz', unitPrice: 18_500, source: 'Teknik şartname 4.6', confidence: 77, note: 'Deney sayısı idare onayına bağlı' },
+  { id: 'B33', no: '1001420', group: 'Test ve Devreye Alma', description: 'Sistemlerin testi, devreye alma ve işletme eğitimi', unit: 'Götürü', qty: 1, poolMatch: 'Benzer poz', unitPrice: 240_000, source: 'Teknik şartname 12', confidence: 68, note: 'Kapsam ve süre şartnamede net değil' },
 ]
 
 /* ---------------- 6. Teklif riskleri ---------------- */
 
+/**
+ * Risklerin fiyata dönüşmesi bu modülün en zor kısmıdır. Üç sayı ayrı ayrı tutulur:
+ *  • costImpact — risk gerçekleşirse oluşacak tutar (en kötü senaryo),
+ *  • basis      — bu tutarın metraj × birim fiyat × oran biçimindeki açık hesabı,
+ *  • provision  — teklif fiyatına gerçekten eklenen karşılık (yönetim kararı).
+ * Beklenen değer (olasılık × bedel) yalnızca karşılığın makul aralığını gösterir, otomatik uygulanmaz.
+ */
 export const bidRisks: BidRisk[] = [
-  { id: 'R1', category: 'Sözleşmesel', title: 'Fiyat farkı ödenmemesi', description: '24 aylık işte malzeme ve işçilik artışının tamamı yüklenicide. Özellikle çelik kazık ve çimento fiyatları kritik.', probability: 5, impact: 5, costImpact: 5_200_000, timeImpact: 0, mitigation: 'Teklife %6,5 eskalasyon karşılığı; çelik için erken tedarik ve fiyat kilidi', owner: 'Teklif', state: 'Açık' },
-  { id: 'R2', category: 'Zemin', title: 'Doğu uçta kazık boyu belirsizliği', description: '180 m’lik bölümde sondaj yok. Kazık boyu %15 artarsa doğrudan maliyet artışı.', probability: 4, impact: 4, costImpact: 1_900_000, timeImpact: 35, mitigation: 'İdareden ek sondaj talebi; kazık kalemi birim fiyatlı kalsın', owner: 'Teknik', state: 'Açık' },
-  { id: 'R3', category: 'Finansal', title: '90 gün ödeme + avans yok', description: 'İlk 6 ayda yaklaşık 18 M EUR negatif nakit. Kredi maliyeti tekliften eksilir.', probability: 5, impact: 4, costImpact: 2_050_000, timeImpact: 0, mitigation: 'Kredi limiti ön onayı, hakediş kesme sıklığının artırılması talebi', owner: 'Finans', state: 'İzleniyor' },
-  { id: 'R4', category: 'Program', title: 'Liman operasyonu nedeniyle 10 saatlik çalışma penceresi', description: 'Vardiya kısıtı üretkenliği düşürüyor; program sıkışırsa ceza riski.', probability: 4, impact: 3, costImpact: 1_100_000, timeImpact: 45, mitigation: 'Gece çalışma izni talebi; kritik imalatlarda paralel ekip', owner: 'PMO', state: 'Açık' },
-  { id: 'R5', category: 'Program', title: 'Kış döneminde dalga kaynaklı duraklamalar', description: 'Kasım–Mart arasında deniz imalatlarında tahmini %20 verimlilik kaybı.', probability: 4, impact: 3, costImpact: 740_000, timeImpact: 30, mitigation: 'Deniz işlerini yaz penceresine öne çeken program kurgusu', owner: 'PMO', state: 'İzleniyor' },
-  { id: 'R6', category: 'Sözleşmesel', title: 'Gecikme cezası tavanının %15 olması', description: 'Ceza tavanı piyasa pratiğinin üzerinde; program riski doğrudan bilançoya yansıyor.', probability: 3, impact: 5, costImpact: 2_460_000, timeImpact: 0, mitigation: 'Zeyilname ile %10 talebi; kabul edilmezse teklife risk primi', owner: 'C-Suite', state: 'Açık' },
-  { id: 'R7', category: 'Tedarik', title: 'Çelik boru kazık temin süresi', description: 'Ø1220 mm boru için üretim + teslim süresi 5–7 ay. Gecikme kritik yolu doğrudan etkiler.', probability: 3, impact: 4, costImpact: 900_000, timeImpact: 60, mitigation: 'Sözleşme öncesi tedarikçi ön anlaşması, iki alternatif üretici', owner: 'Satınalma', state: 'Açık' },
-  { id: 'R8', category: 'Kur', title: 'EUR gelir – TL gider uyumsuzluğu', description: 'Gelir EUR, maliyetin %55’i TL. Kur gerilerse marj erir.', probability: 3, impact: 3, costImpact: 1_180_000, timeImpact: 0, mitigation: 'Doğal hedge oranının artırılması, forward değerlendirmesi', owner: 'Finans', state: 'İzleniyor' },
-  { id: 'R9', category: 'Yeterlilik', title: 'İş deneyim belgesi yetersizliği', description: 'Tek başına %80 kriteri karşılanmıyor; iş ortaklığı gerekebilir.', probability: 3, impact: 5, costImpact: 0, timeImpact: 0, mitigation: 'Pilot ortak olarak ortaklık kurgusu; belge birleştirme', owner: 'PMO', state: 'Açık' },
-  { id: 'R10', category: 'Kapsam', title: 'CCTV / güvenlik sistemleri kapsamının belirsizliği', description: 'Teknik şartnamede kapsam net değil; götürü kalem risk taşıyor.', probability: 3, impact: 2, costImpact: 470_000, timeImpact: 0, mitigation: 'Soru listesine eklendi; kapsam netleşmezse ihtirazi kayıt', owner: 'Teknik', state: 'Açık' },
-  { id: 'R11', category: 'Çevre', title: 'Tarama malzemesinin bertaraf izni', description: 'Dip tarama malzemesinin döküm sahası izni idarede; gecikirse deniz işleri başlayamaz.', probability: 2, impact: 4, costImpact: 410_000, timeImpact: 40, mitigation: 'İzin durumunun teklif öncesi yazılı teyidi', owner: 'PMO', state: 'İzleniyor' },
-  { id: 'R12', category: 'Kaynak', title: 'Deniz ekipmanı (şahmerdan, vinç) kiralama maliyeti', description: 'Filo bizde yok; kira piyasası dar ve fiyat dalgalı.', probability: 3, impact: 3, costImpact: 990_000, timeImpact: 20, mitigation: 'İki tedarikçiden bağlayıcı teklif; uzun dönem kira opsiyonu', owner: 'Satınalma', state: 'Açık' },
+  {
+    id: 'R1', category: 'Sözleşmesel', title: 'Fiyat farkı ödenmemesi',
+    description: '24 aylık işte malzeme ve işçilik artışının tamamı yüklenicide. Özellikle çelik kazık ve çimento fiyatları kritik.',
+    probability: 5, impact: 5, costImpact: 5_200_000, timeImpact: 0,
+    basis: 'Maliyetin malzeme payı ≈ 44 M EUR × 24 ayda beklenen %12 birleşik artış',
+    basisRef: 'Metraj toplamı · Poz 1000487, 1000520',
+    mitigation: 'Teklife %6,5 eskalasyon karşılığı; çelik için erken tedarik ve fiyat kilidi',
+    owner: 'Teklif', state: 'Açık', provision: 3_900_000, inBid: true,
+  },
+  {
+    id: 'R2', category: 'Zemin', title: 'Doğu uçta kazık boyu belirsizliği',
+    description: '180 m’lik bölümde sondaj yok. Kazık boyu %15 artarsa doğrudan maliyet artışı.',
+    probability: 4, impact: 4, costImpact: 1_900_000, timeImpact: 35,
+    basis: '9.850 ton × 1.640 EUR/ton = 16,2 M EUR · doğu uçtaki %12 boy artışı',
+    basisRef: 'Poz 1000487 (Çelik boru kazık)',
+    mitigation: 'İdareden ek sondaj talebi; kazık kalemi birim fiyatlı kalsın',
+    owner: 'Teknik', state: 'Açık', provision: 1_400_000, inBid: true,
+  },
+  {
+    id: 'R3', category: 'Finansal', title: '90 gün ödeme + avans yok',
+    description: 'İlk 6 ayda yaklaşık 18 M EUR negatif nakit. Kredi maliyeti tekliften eksilir.',
+    probability: 5, impact: 4, costImpact: 2_050_000, timeImpact: 0,
+    basis: 'Ortalama 18 M EUR negatif nakit × %11 kredi maliyeti × 1,05 yıl',
+    basisRef: 'Nakit akış modeli · Özel Ş. 14.7',
+    mitigation: 'Kredi limiti ön onayı, hakediş kesme sıklığının artırılması talebi',
+    owner: 'Finans', state: 'İzleniyor', provision: 1_650_000, inBid: true,
+  },
+  {
+    id: 'R4', category: 'Program', title: 'Liman operasyonu nedeniyle 10 saatlik çalışma penceresi',
+    description: 'Vardiya kısıtı üretkenliği düşürüyor; program sıkışırsa ceza riski.',
+    probability: 4, impact: 3, costImpact: 1_100_000, timeImpact: 45,
+    basis: 'Şantiye sabit gideri 1,4 M EUR/ay × %8 verimlilik kaybı × 10 ay',
+    basisRef: 'İş programı · Teknik Şartname 2.7',
+    mitigation: 'Gece çalışma izni talebi; kritik imalatlarda paralel ekip',
+    owner: 'PMO', state: 'Açık', provision: 1_100_000, inBid: true,
+  },
+  {
+    id: 'R5', category: 'Program', title: 'Kış döneminde dalga kaynaklı duraklamalar',
+    description: 'Kasım–Mart arasında deniz imalatlarında tahmini %20 verimlilik kaybı.',
+    probability: 4, impact: 3, costImpact: 740_000, timeImpact: 30,
+    basis: 'Deniz ekipmanı kirası 370 bin EUR/ay × 2 kış döneminde 1 ay eşdeğer duraklama',
+    basisRef: 'İş programı · Teknik Şartname 5.4',
+    mitigation: 'Deniz işlerini yaz penceresine öne çeken program kurgusu',
+    owner: 'PMO', state: 'İzleniyor', provision: 300_000, inBid: true,
+  },
+  {
+    id: 'R6', category: 'Sözleşmesel', title: 'Gecikme cezası tavanının %15 olması',
+    description: 'Ceza tavanı piyasa pratiğinin üzerinde; program riski doğrudan bilançoya yansıyor.',
+    probability: 3, impact: 5, costImpact: 2_460_000, timeImpact: 0,
+    basis: '82 M EUR × ‰0,5 × 60 gün gecikme senaryosu (tavan 12,3 M EUR)',
+    basisRef: 'İdari Ş. 31.4',
+    mitigation: 'Zeyilname ile %10 talebi; kabul edilmezse teklife risk primi',
+    owner: 'C-Suite', state: 'Açık', provision: 250_000, inBid: true,
+  },
+  {
+    id: 'R7', category: 'Tedarik', title: 'Çelik boru kazık temin süresi',
+    description: 'Ø1220 mm boru için üretim + teslim süresi 5–7 ay. Gecikme kritik yolu doğrudan etkiler.',
+    probability: 3, impact: 4, costImpact: 900_000, timeImpact: 60,
+    basis: '2 ay gecikme × 450 bin EUR/ay ekipman ve şantiye sabit gideri',
+    basisRef: 'Poz 1000487 · İş programı WBS 4',
+    mitigation: 'Sözleşme öncesi tedarikçi ön anlaşması, iki alternatif üretici',
+    owner: 'Satınalma', state: 'Açık', provision: 200_000, inBid: true,
+  },
+  {
+    id: 'R8', category: 'Kur', title: 'EUR gelir – TL gider uyumsuzluğu',
+    description: 'Gelir EUR, maliyetin %55’i TL. Kur gerilerse marj erir.',
+    probability: 3, impact: 3, costImpact: 1_180_000, timeImpact: 0,
+    basis: 'TL maliyet payı ≈ 40 M EUR karşılığı × %3 reel kur sapması',
+    basisRef: 'Finans — kur senaryosu',
+    mitigation: 'Doğal hedge oranının artırılması, forward değerlendirmesi',
+    owner: 'Finans', state: 'İzleniyor', provision: 0, inBid: false,
+  },
+  {
+    id: 'R9', category: 'Yeterlilik', title: 'İş deneyim belgesi yetersizliği',
+    description: 'Tek başına %80 kriteri karşılanmıyor; iş ortaklığı gerekebilir.',
+    probability: 3, impact: 5, costImpact: 0, timeImpact: 0,
+    basis: 'Bedel etkisi yok — iş ortaklığı hâlinde kâr payı paylaşımı ayrı değerlendirilir',
+    basisRef: 'İdari Ş. 7.5',
+    mitigation: 'Pilot ortak olarak ortaklık kurgusu; belge birleştirme',
+    owner: 'PMO', state: 'Açık', provision: 0, inBid: false,
+  },
+  {
+    id: 'R10', category: 'Kapsam', title: 'CCTV / güvenlik sistemleri kapsamının belirsizliği',
+    description: 'Teknik şartnamede kapsam net değil; götürü kalem risk taşıyor.',
+    probability: 3, impact: 2, costImpact: 470_000, timeImpact: 0,
+    basis: 'Götürü kalem tahmini 470 bin EUR — kapsam netleşmezse tamamı risk',
+    basisRef: 'Poz 1001022 (havuzda fiyatı yok)',
+    mitigation: 'Soru listesine eklendi; kapsam netleşmezse ihtirazi kayıt',
+    owner: 'Teknik', state: 'Açık', provision: 100_000, inBid: true,
+  },
+  {
+    id: 'R11', category: 'Çevre', title: 'Tarama malzemesinin bertaraf izni',
+    description: 'Dip tarama malzemesinin döküm sahası izni idarede; gecikirse deniz işleri başlayamaz.',
+    probability: 2, impact: 4, costImpact: 410_000, timeImpact: 40,
+    basis: '40 gün duraklama × 370 bin EUR/ay deniz ekipmanı kirası',
+    basisRef: 'Poz 1000312 · İş programı WBS 2',
+    mitigation: 'İzin durumunun teklif öncesi yazılı teyidi',
+    owner: 'PMO', state: 'İzleniyor', provision: 0, inBid: false,
+  },
+  {
+    id: 'R12', category: 'Kaynak', title: 'Deniz ekipmanı (şahmerdan, vinç) kiralama maliyeti',
+    description: 'Filo bizde yok; kira piyasası dar ve fiyat dalgalı.',
+    probability: 3, impact: 3, costImpact: 990_000, timeImpact: 20,
+    basis: '18 ay × 55 bin EUR/ay kira × %10 piyasa sapması',
+    basisRef: 'Ekipman kira teklifleri',
+    mitigation: 'İki tedarikçiden bağlayıcı teklif; uzun dönem kira opsiyonu',
+    owner: 'Satınalma', state: 'Açık', provision: 0, inBid: false,
+  },
 ]
 
 /* ---------------- 7. Kontrat analizi ---------------- */
@@ -322,6 +511,13 @@ export const unitPrices: UnitPrice[] = [
   { id: 'U18', no: '1000922', description: 'Usturmaça sistemi (cell fender), montaj dâhil', unit: 'ad', price: 46_500, currency: 'EUR', source: 'Piyasa teklifi', updatedAt: '2026-09-08', updatedBy: 's.kaya', usedIn: 2 },
   { id: 'U19', no: '1000935', description: 'Vinç rayı ve ankraj sistemi', unit: 'm', price: 640, currency: 'EUR', source: 'Kendi analizimiz', updatedAt: '2026-06-02', updatedBy: 'a.koc', usedIn: 1 },
   { id: 'U20', no: '1001010', description: 'Çevre güvenlik duvarı ve kapı sistemleri', unit: 'm', price: 285, currency: 'EUR', source: 'BCBS', updatedAt: '2026-04-11', updatedBy: 'sistem', usedIn: 4 },
+  { id: 'U21', no: '1001110', description: 'İç bölme, sıva ve boya imalatları', unit: 'm²', price: 118, currency: 'EUR', source: 'Kendi analizimiz', updatedAt: '2026-07-05', updatedBy: 'a.koc', usedIn: 6 },
+  { id: 'U22', no: '1001125', description: 'Zemin ve duvar kaplaması (seramik / epoksi)', unit: 'm²', price: 96, currency: 'EUR', source: 'BCBS', updatedAt: '2026-04-11', updatedBy: 'sistem', usedIn: 5 },
+  { id: 'U23', no: '1001210', description: 'Kompozit panel cephe kaplaması', unit: 'm²', price: 168, currency: 'EUR', source: 'Piyasa teklifi', updatedAt: '2026-08-18', updatedBy: 's.kaya', usedIn: 3 },
+  { id: 'U24', no: '1001222', description: 'Çatı su yalıtımı ve membran örtü', unit: 'm²', price: 42, currency: 'EUR', source: 'BCBS', updatedAt: '2026-04-11', updatedBy: 'sistem', usedIn: 7 },
+  { id: 'U25', no: '1001310', description: 'Peyzaj düzenlemesi ve ağaçlandırma', unit: 'm²', price: 24, currency: 'EUR', source: 'Geçmiş proje', updatedAt: '2026-05-12', updatedBy: 'm.demir', usedIn: 4 },
+  { id: 'U26', no: '1001035', description: 'Fiber omurga ve saha veri ağı', unit: 'm', price: 54, currency: 'EUR', source: 'Piyasa teklifi', updatedAt: '2026-09-03', updatedBy: 's.kaya', usedIn: 2 },
+  { id: 'U27', no: '1000118', description: 'Şantiye geçici yolu ve saha çitlemesi', unit: 'm', price: 62, currency: 'EUR', source: 'Kendi analizimiz', updatedAt: '2026-06-20', updatedBy: 'a.koc', usedIn: 5 },
 ]
 
 /* ---------------- Kapsam bilgisi (İhale Bilgi Paneli altında) ---------------- */
@@ -366,5 +562,111 @@ export const previewBodies: Record<string, string> = {
   D2: 'Sub-Clause 14.7 [Payment] — The Employer shall pay the amount certified within 90 days after the Engineer receives the Statement and supporting documents. Payment shall be made in the currencies stated in the Appendix to Tender. No financing charges shall be payable by the Employer in respect of any delay in certification attributable to insufficient supporting documents submitted by the Contractor.',
   D3: 'Madde 2.7 — Çalışma saatleri: Saha çalışmaları, liman operasyonlarını aksatmamak üzere 07:00–17:00 saatleri arasında yürütülecektir. Bu saatler dışında çalışma yapılabilmesi için İdare’den yazılı izin alınması zorunludur. Gece çalışması talepleri, gemi yanaşma programı dikkate alınarak değerlendirilir.',
   D5: 'Bölüm 4.3 — Zemin profili: SK-11 ve SK-12 numaralı sondajlar arasındaki bölgede zemin profili enterpolasyon ile öngörülmüştür. Bu bölgede yapılacak kazık imalatlarında, uygulama öncesi ilave sondaj yapılması tavsiye edilir. Kazık boyları, uygulama sırasında çakma direncine göre revize edilebilir.',
+  D4: 'Birim Fiyat Teklif Cetveli — İdare, poz numarası, iş kalemi, birim ve miktar sütunlarını doldurmuş; birim fiyat ve tutar sütunları boş bırakılmıştır. İstekli, her satır için teklif ettiği birim fiyatı yazar. Cetvelde yer alan miktarlar yaklaşık olup, hakedişler yerinde ölçülen gerçek miktarlar üzerinden düzenlenir.',
+  D6: 'Avan Proje — Çizim D-204 (Kazık planı): Rıhtım hattı boyunca Ø1220 mm çelik boru kazıklar 4,50 m aralıkla yerleştirilmiştir. Kazık boyları SK-01…SK-10 sondaj verilerine göre 38–44 m arasında öngörülmüştür. Doğu uçtaki 180 m’lik bölümde sondaj bulunmadığından kazık boyu uygulama sırasında belirlenecektir.',
+  D8: 'İşveren Soru-Cevap Listesi — Soru 7: “Ödeme süresi İdari Şartname 32.2’de 60 gün, Sözleşme Tasarısı 14.7’de 90 gün olarak geçmektedir. Hangisi esas alınacaktır?” Cevap: “Sözleşme Tasarısı hükümleri esastır.” · Soru 11: “Rıhtımın doğu ucunda ilave sondaj yapılacak mıdır?” Cevap: “İlave sondaj yapılmayacaktır; kazık boyu uygulamada tespit edilecektir.” · Soru 14: “CCTV kapsamına kamera sayısı dâhil midir?” Cevap: “Kamera sayısı ve kayıt süresi zeyilname ile bildirilecektir.”',
   D7: 'Madde 2 — Saha dolgusunda kullanılacak granüler malzeme, İdare’nin Karaduvar stok sahasından yükleniciye bedelsiz teslim edilecektir. Malzemenin yüklenmesi, nakliyesi, serilmesi ve sıkıştırılması yükleniciye aittir. Stok sahasından çekilecek günlük azami miktar 4.000 m³ ile sınırlıdır.',
 }
+
+/* ---------------- Yüklü işler (giriş sonrası ara sayfa) ---------------- */
+
+/**
+ * Şirkete yüklenmiş ihale ve projeler. Modül bu listeden seçilen işle açılır;
+ * her işin verisi kendi alanında durur, diğer işlerden yalıtılmıştır.
+ */
+export const library: LibraryItem[] = [
+  {
+    id: 'TND-2026-014', kind: 'ihale', code: 'TND-2026-014',
+    name: 'Mersin Konteyner Limanı Genişleme — Faz 2 (Rıhtım ve Saha İşleri)',
+    employer: 'Medport Liman İşletmeleri A.Ş.', location: 'Mersin / Akdeniz',
+    dueAt: '2026-10-14', daysLeft: 24, value: 82_000_000, currency: 'EUR',
+    status: 'Hazırlanıyor', docCount: 8, progress: 46, updatedAt: '2026-09-19 16:02', updatedBy: 'e.yilmaz',
+  },
+  {
+    id: 'TND-2026-016', kind: 'ihale', code: 'TND-2026-016',
+    name: 'İzmir Aliağa Tersane Kuru Havuz Yenileme',
+    employer: 'Ege Tersane A.Ş.', location: 'İzmir / Aliağa',
+    dueAt: '2026-11-05', daysLeft: 45, value: 38_400_000, currency: 'EUR',
+    status: 'Analiz ediliyor', docCount: 4, progress: 18, updatedAt: '2026-09-20 11:35', updatedBy: 's.kaya',
+  },
+  {
+    id: 'TND-2026-011', kind: 'ihale', code: 'TND-2026-011',
+    name: 'Bandırma OSB Altyapı ve Yol İşleri',
+    employer: 'Bandırma OSB Müdürlüğü', location: 'Balıkesir / Bandırma',
+    dueAt: '2026-09-04', daysLeft: -17, value: 24_500_000, currency: 'EUR',
+    status: 'Teklif Verildi', docCount: 6, progress: 100, updatedAt: '2026-09-04 17:40', updatedBy: 'm.demir',
+  },
+  {
+    id: 'TND-2026-009', kind: 'ihale', code: 'TND-2026-009',
+    name: 'Adana Şehir Hastanesi Ek Blok',
+    employer: 'Sağlık Yatırım A.Ş.', location: 'Adana / Yüreğir',
+    dueAt: '2026-07-22', daysLeft: -61, value: 64_000_000, currency: 'EUR',
+    status: 'Kazanıldı', docCount: 9, progress: 100, updatedAt: '2026-08-02 09:15', updatedBy: 'e.yilmaz',
+  },
+  {
+    id: 'TND-2026-006', kind: 'ihale', code: 'TND-2026-006',
+    name: 'Kuzey Marmara Otoyolu K5 Viyadük',
+    employer: 'Karayolları Genel Müdürlüğü', location: 'Kocaeli / Gebze',
+    dueAt: '2026-05-14', daysLeft: -130, value: 91_000_000, currency: 'EUR',
+    status: 'Kaybedildi', docCount: 11, progress: 100, updatedAt: '2026-05-28 14:20', updatedBy: 'm.demir',
+  },
+  {
+    id: 'PRJ-2026-003', kind: 'proje', code: 'PRJ-2026-003',
+    name: 'Adana Şehir Hastanesi Ek Blok — Yapım',
+    employer: 'Sağlık Yatırım A.Ş.', location: 'Adana / Yüreğir',
+    dueAt: '2028-03-30', daysLeft: 555, value: 64_000_000, currency: 'EUR',
+    status: 'Yapım sürüyor', docCount: 23, progress: 12, updatedAt: '2026-09-21 08:40', updatedBy: 'a.koc',
+  },
+  {
+    id: 'PRJ-2024-008', kind: 'proje', code: 'PRJ-2024-008',
+    name: 'Gebze Lojistik Merkezi Depo Yapıları',
+    employer: 'Anadolu Lojistik A.Ş.', location: 'Kocaeli / Gebze',
+    dueAt: '2026-12-20', daysLeft: 90, value: 29_200_000, currency: 'EUR',
+    status: 'Yapım sürüyor', docCount: 31, progress: 72, updatedAt: '2026-09-18 18:05', updatedBy: 'a.koc',
+  },
+  {
+    id: 'PRJ-2024-002', kind: 'proje', code: 'PRJ-2024-002',
+    name: 'Samsun Tahıl Terminali ve Silo Tesisi',
+    employer: 'Karadeniz Tahıl A.Ş.', location: 'Samsun / Tekkeköy',
+    dueAt: '2026-10-30', daysLeft: 39, value: 17_800_000, currency: 'EUR',
+    status: 'Kabul aşaması', docCount: 28, progress: 96, updatedAt: '2026-09-15 12:10', updatedBy: 'm.aydin',
+  },
+]
+
+/* ---------------- İş programı ---------------- */
+
+/**
+ * Teklif aşamasında hazırlanan iş programı. Süreler metrajdan türetilir:
+ * miktar ÷ günlük kapasite. Kritik yol, bitiş tarihini doğrudan belirleyen zincirdir.
+ */
+export const scheduleTasks: ScheduleTask[] = [
+  { id: 'W1', wbs: '1', name: 'Mobilizasyon ve saha hazırlığı', group: 'Mobilizasyon', startMonth: 0, months: 2, critical: true, assumption: 'Şantiye kurulumu 8 hafta · yer teslimi sözleşme + 15 gün', boqRef: '1000101', progress: 0 },
+  { id: 'W2', wbs: '2', name: 'Deniz tabanı taraması (dredging)', group: 'Kazı İşleri', startMonth: 1, months: 5, critical: true, dependsOn: '1', assumption: '386.000 m³ ÷ 2.800 m³/gün (1 tarak gemisi) ≈ 138 gün', boqRef: '1000312', progress: 0 },
+  { id: 'W3', wbs: '3', name: 'Saha sökümü ve kazı işleri', group: 'Kazı İşleri', startMonth: 1, months: 3, critical: false, dependsOn: '1', assumption: '48.500 m² söküm + 34.000 m³ kazı · 2 ekip', boqRef: '1000205', progress: 0 },
+  { id: 'W4', wbs: '4', name: 'Çelik boru kazık temini', group: 'Zemin İşleri', startMonth: 0, months: 6, critical: true, assumption: 'Üretim + teslim 5–7 ay — R7 riski kritik yolda', boqRef: '1000487', progress: 0 },
+  { id: 'W5', wbs: '5', name: 'Kazık çakımı', group: 'Zemin İşleri', startMonth: 5, months: 7, critical: true, dependsOn: '4', assumption: '9.850 ton ÷ 48 ton/gün (2 şahmerdan, 10 saatlik pencere)', boqRef: '1000487', progress: 0 },
+  { id: 'W6', wbs: '6', name: 'Kazık başlığı ve tabliye betonu', group: 'Betonarme İşleri', startMonth: 8, months: 6, critical: true, dependsOn: '5', assumption: '12.400 m³ ÷ 95 m³/gün', boqRef: '1000520', progress: 0 },
+  { id: 'W7', wbs: '7', name: 'Prekast kiriş üretimi ve montajı', group: 'Betonarme İşleri', startMonth: 9, months: 6, critical: false, dependsOn: '5', assumption: '268 ad ÷ 2 ad/gün montaj', boqRef: '1000534', progress: 0 },
+  { id: 'W8', wbs: '8', name: 'Anroşman ve şev koruma', group: 'Zemin İşleri', startMonth: 7, months: 4, critical: false, dependsOn: '2', assumption: '74.000 ton ÷ 950 ton/gün', boqRef: '1000560', progress: 0 },
+  { id: 'W9', wbs: '9', name: 'Saha dolgusu ve alt temel', group: 'Zemin İşleri', startMonth: 10, months: 5, critical: false, dependsOn: '3', assumption: '268.000 m³ ÷ 2.400 m³/gün · malzeme idare stokundan', boqRef: '1000612', progress: 0 },
+  { id: 'W10', wbs: '10', name: 'Saha kaplamaları (parke + asfalt)', group: 'Zemin İşleri', startMonth: 14, months: 5, critical: false, dependsOn: '9', assumption: '182.000 m² ÷ 1.800 m²/gün', boqRef: '1000640', progress: 0 },
+  { id: 'W11', wbs: '11', name: 'Operasyon binası kaba yapı', group: 'Betonarme İşleri', startMonth: 12, months: 3, critical: false, dependsOn: '3', assumption: '1.850 m³ betonarme imalat', boqRef: '1000548', progress: 0 },
+  { id: 'W12', wbs: '12', name: 'Bina ince işleri', group: 'İnce İşler', startMonth: 15, months: 4, critical: false, dependsOn: '11', assumption: '2.400 m² iç imalat · mahal listesi netleşmeli', boqRef: '1001110', progress: 0 },
+  { id: 'W13', wbs: '13', name: 'Cephe ve çatı imalatları', group: 'Cephe & Çatı İşleri', startMonth: 15, months: 3, critical: false, dependsOn: '11', assumption: '1.280 m² panel + 1.450 m² membran', boqRef: '1001210', progress: 0 },
+  { id: 'W14', wbs: '14', name: 'Altyapı ve mekanik hatlar', group: 'Mekanik İşleri', startMonth: 11, months: 6, critical: false, dependsOn: '9', assumption: '8.450 m drenaj + 4.200 m yangın hattı', boqRef: '1000710', progress: 0 },
+  { id: 'W15', wbs: '15', name: 'Rıhtım donanımı montajı', group: 'Mekanik İşleri', startMonth: 17, months: 4, critical: true, dependsOn: '6', assumption: '36 baba + 28 usturmaça + 1.540 m vinç rayı', boqRef: '1000910', progress: 0 },
+  { id: 'W16', wbs: '16', name: 'Elektrik işleri (OG, aydınlatma, RTG)', group: 'Elektrik İşleri', startMonth: 14, months: 6, critical: false, dependsOn: '9', assumption: '6.800 m OG kablolama + 42 aydınlatma direği', boqRef: '1000810', progress: 0 },
+  { id: 'W17', wbs: '17', name: 'IT ve güvenlik sistemleri', group: 'IT', startMonth: 18, months: 4, critical: false, dependsOn: '16', assumption: '5.600 m fiber omurga + CCTV · kapsam netleşmeli', boqRef: '1001035', progress: 0 },
+  { id: 'W18', wbs: '18', name: 'Peyzaj ve çevre düzenlemesi', group: 'Peyzaj', startMonth: 19, months: 3, critical: false, dependsOn: '10', assumption: '2.100 m çevre duvarı + 6.800 m² peyzaj', boqRef: '1001010', progress: 0 },
+  { id: 'W19', wbs: '19', name: 'Test, devreye alma ve geçici kabul', group: 'Test ve Devreye Alma', startMonth: 21, months: 3, critical: true, dependsOn: '15', assumption: 'Yükleme deneyleri + sistem testleri + işletme eğitimi', boqRef: '1001420', progress: 0 },
+]
+
+/** Sözleşmeden gelen ve programda sabit duran tarihler. */
+export const scheduleMilestones: ScheduleMilestone[] = [
+  { id: 'M1', label: 'İşe başlama (yer teslimi)', month: 0, source: 'Sözleşme md. 8.1', kind: 'Sözleşme' },
+  { id: 'M2', label: 'İş programının İdare’ye sunumu', month: 0.5, source: 'İdari Ş. 21.1 (14 gün) / Sözleşme 8.3 (28 gün) — çelişki', kind: 'Sözleşme' },
+  { id: 'M3', label: 'Taramanın tamamlanması (döküm izni şartı)', month: 6, source: 'Teknik Şartname 4.2', kind: 'İdare' },
+  { id: 'M4', label: 'Rıhtım tabliyesinin tamamlanması', month: 15, source: 'Özel Şartlar 8.2 — ara teslim', kind: 'Sözleşme' },
+  { id: 'M5', label: 'Saha kaplamalarının bitişi', month: 19, source: 'İç hedef — kaplama ekibinin çıkışı', kind: 'İç hedef' },
+  { id: 'M6', label: 'Geçici kabul', month: 24, source: 'Sözleşme md. 10.1 · 720 takvim günü', kind: 'Sözleşme' },
+]

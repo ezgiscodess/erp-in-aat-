@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { criticalTerms, previewBodies } from '../data/mock'
+import { criticalTerms, docs } from '../data/mock'
 import type { CriticalTerm } from '../data/types'
 import {
-  AiChat, Btn, Card, Chips, Kpi, PageHead, PreviewPane, ReadOnlyNote, Search, SeverityBadge, StateBadge, Table, Td, Th,
+  AiChat, Btn, Card, Chips, Kpi, PageHead, PreviewPane, ReadOnlyNote, Search, severityTone, StateBadge,
+  StickyPane, Table, Td, Th,
 } from '../components/ui'
 
 type Filter = 'Tümü' | 'Açık konular' | 'Kritik' | 'Karşılanıyor'
@@ -36,9 +37,8 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
     setChecked((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]))
   }
 
-  /** Şartın kaynağına göre önizleme metni */
-  const docId = sel.clause.startsWith('İdari') ? 'D1' : 'D2'
-  const docName = docId === 'D1' ? 'Idari Sartname.pdf' : 'Sozlesme Tasarisi (Ozel Sartlar).pdf'
+  /** Şartın çıkarıldığı doküman — önizlemede bu dosyanın ilgili sayfası açılır */
+  const doc = docs.find((d) => d.id === sel.docId) ?? docs[0]
 
   return (
     <>
@@ -79,8 +79,8 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-        <div className="xl:col-span-8">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <div>
           <Card
             title={`Şartlar (${filtered.length})`}
             help="Satıra tıklayınca şartın geldiği doküman sayfası sağda açılır. Soldaki kutucuklarla birden fazla şart seçip toplu işlem yapabilirsiniz."
@@ -88,15 +88,12 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
           >
             <Table head={
               <tr>
-                <Th w={36}>
+                <Th w={28}>
                   <input type="checkbox" checked={checked.length === filtered.length && filtered.length > 0}
                     onChange={(e) => setChecked(e.target.checked ? filtered.map((t) => t.id) : [])} />
                 </Th>
-                <Th w={115}>Konu</Th>
-                <Th w={300}>Şart ve etkisi</Th>
-                <Th w={100}>Kaynak</Th>
-                <Th w={80}>Önem</Th>
-                <Th w={85}>Sorumlu</Th>
+                <Th w={96}>Konu</Th>
+                <Th w={250}>Şart, etkisi ve kaynağı</Th>
                 <Th w={110}>Durum</Th>
               </tr>
             }>
@@ -107,14 +104,20 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
                     <input type="checkbox" checked={checked.includes(t.id)}
                       onClick={(e) => e.stopPropagation()} onChange={() => toggle(t.id)} />
                   </Td>
-                  <Td nowrap><span className="font-semibold text-[var(--ink)]">{t.topic}</span></Td>
+                  <Td nowrap>
+                    <span className="flex items-center gap-1.5" title={`Önem: ${t.severity}`}>
+                      <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ background: `var(--${severityTone(t.severity)})` }} />
+                      <span className="font-semibold text-[var(--ink)]">{t.topic}</span>
+                    </span>
+                  </Td>
                   <Td>
                     <div className="text-[12.5px] text-[var(--ink)]">{t.requirement}</div>
                     <div className="mt-0.5 text-[11.5px] text-[var(--muted)]">→ {t.impact}</div>
+                    <div className="mt-0.5">
+                      <span className="mono text-[11px] text-[var(--accent)]">{t.clause}</span>
+                      <span className="ml-1 text-[11px] text-[var(--faint)]">s.{t.page}</span>
+                    </div>
                   </Td>
-                  <Td nowrap><span className="mono text-[11.5px] text-[var(--accent)]">{t.clause}</span><span className="ml-1 text-[11px] text-[var(--faint)]">s.{t.page}</span></Td>
-                  <Td nowrap><SeverityBadge value={t.severity} /></Td>
-                  <Td nowrap><span className="text-[12px] text-[var(--muted)]">{t.owner}</span></Td>
                   <Td nowrap><StateBadge value={t.state} /></Td>
                 </tr>
               ))}
@@ -122,25 +125,36 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
           </Card>
         </div>
 
-        <div className="xl:col-span-4">
+        <StickyPane>
           <PreviewPane
             title="Şartın kaynağı"
             preview={{
-              doc: docName,
+              doc: doc.name,
               page: sel.page,
+              pages: doc.pages,
               clause: sel.clause,
-              highlight: docId === 'D1' ? 'on binde beşi' : undefined,
-              body: previewBodies[docId] ?? `${sel.requirement}\n\nEtki: ${sel.impact}\nAksiyon: ${sel.action}\nSorumlu: ${sel.owner}`,
+              highlight: sel.quote,
+              body: sel.context,
             }}
+            paper
+            height={330}
             footer={
-              <div className="flex flex-wrap items-center gap-2">
-                <Btn small disabled={!writable}>Soru listesine ekle</Btn>
-                <Btn small primary disabled={!writable}>Durumu güncelle</Btn>
-                <span className="ml-auto"><StateBadge value={sel.state} /></span>
+              <div className="flex flex-col gap-2">
+                <div className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Şartın etkisi</div>
+                  <div className="mt-0.5 text-[12.5px] text-[var(--ink)]">{sel.impact}</div>
+                  <div className="mt-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Aksiyon · {sel.owner}</div>
+                  <div className="mt-0.5 text-[12.5px] text-[var(--ink)]">{sel.action}</div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Btn small disabled={!writable}>Soru listesine ekle</Btn>
+                  <Btn small primary disabled={!writable}>Durumu güncelle</Btn>
+                  <span className="ml-auto"><StateBadge value={sel.state} /></span>
+                </div>
               </div>
             }
           />
-        </div>
+        </StickyPane>
       </div>
 
       <Card
