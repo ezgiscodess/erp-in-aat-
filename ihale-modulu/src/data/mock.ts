@@ -4,7 +4,8 @@
  */
 import type {
   BidRisk, BoqItem, Certificate, ClauseAnalysis, ContractSection, ContractVariable,
-  CriticalTerm, Finding, GoNoGoCriterion, LibraryItem, ScheduleMilestone, ScheduleTask, ScopeSection,
+  CriticalTerm, EquipmentItem, Finding, GoNoGoCriterion, LibraryItem, ScheduleMilestone, ScheduleTask,
+  ScopeSection, StaffItem,
   TenderDoc, TenderProject, Timeline, UnitPrice, WorkGroup,
 } from './types'
 
@@ -39,7 +40,7 @@ export const docs: TenderDoc[] = [
   { id: 'D5', name: 'Zemin Etut Raporu.pdf', kind: 'Zemin Etüdü', pages: 58, uploadedBy: 's.kaya', uploadedAt: '2026-09-16 14:41', state: 'Analiz edildi', findings: 5, ocr: true },
   { id: 'D6', name: 'Avan Projeler (Rihtim-Saha).pdf', kind: 'Çizim Seti', pages: 46, uploadedBy: 's.kaya', uploadedAt: '2026-09-16 15:10', state: 'Analiz ediliyor', findings: 0 },
   { id: 'D7', name: 'Zeyilname-01.pdf', kind: 'Zeyilname', pages: 6, uploadedBy: 'e.yilmaz', uploadedAt: '2026-09-18 10:33', state: 'Analiz edildi', findings: 4 },
-  { id: 'D8', name: 'Isveren Soru-Cevap Listesi.pdf', kind: 'Soru-Cevap', pages: 9, uploadedBy: 'e.yilmaz', uploadedAt: '2026-09-19 16:02', state: 'Sırada', findings: 0 },
+  { id: 'D8', name: 'Isveren Soru-Cevap Listesi.pdf', kind: 'Soru-Cevap', pages: 9, uploadedBy: 'e.yilmaz', uploadedAt: '2026-09-19 16:02', state: 'Analiz edilmedi', findings: 0 },
 ]
 
 export const findings: Finding[] = [
@@ -580,93 +581,134 @@ export const library: LibraryItem[] = [
     name: 'Mersin Konteyner Limanı Genişleme — Faz 2 (Rıhtım ve Saha İşleri)',
     employer: 'Medport Liman İşletmeleri A.Ş.', location: 'Mersin / Akdeniz',
     dueAt: '2026-10-14', daysLeft: 24, value: 82_000_000, currency: 'EUR',
-    status: 'Hazırlanıyor', docCount: 8, progress: 46, updatedAt: '2026-09-19 16:02', updatedBy: 'e.yilmaz',
+    status: 'Hazırlanıyor', warrantyDays: 730, docCount: 8, progress: 46, updatedAt: '2026-09-19 16:02', updatedBy: 'e.yilmaz',
   },
   {
     id: 'TND-2026-016', kind: 'ihale', code: 'TND-2026-016',
     name: 'İzmir Aliağa Tersane Kuru Havuz Yenileme',
     employer: 'Ege Tersane A.Ş.', location: 'İzmir / Aliağa',
     dueAt: '2026-11-05', daysLeft: 45, value: 38_400_000, currency: 'EUR',
-    status: 'Analiz ediliyor', docCount: 4, progress: 18, updatedAt: '2026-09-20 11:35', updatedBy: 's.kaya',
+    status: 'Analiz ediliyor', warrantyDays: 365, docCount: 4, progress: 18, updatedAt: '2026-09-20 11:35', updatedBy: 's.kaya',
   },
   {
     id: 'TND-2026-011', kind: 'ihale', code: 'TND-2026-011',
     name: 'Bandırma OSB Altyapı ve Yol İşleri',
     employer: 'Bandırma OSB Müdürlüğü', location: 'Balıkesir / Bandırma',
     dueAt: '2026-09-04', daysLeft: -17, value: 24_500_000, currency: 'EUR',
-    status: 'Teklif Verildi', docCount: 6, progress: 100, updatedAt: '2026-09-04 17:40', updatedBy: 'm.demir',
+    status: 'Teklif Verildi', warrantyDays: 365, docCount: 6, progress: 100, updatedAt: '2026-09-04 17:40', updatedBy: 'm.demir',
   },
   {
     id: 'TND-2026-009', kind: 'ihale', code: 'TND-2026-009',
     name: 'Adana Şehir Hastanesi Ek Blok',
     employer: 'Sağlık Yatırım A.Ş.', location: 'Adana / Yüreğir',
     dueAt: '2026-07-22', daysLeft: -61, value: 64_000_000, currency: 'EUR',
-    status: 'Kazanıldı', docCount: 9, progress: 100, updatedAt: '2026-08-02 09:15', updatedBy: 'e.yilmaz',
+    status: 'Kazanıldı', warrantyDays: 365, docCount: 9, progress: 100, updatedAt: '2026-08-02 09:15', updatedBy: 'e.yilmaz',
   },
   {
     id: 'TND-2026-006', kind: 'ihale', code: 'TND-2026-006',
     name: 'Kuzey Marmara Otoyolu K5 Viyadük',
     employer: 'Karayolları Genel Müdürlüğü', location: 'Kocaeli / Gebze',
     dueAt: '2026-05-14', daysLeft: -130, value: 91_000_000, currency: 'EUR',
-    status: 'Kaybedildi', docCount: 11, progress: 100, updatedAt: '2026-05-28 14:20', updatedBy: 'm.demir',
+    status: 'Kaybedildi', warrantyDays: 365, docCount: 11, progress: 100, updatedAt: '2026-05-28 14:20', updatedBy: 'm.demir',
   },
   {
     id: 'PRJ-2026-003', kind: 'proje', code: 'PRJ-2026-003',
     name: 'Adana Şehir Hastanesi Ek Blok — Yapım',
     employer: 'Sağlık Yatırım A.Ş.', location: 'Adana / Yüreğir',
     dueAt: '2028-03-30', daysLeft: 555, value: 64_000_000, currency: 'EUR',
-    status: 'Yapım sürüyor', docCount: 23, progress: 12, updatedAt: '2026-09-21 08:40', updatedBy: 'a.koc',
+    status: 'Yapım sürüyor', warrantyDays: 365, docCount: 23, progress: 12, updatedAt: '2026-09-21 08:40', updatedBy: 'a.koc',
   },
   {
     id: 'PRJ-2024-008', kind: 'proje', code: 'PRJ-2024-008',
     name: 'Gebze Lojistik Merkezi Depo Yapıları',
     employer: 'Anadolu Lojistik A.Ş.', location: 'Kocaeli / Gebze',
     dueAt: '2026-12-20', daysLeft: 90, value: 29_200_000, currency: 'EUR',
-    status: 'Yapım sürüyor', docCount: 31, progress: 72, updatedAt: '2026-09-18 18:05', updatedBy: 'a.koc',
+    status: 'Yapım sürüyor', warrantyDays: 365, docCount: 31, progress: 72, updatedAt: '2026-09-18 18:05', updatedBy: 'a.koc',
   },
   {
     id: 'PRJ-2024-002', kind: 'proje', code: 'PRJ-2024-002',
     name: 'Samsun Tahıl Terminali ve Silo Tesisi',
     employer: 'Karadeniz Tahıl A.Ş.', location: 'Samsun / Tekkeköy',
     dueAt: '2026-10-30', daysLeft: 39, value: 17_800_000, currency: 'EUR',
-    status: 'Kabul aşaması', docCount: 28, progress: 96, updatedAt: '2026-09-15 12:10', updatedBy: 'm.aydin',
+    status: 'Kabul aşaması', warrantyDays: 365, docCount: 28, progress: 96, updatedAt: '2026-09-15 12:10', updatedBy: 'm.aydin',
   },
 ]
 
 /* ---------------- İş programı ---------------- */
 
 /**
- * Teklif aşamasında hazırlanan iş programı. Süreler metrajdan türetilir:
- * miktar ÷ günlük kapasite. Kritik yol, bitiş tarihini doğrudan belirleyen zincirdir.
+ * Teklif aşamasında hazırlanan iş programı. Planlama sırası saha pratiğine uyar:
+ * önce dizayn ve satınalma, sonra mobilizasyon ve imalat, en sonda test–devreye alma.
+ * Süreler metrajdan türetilir (miktar ÷ günlük kapasite); kritik yol bitiş tarihini belirler.
  */
 export const scheduleTasks: ScheduleTask[] = [
-  { id: 'W1', wbs: '1', name: 'Mobilizasyon ve saha hazırlığı', group: 'Mobilizasyon', startMonth: 0, months: 2, critical: true, assumption: 'Şantiye kurulumu 8 hafta · yer teslimi sözleşme + 15 gün', boqRef: '1000101', progress: 0 },
-  { id: 'W2', wbs: '2', name: 'Deniz tabanı taraması (dredging)', group: 'Kazı İşleri', startMonth: 1, months: 5, critical: true, dependsOn: '1', assumption: '386.000 m³ ÷ 2.800 m³/gün (1 tarak gemisi) ≈ 138 gün', boqRef: '1000312', progress: 0 },
-  { id: 'W3', wbs: '3', name: 'Saha sökümü ve kazı işleri', group: 'Kazı İşleri', startMonth: 1, months: 3, critical: false, dependsOn: '1', assumption: '48.500 m² söküm + 34.000 m³ kazı · 2 ekip', boqRef: '1000205', progress: 0 },
-  { id: 'W4', wbs: '4', name: 'Çelik boru kazık temini', group: 'Zemin İşleri', startMonth: 0, months: 6, critical: true, assumption: 'Üretim + teslim 5–7 ay — R7 riski kritik yolda', boqRef: '1000487', progress: 0 },
-  { id: 'W5', wbs: '5', name: 'Kazık çakımı', group: 'Zemin İşleri', startMonth: 5, months: 7, critical: true, dependsOn: '4', assumption: '9.850 ton ÷ 48 ton/gün (2 şahmerdan, 10 saatlik pencere)', boqRef: '1000487', progress: 0 },
-  { id: 'W6', wbs: '6', name: 'Kazık başlığı ve tabliye betonu', group: 'Betonarme İşleri', startMonth: 8, months: 6, critical: true, dependsOn: '5', assumption: '12.400 m³ ÷ 95 m³/gün', boqRef: '1000520', progress: 0 },
-  { id: 'W7', wbs: '7', name: 'Prekast kiriş üretimi ve montajı', group: 'Betonarme İşleri', startMonth: 9, months: 6, critical: false, dependsOn: '5', assumption: '268 ad ÷ 2 ad/gün montaj', boqRef: '1000534', progress: 0 },
-  { id: 'W8', wbs: '8', name: 'Anroşman ve şev koruma', group: 'Zemin İşleri', startMonth: 7, months: 4, critical: false, dependsOn: '2', assumption: '74.000 ton ÷ 950 ton/gün', boqRef: '1000560', progress: 0 },
-  { id: 'W9', wbs: '9', name: 'Saha dolgusu ve alt temel', group: 'Zemin İşleri', startMonth: 10, months: 5, critical: false, dependsOn: '3', assumption: '268.000 m³ ÷ 2.400 m³/gün · malzeme idare stokundan', boqRef: '1000612', progress: 0 },
-  { id: 'W10', wbs: '10', name: 'Saha kaplamaları (parke + asfalt)', group: 'Zemin İşleri', startMonth: 14, months: 5, critical: false, dependsOn: '9', assumption: '182.000 m² ÷ 1.800 m²/gün', boqRef: '1000640', progress: 0 },
-  { id: 'W11', wbs: '11', name: 'Operasyon binası kaba yapı', group: 'Betonarme İşleri', startMonth: 12, months: 3, critical: false, dependsOn: '3', assumption: '1.850 m³ betonarme imalat', boqRef: '1000548', progress: 0 },
-  { id: 'W12', wbs: '12', name: 'Bina ince işleri', group: 'İnce İşler', startMonth: 15, months: 4, critical: false, dependsOn: '11', assumption: '2.400 m² iç imalat · mahal listesi netleşmeli', boqRef: '1001110', progress: 0 },
-  { id: 'W13', wbs: '13', name: 'Cephe ve çatı imalatları', group: 'Cephe & Çatı İşleri', startMonth: 15, months: 3, critical: false, dependsOn: '11', assumption: '1.280 m² panel + 1.450 m² membran', boqRef: '1001210', progress: 0 },
-  { id: 'W14', wbs: '14', name: 'Altyapı ve mekanik hatlar', group: 'Mekanik İşleri', startMonth: 11, months: 6, critical: false, dependsOn: '9', assumption: '8.450 m drenaj + 4.200 m yangın hattı', boqRef: '1000710', progress: 0 },
-  { id: 'W15', wbs: '15', name: 'Rıhtım donanımı montajı', group: 'Mekanik İşleri', startMonth: 17, months: 4, critical: true, dependsOn: '6', assumption: '36 baba + 28 usturmaça + 1.540 m vinç rayı', boqRef: '1000910', progress: 0 },
-  { id: 'W16', wbs: '16', name: 'Elektrik işleri (OG, aydınlatma, RTG)', group: 'Elektrik İşleri', startMonth: 14, months: 6, critical: false, dependsOn: '9', assumption: '6.800 m OG kablolama + 42 aydınlatma direği', boqRef: '1000810', progress: 0 },
-  { id: 'W17', wbs: '17', name: 'IT ve güvenlik sistemleri', group: 'IT', startMonth: 18, months: 4, critical: false, dependsOn: '16', assumption: '5.600 m fiber omurga + CCTV · kapsam netleşmeli', boqRef: '1001035', progress: 0 },
-  { id: 'W18', wbs: '18', name: 'Peyzaj ve çevre düzenlemesi', group: 'Peyzaj', startMonth: 19, months: 3, critical: false, dependsOn: '10', assumption: '2.100 m çevre duvarı + 6.800 m² peyzaj', boqRef: '1001010', progress: 0 },
-  { id: 'W19', wbs: '19', name: 'Test, devreye alma ve geçici kabul', group: 'Test ve Devreye Alma', startMonth: 21, months: 3, critical: true, dependsOn: '15', assumption: 'Yükleme deneyleri + sistem testleri + işletme eğitimi', boqRef: '1001420', progress: 0 },
+  { id: 'W1', wbs: '1', name: 'Dizayn, mühendislik ve onaylar', group: 'Genel', startMonth: 0, months: 4, critical: true, assumption: 'Uygulama projeleri + idare onayı 4 ay · onay gecikmesi doğrudan kritik yolda', progress: 0 },
+  { id: 'W2', wbs: '2', name: 'Satınalma ve tedarik sözleşmeleri', group: 'Genel', startMonth: 2, months: 3, critical: true, dependsOn: '1', relation: 'SS', assumption: 'Uzun temin kalemleri için ihale ve sipariş süreci · dizaynla örtüşerek başlar', progress: 0 },
+  { id: 'W3', wbs: '3', name: 'Çelik boru kazık temini (üretim + teslim)', group: 'Zemin İşleri', startMonth: 3, months: 6, critical: true, dependsOn: '2', relation: 'FS', assumption: 'Ø1220 mm boru üretim + teslim 5–7 ay — R7 riski kritik yolda', boqRef: '1000487', progress: 0 },
+  { id: 'W4', wbs: '4', name: 'Mobilizasyon ve saha hazırlığı', group: 'Mobilizasyon', startMonth: 2, months: 2, critical: false, dependsOn: '1', relation: 'FS', assumption: 'Şantiye kurulumu 8 hafta · yer teslimi sözleşme + 15 gün', boqRef: '1000101', progress: 0 },
+  { id: 'W5', wbs: '5', name: 'Saha sökümü ve kazı işleri', group: 'Kazı İşleri', startMonth: 4, months: 3, critical: false, dependsOn: '4', relation: 'FS', assumption: '48.500 m² söküm + 34.000 m³ kazı · 2 ekip', boqRef: '1000205', progress: 0 },
+  { id: 'W6', wbs: '6', name: 'Deniz tabanı taraması (dredging)', group: 'Kazı İşleri', startMonth: 4, months: 5, critical: true, dependsOn: '4', relation: 'FS', assumption: '386.000 m³ ÷ 2.800 m³/gün (1 tarak gemisi) ≈ 138 gün', boqRef: '1000312', progress: 0 },
+  { id: 'W7', wbs: '7', name: 'Kazık çakımı', group: 'Zemin İşleri', startMonth: 9, months: 6, critical: true, dependsOn: '3', relation: 'FS', assumption: '9.850 ton ÷ 48 ton/gün (2 şahmerdan, 10 saatlik pencere)', boqRef: '1000487', progress: 0 },
+  { id: 'W8', wbs: '8', name: 'Anroşman ve şev koruma', group: 'Zemin İşleri', startMonth: 9, months: 4, critical: false, dependsOn: '6', relation: 'FS', assumption: '74.000 ton ÷ 950 ton/gün', boqRef: '1000560', progress: 0 },
+  { id: 'W9', wbs: '9', name: 'Kazık başlığı ve tabliye betonu', group: 'Betonarme İşleri', startMonth: 12, months: 5, critical: true, dependsOn: '7', relation: 'SS', assumption: '12.400 m³ ÷ 95 m³/gün · çakımla 3 ay örtüşür', boqRef: '1000520', progress: 0 },
+  { id: 'W10', wbs: '10', name: 'Prekast kiriş üretimi ve montajı', group: 'Betonarme İşleri', startMonth: 12, months: 5, critical: false, dependsOn: '7', relation: 'SS', assumption: '268 ad ÷ 2 ad/gün montaj', boqRef: '1000534', progress: 0 },
+  { id: 'W11', wbs: '11', name: 'Saha dolgusu ve alt temel', group: 'Zemin İşleri', startMonth: 11, months: 4, critical: false, dependsOn: '5', relation: 'FS', assumption: '268.000 m³ ÷ 2.400 m³/gün · malzeme idare stokundan', boqRef: '1000612', progress: 0 },
+  { id: 'W12', wbs: '12', name: 'Operasyon binası kaba yapı', group: 'Betonarme İşleri', startMonth: 12, months: 3, critical: false, dependsOn: '5', relation: 'FS', assumption: '1.850 m³ betonarme imalat', boqRef: '1000548', progress: 0 },
+  { id: 'W13', wbs: '13', name: 'Altyapı ve mekanik hatlar', group: 'Mekanik İşleri', startMonth: 13, months: 5, critical: false, dependsOn: '11', relation: 'SS', assumption: '8.450 m drenaj + 4.200 m yangın hattı', boqRef: '1000710', progress: 0 },
+  { id: 'W14', wbs: '14', name: 'Saha kaplamaları (parke + asfalt)', group: 'Zemin İşleri', startMonth: 15, months: 4, critical: false, dependsOn: '11', relation: 'FS', assumption: '182.000 m² ÷ 1.800 m²/gün', boqRef: '1000640', progress: 0 },
+  { id: 'W15', wbs: '15', name: 'Cephe ve çatı imalatları', group: 'Cephe & Çatı İşleri', startMonth: 15, months: 3, critical: false, dependsOn: '12', relation: 'FS', assumption: '1.280 m² panel + 1.450 m² membran', boqRef: '1001210', progress: 0 },
+  { id: 'W16', wbs: '16', name: 'Bina ince işleri', group: 'İnce İşler', startMonth: 16, months: 4, critical: false, dependsOn: '15', relation: 'SS', assumption: '2.400 m² iç imalat · mahal listesi netleşmeli', boqRef: '1001110', progress: 0 },
+  { id: 'W17', wbs: '17', name: 'Elektrik işleri (OG, aydınlatma, RTG)', group: 'Elektrik İşleri', startMonth: 15, months: 5, critical: false, dependsOn: '11', relation: 'FS', assumption: '6.800 m OG kablolama + 42 aydınlatma direği', boqRef: '1000810', progress: 0 },
+  { id: 'W18', wbs: '18', name: 'Rıhtım donanımı montajı', group: 'Mekanik İşleri', startMonth: 17, months: 4, critical: true, dependsOn: '9', relation: 'FS', assumption: '36 baba + 28 usturmaça + 1.540 m vinç rayı', boqRef: '1000910', progress: 0 },
+  { id: 'W19', wbs: '19', name: 'IT ve güvenlik sistemleri', group: 'IT', startMonth: 18, months: 4, critical: false, dependsOn: '17', relation: 'SS', assumption: '5.600 m fiber omurga + CCTV · kapsam netleşmeli', boqRef: '1001035', progress: 0 },
+  { id: 'W20', wbs: '20', name: 'Peyzaj ve çevre düzenlemesi', group: 'Peyzaj', startMonth: 19, months: 3, critical: false, dependsOn: '14', relation: 'FF', assumption: '2.100 m çevre duvarı + 6.800 m² peyzaj · kaplamalarla birlikte biter', boqRef: '1001010', progress: 0 },
+  { id: 'W21', wbs: '21', name: 'Test, devreye alma ve geçici kabul', group: 'Test ve Devreye Alma', startMonth: 21, months: 3, critical: true, dependsOn: '18', relation: 'FS', assumption: 'Yükleme deneyleri + sistem testleri + işletme eğitimi', boqRef: '1001420', progress: 0 },
 ]
 
-/** Sözleşmeden gelen ve programda sabit duran tarihler. */
+/**
+ * Sözleşmeden gelen key stage'ler. Tarihler "işe başlama (CD) + X gün" olarak verilir;
+ * çoğunun kendine ait gecikme cezası vardır ve bu ceza ana işin cezasından ayrı işler.
+ */
 export const scheduleMilestones: ScheduleMilestone[] = [
-  { id: 'M1', label: 'İşe başlama (yer teslimi)', month: 0, source: 'Sözleşme md. 8.1', kind: 'Sözleşme' },
-  { id: 'M2', label: 'İş programının İdare’ye sunumu', month: 0.5, source: 'İdari Ş. 21.1 (14 gün) / Sözleşme 8.3 (28 gün) — çelişki', kind: 'Sözleşme' },
-  { id: 'M3', label: 'Taramanın tamamlanması (döküm izni şartı)', month: 6, source: 'Teknik Şartname 4.2', kind: 'İdare' },
-  { id: 'M4', label: 'Rıhtım tabliyesinin tamamlanması', month: 15, source: 'Özel Şartlar 8.2 — ara teslim', kind: 'Sözleşme' },
-  { id: 'M5', label: 'Saha kaplamalarının bitişi', month: 19, source: 'İç hedef — kaplama ekibinin çıkışı', kind: 'İç hedef' },
-  { id: 'M6', label: 'Geçici kabul', month: 24, source: 'Sözleşme md. 10.1 · 720 takvim günü', kind: 'Sözleşme' },
+  { id: 'M1', no: 'KS-1', label: 'Tasarım danışmanının onayı ve uygulama projelerinin teslimi', dueDays: 120, dueDate: '2027-03-01', month: 4, source: 'Sözleşme md. 8.1', kind: 'Sözleşme' },
+  { id: 'M2', no: 'KS-2', label: 'Çelik kazıkların sahaya teslimi ve çakıma başlama', dueDays: 270, dueDate: '2027-08-01', month: 9, penalty: 25_000, penaltyNote: 'Haftalık 25.000 EUR · ana ceza tavanına dâhil', source: 'Özel Şartlar 8.2 (a)', kind: 'Sözleşme' },
+  { id: 'M3', no: 'KS-3', label: 'Deniz tabanı taramasının tamamlanması (döküm izni şartı)', dueDays: 270, dueDate: '2027-08-01', month: 9, penalty: 40_000, penaltyNote: 'Haftalık 40.000 EUR · izin idareden gecikirse muaf', source: 'Teknik Şartname 4.2', kind: 'İdare' },
+  { id: 'M4', no: 'KS-4', label: 'Rıhtım tabliyesinin tamamlanması — ara teslim', dueDays: 510, dueDate: '2028-03-01', month: 17, penalty: 120_000, penaltyNote: 'Haftalık 120.000 EUR · ara teslim cezası, tavan %5', source: 'Özel Şartlar 8.2 (b)', kind: 'Sözleşme' },
+  { id: 'M5', no: 'KS-5', label: 'Saha kaplamaları ve altyapının tamamlanması', dueDays: 630, dueDate: '2028-07-01', month: 21, source: 'İç hedef — kaplama ekibinin çıkışı', kind: 'İç hedef' },
+  { id: 'M6', no: 'KS-6', label: 'Tüm işlerin tamamlanması ve geçici kabul', dueDays: 720, dueDate: '2028-10-01', month: 24, penalty: 41_000, penaltyNote: 'Günlük ‰0,5 ≈ 41.000 EUR · tavan %15 (12,3 M EUR)', source: 'Sözleşme md. 10.1', kind: 'Sözleşme' },
+]
+
+/* ---------------- Personel ve ekipman ---------------- */
+
+/** Aylar 0 tabanlıdır: 0 = programın ilk ayı. */
+const ay = (a: number, b: number) => Array.from({ length: b - a + 1 }, (_, i) => a + i)
+
+export const staffPlan: StaffItem[] = [
+  { id: 'P1', title: 'Proje Müdürü', duty: 'Sözleşme yönetimi, idare ilişkileri, genel koordinasyon', count: 1, monthlyCost: 9_500, months: ay(0, 23) },
+  { id: 'P2', title: 'Şantiye Şefi', duty: 'Saha üretiminin yönetimi, taşeron koordinasyonu', count: 1, monthlyCost: 7_800, months: ay(2, 23) },
+  { id: 'P3', title: 'Deniz İşleri Şefi', duty: 'Tarama, kazık çakımı ve rıhtım imalatlarının yönetimi', count: 1, monthlyCost: 7_200, months: ay(4, 20), note: 'Liman tecrübesi şart — İK havuzunda 1 kişi' },
+  { id: 'P4', title: 'Planlama Mühendisi', duty: 'Program güncelleme, hakediş ve ilerleme raporları', count: 2, monthlyCost: 5_400, months: ay(0, 23) },
+  { id: 'P5', title: 'Saha Mühendisi', duty: 'İmalat takibi, metraj ve şantiye günlüğü', count: 6, monthlyCost: 4_800, months: ay(2, 23) },
+  { id: 'P6', title: 'Kalite (QA/QC) Mühendisi', duty: 'Malzeme onayı, test planı, kabul dosyası', count: 2, monthlyCost: 5_000, months: ay(2, 23) },
+  { id: 'P7', title: 'İSG Uzmanı (A sınıfı)', duty: 'İş güvenliği planı, saha denetimi, eğitimler', count: 2, monthlyCost: 5_200, months: ay(2, 23), note: 'Sertifikalar sekmesindeki İSG-A-2291 belgesine bağlı' },
+  { id: 'P8', title: 'Sürveyan / Topograf', duty: 'Aplikasyon, kot kontrolü, as-built ölçümler', count: 3, monthlyCost: 3_900, months: ay(2, 22) },
+  { id: 'P9', title: 'Mekanik & Elektrik Şefi', duty: 'Altyapı, OG hatları ve rıhtım donanımı montajı', count: 2, monthlyCost: 6_400, months: ay(11, 23) },
+  { id: 'P10', title: 'Satınalma Sorumlusu', duty: 'Tedarikçi yönetimi, sipariş ve lojistik takibi', count: 2, monthlyCost: 4_600, months: ay(0, 20) },
+  { id: 'P11', title: 'Muhasebe / İdari İşler', duty: 'Şantiye muhasebesi, puantaj, kamp ve ulaşım', count: 3, monthlyCost: 3_400, months: ay(1, 23) },
+  { id: 'P12', title: 'Formen', duty: 'Ekip başı — beton, dolgu, montaj ekipleri', count: 6, monthlyCost: 2_900, months: ay(4, 22) },
+]
+
+export const equipmentPlan: EquipmentItem[] = [
+  { id: 'E1', name: 'Şahmerdan (kazık çakma)', group: 'Deniz işleri', count: 2, monthlyCost: 38_000, months: ay(9, 14), ownership: 'Kira', note: 'Filoda yok — iki tedarikçiden bağlayıcı teklif alındı (R12)' },
+  { id: 'E2', name: 'Deniz vinci / barge crane', group: 'Deniz işleri', count: 1, monthlyCost: 46_000, months: ay(9, 20), ownership: 'Kira' },
+  { id: 'E3', name: 'Tarak gemisi (dredger)', group: 'Deniz işleri', count: 1, monthlyCost: 145_000, months: ay(4, 8), ownership: 'Kira', note: 'Kapasite 2.800 m³/gün — program bu kapasiteye göre kuruldu' },
+  { id: 'E4', name: 'Mobil vinç 80–200 ton', group: 'Montaj', count: 2, monthlyCost: 18_000, months: ay(12, 20), ownership: 'Kira' },
+  { id: 'E5', name: 'Ekskavatör (paletli)', group: 'Kazı ve dolgu', count: 5, monthlyCost: 6_200, months: ay(4, 18), ownership: 'Kendi' },
+  { id: 'E6', name: 'Damperli kamyon', group: 'Kazı ve dolgu', count: 12, monthlyCost: 4_100, months: ay(4, 18), ownership: 'Kendi' },
+  { id: 'E7', name: 'Silindir (vibrasyonlu)', group: 'Kazı ve dolgu', count: 3, monthlyCost: 3_200, months: ay(11, 18), ownership: 'Kendi' },
+  { id: 'E8', name: 'Greyder', group: 'Kazı ve dolgu', count: 2, monthlyCost: 4_400, months: ay(11, 18), ownership: 'Kendi' },
+  { id: 'E9', name: 'Beton pompası', group: 'Betonarme', count: 2, monthlyCost: 7_500, months: ay(12, 19), ownership: 'Kendi' },
+  { id: 'E10', name: 'Transmikser', group: 'Betonarme', count: 6, monthlyCost: 3_800, months: ay(12, 19), ownership: 'Kira' },
+  { id: 'E11', name: 'Asfalt finişeri + silindir seti', group: 'Kaplama', count: 1, monthlyCost: 12_000, months: ay(16, 19), ownership: 'Kira' },
+  { id: 'E12', name: 'Jeneratör ve saha aydınlatma seti', group: 'Genel', count: 4, monthlyCost: 2_400, months: ay(2, 23), ownership: 'Kendi' },
 ]

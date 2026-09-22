@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { boqItems, unitPrices } from '../data/mock'
 import type { UnitPrice } from '../data/types'
-import { Badge, Btn, Card, Chips, Empty, Kpi, PageHead, ReadOnlyNote, Search, Table, Td, Th } from '../components/ui'
+import { Badge, Btn, Card, ExportButtons, Chips, Empty, Kpi, PageHead, ReadOnlyNote, Search, Table, Td, Th } from '../components/ui'
 import { date, num } from '../lib/format'
 
 type Filter = 'Tümü' | 'Kendi analizimiz' | 'BCBS' | 'Piyasa teklifi' | 'Geçmiş proje'
@@ -41,7 +41,7 @@ export function BirimFiyatHavuzu({ writable, role }: { writable: boolean; role: 
         note="Firmanın kendi poz numarası ve iş kalemi bazlı fiyat havuzu. Bu havuz projeye değil firmaya aittir: bir kez girilen fiyat bütün ihalelerde kullanılır. İhale dokümanındaki metraj kalemleri poz numarası ile buradan fiyatlanır."
         right={<>
           <Btn disabled={!writable}>BCBS Excel'i içe aktar</Btn>
-          <Btn disabled={!writable}>Dışa aktar</Btn>
+          <ExportButtons />
           <Btn primary disabled={!writable} onClick={() => setDraft((v) => !v)}>+ Birim fiyat ekle</Btn>
         </>}
       />

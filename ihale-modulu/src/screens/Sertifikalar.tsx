@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { certificates } from '../data/mock'
-import { AddonBadge, Badge, Btn, Card, Chips, Kpi, PageHead, ReadOnlyNote, Table, Td, Th } from '../components/ui'
+import { AddonBadge, Badge, Btn, Card, Chips, ExportButtons, Kpi, PageHead, ReadOnlyNote, Table, Td, Th } from '../components/ui'
 import { date, daysLabel } from '../lib/format'
 
 type Filter = 'Tümü' | 'Eksik' | 'Süresi yaklaşan' | 'Geçerli'
@@ -27,7 +27,7 @@ export function Sertifikalar({ writable, role }: { writable: boolean; role: stri
         note="İhale dokümanında istenen belgeler otomatik çıkarılır ve firmanın belge havuzuyla karşılaştırılır."
         right={<>
           <AddonBadge />
-          <Btn>Eksik listesi (PDF)</Btn>
+          <ExportButtons />
           <Btn primary disabled={!writable}>+ Sertifika Ekle</Btn>
         </>}
       />

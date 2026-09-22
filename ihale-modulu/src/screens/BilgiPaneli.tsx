@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { boqItems, criticalTerms, project, scopeSections, timeline } from '../data/mock'
-import { Badge, Btn, Card, Kpi, PageHead, ReadOnlyNote, StateBadge, Table, Td, Th } from '../components/ui'
+import { Badge, Btn, Card, ExportButtons, Kpi, PageHead, ReadOnlyNote, StateBadge, Table, Td, Th } from '../components/ui'
 import { date, daysLabel, money, num } from '../lib/format'
 
 /** İhalenin künyesi: tek bakışta "bu iş nedir, ne zaman, hangi koşullarla". Alanlar elle düzeltilebilir. */
@@ -11,7 +11,7 @@ export function BilgiPaneli({ writable, role }: { writable: boolean; role: strin
   const openTerms = criticalTerms.filter((t) => t.state === 'Eksik' || t.state === 'Karşılanmıyor').length
 
   const kunye: { label: string; value: string; note?: string; tone?: 'crit' | 'warn'; help?: string }[] = [
-    { label: 'İhale no', value: project.code },
+    { label: 'İhale takip no', value: project.code, help: 'Firmanın kendi ERP takip kodu. İş eklenirken girilir; ihale dokümanındaki idare numarası ayrıca kaydedilir.' },
     { label: 'İşveren', value: project.employer },
     { label: 'Yer', value: `${project.location}, ${project.country}` },
     { label: 'Sözleşme tipi', value: project.contractType, help: 'FIDIC Red Book: birim fiyatlı, işveren tasarımlı sözleşme. Özel Şartlar, genel şartların bazı maddelerini değiştirir.' },
@@ -19,7 +19,7 @@ export function BilgiPaneli({ writable, role }: { writable: boolean; role: strin
     { label: 'Para birimi', value: `${project.currency} (maliyetin %55’i TL)`, note: 'Kur riski', tone: 'warn' },
     { label: 'Yaklaşık bedel', value: money(project.estimatedValue, project.currency), help: 'İdarenin ilan ettiği yaklaşık bedel. Her ihalede açıklanmaz; açıklanmadıysa bu alan boş kalır ve teklif bedeli metraj × havuz fiyatından hesaplanır.' },
     { label: 'İş süresi', value: `${num(project.durationDays)} takvim günü` },
-    { label: 'Kusur sorumluluğu', value: '730 gün (DLP)', note: 'Standardın 2 katı', tone: 'warn', help: 'DLP (Defects Notification Period): kabulden sonra kusurlardan sorumlu olunan süre. Bu sürede kesin teminat bloke kalır.' },
+    { label: 'Garanti / kusur sorumluluğu', value: '730 gün (DLP)', note: 'Standardın 2 katı', tone: 'warn', help: 'DLP (Defects Notification Period): kabulden sonra kusurlardan sorumlu olunan süre. İş eklenirken girilir, doküman analizi doğrular. Bu sürede kesin teminat bloke kalır.' },
     { label: 'Avans', value: 'Yok', note: 'Mobilizasyon özkaynakla', tone: 'crit' },
     { label: 'Fiyat farkı', value: 'Ödenmeyecek', note: 'Özel Şartlar 13.8', tone: 'crit', help: 'Fiyat farkı, malzeme ve işçilik artışının sözleşme bedeline yansıtılmasıdır. Ödenmiyorsa artış riski tamamen yüklenicidedir.' },
     { label: 'Ödeme süresi', value: '90 gün', note: 'İdari Şartname 60 gün diyor — çelişki', tone: 'crit' },
@@ -34,7 +34,7 @@ export function BilgiPaneli({ writable, role }: { writable: boolean; role: strin
       <PageHead
         title="İhale Bilgi Paneli"
         note="İhalenin künyesi, kapsamı ve takvimi. Alanlar doküman analizinden otomatik doldurulur, kaynağı işaretlidir ve elle düzeltilebilir."
-        right={<><Btn>PDF</Btn><Btn>Excel</Btn></>}
+        right={<ExportButtons />}
       />
 
       {!writable && <ReadOnlyNote role={role} />}
@@ -48,8 +48,8 @@ export function BilgiPaneli({ writable, role }: { writable: boolean; role: strin
           help="Yer tesliminden kabule kadar olan sözleşme süresi." />
         <Kpi label="Kritik şart" value={openTerms} sub="Karşılanmayan / eksik" tone="crit"
           help="Kritik İhale Şartları sekmesinde 'karşılanmıyor' veya 'eksik' durumda olan şart sayısı." />
-        <Kpi label="Metraj kalemi" value={boqItems.length} sub="Poz listesinden"
-          help="İhale dokümanındaki poz sayısı. Birim fiyatlar Birim Fiyat Havuzu'ndan eşleşir." />
+        <Kpi label="Metraj kalemi" value={boqItems.length} sub="Poz listesinden · ek paket" tone="accent"
+          help="İhale dokümanındaki poz sayısı. Metraj (BoQ / Take-off) ek pakete dâhildir; paket kapalıyken bu kutu pasif görünür. Birim fiyatlar Birim Fiyat Havuzu'ndan eşleşir." />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">

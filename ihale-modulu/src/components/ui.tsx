@@ -569,3 +569,111 @@ export function Dropzone({ files, onAdd, onRemove }: {
     </div>
   )
 }
+
+/* ---------------- Çıktı düğmeleri ---------------- */
+
+/** Her sayfanın sağ üstünde duran çıktı seçenekleri. */
+export function ExportButtons({ extra }: { extra?: ReactNode }) {
+  return (
+    <>
+      {extra}
+      <Btn small title="PDF olarak dışa aktar">PDF</Btn>
+      <Btn small title="Excel olarak dışa aktar">Excel</Btn>
+      <Btn small title="Word olarak dışa aktar">Word</Btn>
+    </>
+  )
+}
+
+/* ---------------- Sıralama ---------------- */
+
+/** Tablo başlıklarının yanındaki sıralama seçici (tarih, alfabe, durum…). */
+export function SortSelect<T extends string>({ value, onChange, items, label = 'Sırala' }: {
+  value: T; onChange: (v: T) => void; items: { key: T; label: string }[]; label?: string
+}) {
+  return (
+    <label className="flex items-center gap-1.5 text-[11.5px] text-[var(--muted)]">
+      {label}
+      <select value={value} onChange={(e) => onChange(e.target.value as T)}
+        className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2 py-1 text-[12px] font-medium text-[var(--ink)] outline-none">
+        {items.map((i) => <option key={i.key} value={i.key}>{i.label}</option>)}
+      </select>
+    </label>
+  )
+}
+
+/** Sütun başlığına konan küçük filtre düğmesi — açılan listeden değer seçilir. */
+export function ColumnFilter({ values, value, onChange }: {
+  values: string[]; value: string; onChange: (v: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <span className="relative inline-flex">
+      <button onClick={() => setOpen((v) => !v)} title="Filtrele"
+        className="grid h-[15px] w-[15px] place-items-center rounded border text-[9px] leading-none transition-colors"
+        style={value === 'Tümü'
+          ? { borderColor: 'var(--border-strong)', color: 'var(--muted)', background: 'var(--surface)' }
+          : { borderColor: 'var(--accent)', color: 'var(--accent)', background: 'var(--accent-soft)' }}>▼</button>
+      {open && (
+        <span className="absolute left-0 top-[19px] z-50 flex min-w-[150px] flex-col rounded-md border border-[var(--border)] bg-[var(--surface)] py-1 shadow-lg">
+          {['Tümü', ...values].map((v) => (
+            <button key={v} onClick={() => { onChange(v); setOpen(false) }}
+              className="px-2.5 py-1 text-left text-[12px] font-normal normal-case tracking-normal hover:bg-[var(--surface-2)]"
+              style={{ color: v === value ? 'var(--accent)' : 'var(--ink)' }}>
+              {v}
+            </button>
+          ))}
+        </span>
+      )}
+    </span>
+  )
+}
+
+/* ---------------- Düzeltme izi (redline) ---------------- */
+
+export interface Redline {
+  /** Metne eklenen cümle — sarı ve altı çizili görünür */
+  added?: string
+  /** Metinden çıkarılan cümle — soluk ve üstü çizili kalır */
+  removed?: string
+  by: string
+  at: string
+}
+
+/**
+ * Doküman metnini düzeltme izleriyle gösterir:
+ * eklenen kısım sarı ve altı çizili, çıkarılan kısım soluk ve üstü çizili kalır.
+ * Değişikliği kimin yaptığı yanda görünür.
+ */
+export function RedlineText({ body, edits }: { body: string; edits: Redline[] }) {
+  let parts: ReactNode[] = [body]
+
+  for (const e of edits) {
+    if (e.removed) {
+      parts = parts.flatMap((part) => {
+        if (typeof part !== 'string' || !part.includes(e.removed!)) return [part]
+        const [a, ...rest] = part.split(e.removed!)
+        return [a, <del key={`d${e.at}`} className="redline-del" title={`${e.by} çıkardı · ${e.at}`}>{e.removed}</del>, rest.join(e.removed!)]
+      })
+    }
+    if (e.added) {
+      parts = [...parts, <ins key={`a${e.at}`} className="redline-add" title={`${e.by} ekledi · ${e.at}`}> {e.added}</ins>]
+    }
+  }
+
+  return (
+    <div className="flex gap-3">
+      <p className="flex-1 whitespace-pre-wrap">{parts}</p>
+      {edits.length > 0 && (
+        <div className="w-[104px] flex-shrink-0 border-l border-[var(--border)] pl-2">
+          {edits.map((e) => (
+            <div key={e.at} className="mb-2 text-[10.5px] leading-snug text-[var(--muted)]">
+              <div className="font-semibold text-[var(--ink)]">{e.by}</div>
+              <div>{e.at}</div>
+              <div style={{ color: e.added ? 'var(--gold)' : 'var(--crit)' }}>{e.added ? 'ekledi' : 'çıkardı'}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}

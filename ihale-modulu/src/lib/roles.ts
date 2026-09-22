@@ -17,17 +17,18 @@ export const roles: Role[] = [
 
 export const tabs: TabDef[] = [
   { key: 'dokuman_analiz', label: 'İhale Dokümanı Analiz', note: 'Yüklenen ihale dokümanlarının AI ile taranması ve kanıtlı bulgular' },
-  { key: 'bilgi_paneli', label: 'İhale Bilgi Paneli', note: 'İhalenin künyesi: işveren, süre, teminat, tarihler, sayılar' },
-  { key: 'go_nogo', label: 'Go / No-Go Analiz', note: 'Ağırlıklı kriterlerle teklife girme kararı' },
+  { key: 'bilgi_paneli', label: 'İhale Bilgi Paneli', note: 'İhalenin künyesi: işveren, süre, teminat, para birimi, garanti süresi, tarihler' },
   { key: 'kritik_sartlar', label: 'Kritik İhale Şartları', note: 'Teklifi ve sözleşmeyi bağlayan kritik şartlar ve durumları' },
-  { key: 'boq', label: 'Metraj (BoQ / Take-off)', addon: true, note: 'İhale dokümanındaki poz listesi ve metrajlar. İhale dokümanında birim fiyat bulunmaz; fiyatlar Birim Fiyat Havuzu’ndan eşleşir.' },
-  { key: 'birim_fiyat', label: 'Birim Fiyat Havuzu', note: 'Firmanın kendi poz numarası ve iş kalemi bazlı birim fiyat havuzu. Projeye değil firmaya aittir; metraj kalemleri buradan fiyatlanır.' },
-  { key: 'is_programi', label: 'İş Programı', addon: true, note: 'Metrajdan türetilen iş programı: imalat süreleri, kritik yol ve sözleşmeden gelen kilometre taşları.' },
-  { key: 'teklif_riskleri', label: 'Teklif Riskleri', note: 'Risk matrisi, bedel ve süre etkisi, önlemler' },
+  { key: 'teklif_riskleri', label: 'Teklif Riskleri', note: 'Risk kayıtları, bedelin açık hesabı ve teklife eklenen karşılık' },
   { key: 'kontrat_analiz', label: 'Kontrat Analiz', note: 'Madde bazlı analiz, çelişkiler ve süre sınırları' },
-  { key: 'kontrat_hazirlama', label: 'Kontrat Hazırlama', addon: true, note: 'Şablondan sözleşme taslağı üretimi' },
+  { key: 'go_nogo', label: 'Go / No-Go Analiz', note: 'Ağırlıklı kriterlerle teklife girme kararı' },
+  { key: 'boq', label: 'Metraj (BoQ / Take-off)', addon: true, note: 'İhale dokümanındaki poz listesi ve metrajlar. İhale dokümanında birim fiyat bulunmaz; fiyatlar Birim Fiyat Havuzu’ndan eşleşir.' },
+  { key: 'personel_ekipman', label: 'Personel & Ekipman', addon: true, note: 'İş süresince ihtiyaç duyulacak kadro ve makine parkı; aylık maliyet ve hangi aylarda sahada olacağı.' },
+  { key: 'is_programi', label: 'İş Programı', addon: true, note: 'Metrajdan türetilen iş programı: imalat süreleri, aktivite ilişkileri, kritik yol ve key stage tarihleri.' },
+  { key: 'birim_fiyat', label: 'Birim Fiyat Havuzu', note: 'Firmanın kendi poz numarası ve iş kalemi bazlı birim fiyat havuzu. Projeye değil firmaya aittir; metraj kalemleri buradan fiyatlanır.' },
   { key: 'sertifikalar', label: 'Sertifikalar', addon: true, note: 'İstenen belgeler, firmadaki durum ve geçerlilikler' },
   { key: 'ozet', label: 'Özet & Karar', note: 'Tüm sekmelerin tek sayfada toplandığı karar ekranı' },
+  { key: 'kontrat_hazirlama', label: 'Kontrat Hazırlama', addon: true, note: 'İhale kazanıldıktan sonra şablondan sözleşme taslağı üretimi' },
 ]
 
 /** Yetki matrisi: [sekme][rol] → R | RW */

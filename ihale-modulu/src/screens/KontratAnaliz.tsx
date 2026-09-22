@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { clauses } from '../data/mock'
 import type { ClauseAnalysis } from '../data/types'
 import {
-  Badge, Bar, Btn, Card, Chips, Kpi, PageHead, PreviewPane, ReadOnlyNote, SeverityBadge, StickyPane, Table, Td, Th,
+  Badge, Bar, Btn, Card, Chips, ExportButtons, Kpi, PageHead, PreviewPane, ReadOnlyNote, SeverityBadge,
+  StickyPane, Table, Td, Th,
 } from '../components/ui'
 import { pct } from '../lib/format'
 
@@ -34,9 +35,9 @@ export function KontratAnaliz({ writable, role }: { writable: boolean; role: str
         title="Kontrat Analiz"
         note="Sözleşme maddeleri madde madde değerlendirilir: risk kimde, hangi süre sınırları var, hangi maddeler çelişiyor."
         right={<>
-          <Btn disabled={!writable}>Revizyon talebi oluştur</Btn>
+          <ExportButtons />
           <Btn>Karşılaştır (FIDIC standardı)</Btn>
-          <Btn>Excel</Btn>
+          <Btn primary disabled={!writable}>Revizyon talebi oluştur</Btn>
         </>}
       />
 

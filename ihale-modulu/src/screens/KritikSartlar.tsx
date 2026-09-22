@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { criticalTerms, docs } from '../data/mock'
 import type { CriticalTerm } from '../data/types'
 import {
-  AiChat, Btn, Card, Chips, Kpi, PageHead, PreviewPane, ReadOnlyNote, Search, severityTone, StateBadge,
-  StickyPane, Table, Td, Th,
+  AiChat, Badge, Btn, Card, Chips, ColumnFilter, ExportButtons, Kpi, PageHead, PreviewPane, ReadOnlyNote,
+  Search, severityTone, StateBadge, StickyPane, Table, Td, Th,
 } from '../components/ui'
 
 type Filter = 'Tümü' | 'Açık konular' | 'Kritik' | 'Karşılanıyor'
@@ -14,8 +14,14 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
   const [q, setQ] = useState('')
   const [sel, setSel] = useState<CriticalTerm>(criticalTerms[2])
   const [checked, setChecked] = useState<string[]>([])
+  const [topicFilter, setTopicFilter] = useState('Tümü')
+  const [sevFilter, setSevFilter] = useState('Tümü')
+  const [stateFilter, setStateFilter] = useState('Tümü')
 
   const filtered = criticalTerms.filter((t) => {
+    if (topicFilter !== 'Tümü' && t.topic !== topicFilter) return false
+    if (sevFilter !== 'Tümü' && t.severity !== sevFilter) return false
+    if (stateFilter !== 'Tümü' && t.state !== stateFilter) return false
     if (filter === 'Açık konular' && !['Eksik', 'Karşılanmıyor', 'İnceleniyor'].includes(t.state)) return false
     if (filter === 'Kritik' && t.severity !== 'Kritik') return false
     if (filter === 'Karşılanıyor' && t.state !== 'Karşılanıyor') return false
@@ -46,18 +52,24 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
         title="Kritik İhale Şartları"
         note="Doküman analizinden çıkan, teklifi ve sözleşmeyi bağlayan şartlar. Her şart bir sorumluya ve duruma bağlanır; kaynağı sağdaki önizlemede görülebilir."
         right={<>
-          <Btn disabled={!writable}>+ Şart ekle</Btn>
-          <Btn>Excel</Btn>
+          <ExportButtons />
+          <Btn primary disabled={!writable}>+ Şart ekle</Btn>
         </>}
       />
 
       {!writable && <ReadOnlyNote role={role} />}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Kpi label="Toplam şart" value={criticalTerms.length} sub="Analizden çıkarıldı"
           help="İhale dokümanlarından çıkarılan bağlayıcı şart sayısı. Zeyilname geldiğinde liste güncellenir." />
+        <Kpi label="Kritik şart" value={criticalTerms.filter((t) => t.severity === 'Kritik').length} sub="Teklifi doğrudan bağlar" tone="crit"
+          help="Karşılanmaması hâlinde teklifin geçersiz olmasına ya da ciddi bedel farkına yol açan şartlar." />
         <Kpi label="Karşılanmıyor" value={criticalTerms.filter((t) => t.state === 'Karşılanmıyor').length} sub="Teklif fiyatına yansıtılmalı" tone="crit"
           help="Firmanın bugünkü durumuyla karşılayamadığı şartlar. Ya teklif fiyatına karşılık eklenir ya da zeyilname ile değiştirilmesi istenir." />
+        <Kpi label="İnceleniyor" value={criticalTerms.filter((t) => t.state === 'İnceleniyor').length} sub="Sorumlusunda bekliyor" tone="warn"
+          help="Durumu henüz netleşmemiş şartlar. Teklif teslimine kadar kapanması gerekir." />
+        <Kpi label="Zeyilname talebi" value={2} sub="İdareye sorulacak" tone="accent"
+          help="Değiştirilmesi için idareye yazılı talep gönderilecek şartlar. Soru listesine eklenenler buraya düşer." />
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -92,9 +104,24 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
                   <input type="checkbox" checked={checked.length === filtered.length && filtered.length > 0}
                     onChange={(e) => setChecked(e.target.checked ? filtered.map((t) => t.id) : [])} />
                 </Th>
-                <Th w={96}>Konu</Th>
-                <Th w={250}>Şart, etkisi ve kaynağı</Th>
-                <Th w={110}>Durum</Th>
+                <Th w={104}>
+                  <span className="flex items-center gap-1.5">
+                    Konu
+                    <ColumnFilter value={topicFilter} onChange={setTopicFilter} values={criticalTerms.map((t) => t.topic)} />
+                  </span>
+                </Th>
+                <Th w={236}>
+                  <span className="flex items-center gap-1.5">
+                    Şart, etkisi ve kaynağı
+                    <ColumnFilter value={sevFilter} onChange={setSevFilter} values={['Kritik', 'Yüksek', 'Orta', 'Düşük']} />
+                  </span>
+                </Th>
+                <Th w={110}>
+                  <span className="flex items-center gap-1.5">
+                    Durum
+                    <ColumnFilter value={stateFilter} onChange={setStateFilter} values={['Karşılanıyor', 'Karşılanmıyor', 'İnceleniyor', 'Eksik']} />
+                  </span>
+                </Th>
               </tr>
             }>
               {filtered.map((t) => (
@@ -126,8 +153,33 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
         </div>
 
         <StickyPane>
-          <PreviewPane
-            title="Şartın kaynağı"
+          <div className="flex flex-col gap-3">
+            {/* Şartın etkisi önizlemenin üstünde durur: önce ne anlama geldiği, sonra kaynağı */}
+            <div className="rounded-lg border bg-[var(--surface)] p-3"
+              style={{ borderColor: sel.severity === 'Kritik' ? 'var(--crit)' : 'var(--border)' }}>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[13px] font-semibold text-[var(--ink)]">{sel.topic}</span>
+                <Badge tone={severityTone(sel.severity)} dot>{sel.severity}</Badge>
+                <span className="ml-auto"><StateBadge value={sel.state} /></span>
+              </div>
+              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1.5">
+                  <div className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--faint)]">Şartın etkisi</div>
+                  <div className="mt-0.5 text-[12.5px] text-[var(--ink)]">{sel.impact}</div>
+                </div>
+                <div className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1.5">
+                  <div className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--faint)]">Aksiyon · {sel.owner}</div>
+                  <div className="mt-0.5 text-[12.5px] text-[var(--ink)]">{sel.action}</div>
+                </div>
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <Btn small disabled={!writable}>Soru listesine ekle</Btn>
+                <Btn small primary disabled={!writable}>Durumu güncelle</Btn>
+              </div>
+            </div>
+
+            <PreviewPane
+              title="Şartın kaynağı"
             preview={{
               doc: doc.name,
               page: sel.page,
@@ -136,24 +188,10 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
               highlight: sel.quote,
               body: sel.context,
             }}
-            paper
-            height={330}
-            footer={
-              <div className="flex flex-col gap-2">
-                <div className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
-                  <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Şartın etkisi</div>
-                  <div className="mt-0.5 text-[12.5px] text-[var(--ink)]">{sel.impact}</div>
-                  <div className="mt-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Aksiyon · {sel.owner}</div>
-                  <div className="mt-0.5 text-[12.5px] text-[var(--ink)]">{sel.action}</div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Btn small disabled={!writable}>Soru listesine ekle</Btn>
-                  <Btn small primary disabled={!writable}>Durumu güncelle</Btn>
-                  <span className="ml-auto"><StateBadge value={sel.state} /></span>
-                </div>
-              </div>
-            }
-          />
+              paper
+              height={300}
+            />
+          </div>
         </StickyPane>
       </div>
 

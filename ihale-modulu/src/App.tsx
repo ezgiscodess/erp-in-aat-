@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { LibraryItem, TabKey } from './data/types'
 import { library, project } from './data/mock'
 import { tabs, accessFor, canWrite, defaultRole, roleLabel } from './lib/roles'
+import { progressTone, tabProgress } from './lib/progress'
 import { Badge, Btn } from './components/ui'
 import { Login } from './screens/Login'
 import { Hub } from './screens/Hub'
@@ -12,6 +13,7 @@ import { KritikSartlar } from './screens/KritikSartlar'
 import { Boq } from './screens/Boq'
 import { BirimFiyatHavuzu } from './screens/BirimFiyatHavuzu'
 import { IsProgrami } from './screens/IsProgrami'
+import { PersonelEkipman } from './screens/PersonelEkipman'
 import { TeklifRiskleri } from './screens/TeklifRiskleri'
 import { KontratAnaliz } from './screens/KontratAnaliz'
 import { KontratHazirlama } from './screens/KontratHazirlama'
@@ -72,16 +74,24 @@ export default function App() {
         <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-2 py-2">
           {tabs.map((t) => {
             const on = t.key === tab
+            const done = tabProgress(t.key)
+            const tone = progressTone(done)
             return (
-              <button key={t.key} onClick={() => setTab(t.key)} title={t.note}
-                className="flex items-center gap-2 rounded-md px-2.5 py-[7px] text-left text-[12.5px] font-medium transition-colors"
+              <button key={t.key} onClick={() => setTab(t.key)} title={`${t.note}\n\nSayfa doluluğu: %${done}`}
+                className="flex flex-col gap-1 rounded-md px-2.5 py-[6px] text-left text-[12.5px] font-medium transition-colors"
                 style={on
                   ? { background: 'var(--accent-soft)', color: 'var(--accent)' }
                   : { color: 'var(--muted)' }}>
-                <span className="min-w-0 flex-1 truncate">{t.label}</span>
-                {t.addon && (
-                  <span className="rounded px-1 py-0.5 text-[9px] font-bold uppercase" style={{ background: 'var(--gold-bg)', color: 'var(--gold)', border: '1px solid var(--gold-border)' }}>Ek</span>
-                )}
+                <span className="flex w-full items-center gap-1.5">
+                  <span className="min-w-0 flex-1 truncate">{t.label}</span>
+                  {t.addon && (
+                    <span className="rounded px-1 py-0.5 text-[9px] font-bold uppercase" style={{ background: 'var(--gold-bg)', color: 'var(--gold)', border: '1px solid var(--gold-border)' }}>Ek</span>
+                  )}
+                  <span className="w-8 flex-shrink-0 text-right text-[10.5px] tnum" style={{ color: `var(--${tone})` }}>%{done}</span>
+                </span>
+                <span className="h-[3px] w-full overflow-hidden rounded-full" style={{ background: 'var(--surface-3)' }}>
+                  <span className="block h-full rounded-full" style={{ width: `${done}%`, background: `var(--${tone})` }} />
+                </span>
               </button>
             )
           })}
@@ -146,6 +156,7 @@ function Screen({ tab, writable, role, onGo }: { tab: TabKey; writable: boolean;
     case 'boq': return <Boq writable={writable} role={role} onGo={onGo} />
     case 'birim_fiyat': return <BirimFiyatHavuzu writable={writable} role={role} />
     case 'is_programi': return <IsProgrami writable={writable} role={role} onGo={onGo} />
+    case 'personel_ekipman': return <PersonelEkipman writable={writable} role={role} />
     case 'teklif_riskleri': return <TeklifRiskleri writable={writable} role={role} />
     case 'kontrat_analiz': return <KontratAnaliz writable={writable} role={role} />
     case 'kontrat_hazirlama': return <KontratHazirlama writable={writable} role={role} />

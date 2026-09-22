@@ -2,11 +2,10 @@ import { useMemo, useState } from 'react'
 import { bidRisks, docs, project } from '../data/mock'
 import type { BidRisk } from '../data/types'
 import {
-  Badge, Bar, Btn, Card, Kpi, PageHead, PreviewPane, ReadOnlyNote, StateBadge, StickyPane, Table, Td, Th,
+  Badge, Btn, Card, ColumnFilter, ExportButtons, Kpi, PageHead, PreviewPane, ReadOnlyNote,
+  StateBadge, StickyPane, Table, Td, Th,
 } from '../components/ui'
 import { money, moneyShort, num, pct } from '../lib/format'
-
-const P_LABELS = ['Çok düşük', 'Düşük', 'Orta', 'Yüksek', 'Çok yüksek']
 
 /**
  * Olasılık puanının tutara çevrilme oranı. 5/5 bile %100 sayılmaz:
@@ -25,6 +24,10 @@ function scoreTone(s: number) {
  */
 export function TeklifRiskleri({ writable, role }: { writable: boolean; role: string }) {
   const [sel, setSel] = useState<BidRisk>(bidRisks[0])
+  /** Toplu işlem için işaretlenen riskler */
+  const [checked, setChecked] = useState<string[]>([])
+  const [catFilter, setCatFilter] = useState('Tümü')
+  const [stateFilter, setStateFilter] = useState('Tümü')
   /** Karşılık tutarları ve teklife dâhil olup olmadığı — ekranda değiştirilebilir. */
   const [prov, setProv] = useState<Record<string, number>>(
     Object.fromEntries(bidRisks.map((r) => [r.id, r.provision])),
@@ -39,6 +42,10 @@ export function TeklifRiskleri({ writable, role }: { writable: boolean; role: st
     provision: bidRisks.reduce((a, r) => a + (inBid[r.id] ? prov[r.id] : 0), 0),
   }), [prov, inBid])
 
+  const rows = bidRisks
+    .filter((r) => (catFilter === 'Tümü' || r.category === catFilter) && (stateFilter === 'Tümü' || r.state === stateFilter))
+    .sort((a, b) => b.probability * b.impact - a.probability * a.impact)
+
   const maxTime = Math.max(...bidRisks.map((r) => r.timeImpact))
   const high = bidRisks.filter((r) => r.probability * r.impact >= 16).length
   const covered = (provision / expected) * 100
@@ -46,17 +53,14 @@ export function TeklifRiskleri({ writable, role }: { writable: boolean; role: st
     sel.category === 'Sözleşmesel' ? 'Sozlesme' : sel.category === 'Zemin' ? 'Zemin' : sel.category === 'Program' ? 'Teknik' : 'Idari',
   )) ?? docs[0]
 
-  /** 5×5 matris hücrelerine düşen riskler */
-  const cell = (p: number, i: number) => bidRisks.filter((r) => r.probability === p && r.impact === i)
-
   return (
     <>
       <PageHead
         title="Teklif Riskleri"
         note="Her risk üç sayıyla tutulur: gerçekleşirse oluşacak tutar (en kötü senaryo), bu tutarın açık hesabı ve teklife gerçekten eklenen karşılık. Karşılık otomatik gelmez; satır satır karar verilir ve gerekçesiyle kaydedilir."
         right={<>
-          <Btn disabled={!writable}>+ Risk ekle</Btn>
-          <Btn>Risk raporu (PDF)</Btn>
+          <ExportButtons />
+          <Btn primary disabled={!writable}>+ Risk ekle</Btn>
         </>}
       />
 
@@ -79,6 +83,18 @@ export function TeklifRiskleri({ writable, role }: { writable: boolean; role: st
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         {/* ---------- Sol: kayıtlar ve fiyata yansıma ---------- */}
         <div className="flex flex-col gap-4">
+          {checked.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 rounded-md border px-3 py-2"
+              style={{ background: 'var(--accent-soft)', borderColor: 'var(--accent)' }}>
+              <span className="text-[12.5px] font-semibold" style={{ color: 'var(--accent)' }}>{checked.length} risk seçildi</span>
+              <span className="ml-auto flex flex-wrap gap-1.5">
+                <Btn small disabled={!writable}>Sorumlu ata</Btn>
+                <Btn small disabled={!writable}>Karşılığı teklife işle</Btn>
+                <Btn small onClick={() => setChecked([])}>Seçimi temizle</Btn>
+              </span>
+            </div>
+          )}
+
           <Card
             title="Risk kayıtları"
             help="O = olasılık (1–5), E = etki (1–5), Skor = O × E. “Karşılık” teklife eklenen tutardır; kutucuk işaretliyse teklif fiyatına girer. Satıra tıklayınca hesabı ve dayanağı sağda açılır."
@@ -86,18 +102,37 @@ export function TeklifRiskleri({ writable, role }: { writable: boolean; role: st
           >
             <Table head={
               <tr>
-                <Th w={230}>Risk ve bedelin hesabı</Th>
-                <Th w={52}>O × E</Th>
-                <Th w={90} right>Bedel</Th>
-                <Th w={100} right>Karşılık</Th>
-                <Th w={40}>Teklifte</Th>
+                <Th w={28}>
+                  <input type="checkbox" checked={checked.length === rows.length && rows.length > 0}
+                    onChange={(e) => setChecked(e.target.checked ? rows.map((r) => r.id) : [])} />
+                </Th>
+                <Th w={210}>
+                  <span className="flex items-center gap-1.5">
+                    Risk ve bedelin hesabı
+                    <ColumnFilter value={catFilter} onChange={setCatFilter} values={[...new Set(bidRisks.map((r) => r.category))]} />
+                  </span>
+                </Th>
+                <Th w={48}>O × E</Th>
+                <Th w={86} right>Bedel</Th>
+                <Th w={96} right>Karşılık</Th>
+                <Th w={40}>
+                  <span className="flex items-center gap-1.5">
+                    Teklifte
+                    <ColumnFilter value={stateFilter} onChange={setStateFilter} values={['Açık', 'İzleniyor', 'Kapandı']} />
+                  </span>
+                </Th>
               </tr>
             }>
-              {[...bidRisks].sort((a, b) => b.probability * b.impact - a.probability * a.impact).map((r) => {
+              {rows.map((r) => {
                 const s = r.probability * r.impact
                 return (
                   <tr key={r.id} onClick={() => setSel(r)} className="cursor-pointer hover:bg-[var(--surface-2)]"
                     style={sel.id === r.id ? { background: 'var(--accent-soft)' } : undefined}>
+                    <Td nowrap>
+                      <input type="checkbox" checked={checked.includes(r.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={() => setChecked((c) => (c.includes(r.id) ? c.filter((x) => x !== r.id) : [...c, r.id]))} />
+                    </Td>
                     <Td>
                       <div className="flex items-center gap-1.5">
                         <span className="text-[12.5px] font-medium text-[var(--ink)]">{r.title}</span>
@@ -120,6 +155,7 @@ export function TeklifRiskleri({ writable, role }: { writable: boolean; role: st
                 )
               })}
               <tr>
+                <Td className="bg-[var(--surface-2)]">{''}</Td>
                 <Td className="bg-[var(--surface-2)]">
                   <span className="text-[12px] font-bold text-[var(--ink)]">Toplam</span>
                   <span className="ml-2 text-[11.5px] text-[var(--muted)]">teklif fiyatına eklenen karşılık</span>
@@ -132,66 +168,6 @@ export function TeklifRiskleri({ writable, role }: { writable: boolean; role: st
             </Table>
           </Card>
 
-          <Card
-            title="Teklif fiyatına yansıma"
-            help="Üç sayı arasındaki farkı gösterir. Fark, karşılık ayrılmayan risklerden gelir; her biri için gerekçe aşağıda listelenir."
-          >
-            <div className="flex flex-col gap-3">
-              <Line label="En kötü senaryo (hepsi gerçekleşirse)" value={worst} max={worst} tone="warn" />
-              <Line label="Olasılıkla ağırlıklı beklenen bedel" value={expected} max={worst} tone="neutral" />
-              <Line label="Teklife eklenen karşılık" value={provision} max={worst} tone="accent" />
-
-              <div className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] p-3 text-[12px] leading-relaxed text-[var(--muted)]">
-                <b className="text-[var(--ink)]">Aradaki fark nereden geliyor?</b> Karşılık, beklenen bedelin
-                {' '}{pct(covered, 0)}’i kadar. Karşılık ayrılmayan riskler ve gerekçeleri:
-                <ul className="mt-1.5 flex flex-col gap-1">
-                  {bidRisks.filter((r) => !inBid[r.id]).map((r) => (
-                    <li key={r.id} className="flex gap-2">
-                      <span className="text-[var(--ink)]">• {r.title}</span>
-                      <span className="ml-auto whitespace-nowrap text-[var(--faint)] tnum">{moneyShort(r.costImpact, project.currency)}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <Badge tone="accent">Karşılık payı {pct((provision / project.estimatedValue) * 100, 1)}</Badge>
-                  <Badge tone="ok">Zeyilname kabul edilirse ≈ {moneyShort(1_900_000, project.currency)} geri kazanılır</Badge>
-                </div>
-              </div>
-            </div>
-          </Card>
-
-          <Card title="Risk matrisi" help="Satır olasılığı, sütun etkiyi gösterir. Hücredeki sayı o kutudaki risk sayısıdır; tıklayınca ilgili risk açılır. Sağ üst köşe en tehlikeli bölgedir.">
-            <div className="flex gap-2">
-              <div className="flex flex-col justify-around pb-6 text-right text-[10px] text-[var(--faint)]">
-                {[5, 4, 3, 2, 1].map((p) => <div key={p} className="h-10 leading-[2.5rem]">{P_LABELS[p - 1]}</div>)}
-              </div>
-              <div className="flex-1">
-                <div className="grid grid-cols-5 gap-1">
-                  {[5, 4, 3, 2, 1].map((p) =>
-                    [1, 2, 3, 4, 5].map((i) => {
-                      const items = cell(p, i)
-                      const tone = scoreTone(p * i)
-                      return (
-                        <button key={`${p}-${i}`} onClick={() => items[0] && setSel(items[0])}
-                          className="grid h-10 place-items-center rounded text-[12px] font-bold transition-transform hover:scale-[1.04]"
-                          title={items.map((r) => r.title).join('\n') || 'Bu hücrede risk yok'}
-                          style={{
-                            background: items.length ? `var(--${tone}-bg)` : 'var(--surface-2)',
-                            color: items.length ? `var(--${tone})` : 'var(--faint)',
-                            border: `1px solid ${items.length ? `var(--${tone})` : 'var(--border)'}`,
-                          }}>
-                          {items.length || ''}
-                        </button>
-                      )
-                    }),
-                  )}
-                </div>
-                <div className="mt-1 grid grid-cols-5 gap-1 text-center text-[10px] text-[var(--faint)]">
-                  {['Çok az', 'Az', 'Orta', 'Yüksek', 'Çok yüksek'].map((l) => <div key={l}>{l}</div>)}
-                </div>
-              </div>
-            </div>
-          </Card>
         </div>
 
         {/* ---------- Sağ: seçili riskin hesabı ve dayanağı ---------- */}
@@ -278,20 +254,6 @@ export function TeklifRiskleri({ writable, role }: { writable: boolean; role: st
         </StickyPane>
       </div>
     </>
-  )
-}
-
-function Line({ label, value, max, tone }: { label: string; value: number; max: number; tone: 'warn' | 'neutral' | 'accent' }) {
-  return (
-    <div>
-      <div className="mb-1 flex items-center justify-between text-[12.5px]">
-        <span className="text-[var(--ink)]">{label}</span>
-        <span className="font-semibold tnum" style={{ color: tone === 'accent' ? 'var(--accent)' : 'var(--muted)' }}>
-          {money(value, project.currency)}
-        </span>
-      </div>
-      <Bar value={(value / max) * 100} tone={tone} height={8} />
-    </div>
   )
 }
 

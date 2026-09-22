@@ -25,6 +25,7 @@ export type TabKey =
   | 'go_nogo'
   | 'kritik_sartlar'
   | 'boq'
+  | 'personel_ekipman'
   | 'birim_fiyat'
   | 'is_programi'
   | 'teklif_riskleri'
@@ -60,6 +61,8 @@ export interface LibraryItem {
   value: number
   currency: string
   status: string
+  /** Kusur sorumluluğu / garanti süresi (gün) */
+  warrantyDays: number
   /** Yüklenen doküman sayısı ve analiz ilerlemesi */
   docCount: number
   progress: number
@@ -92,7 +95,7 @@ export interface TenderProject {
 
 /* ---------------- 1. İhale dokümanı analizi ---------------- */
 
-export type DocState = 'Analiz edildi' | 'Sırada' | 'Analiz ediliyor' | 'Hata'
+export type DocState = 'Analiz edildi' | 'Analiz edilmedi' | 'Sırada' | 'Analiz ediliyor' | 'Hata'
 
 export interface TenderDoc {
   id: string
@@ -324,6 +327,12 @@ export interface ScheduleTask {
   critical: boolean
   /** Bağlı olduğu iş (WBS no) */
   dependsOn?: string
+  /**
+   * Aktiviteler arası ilişki tipi:
+   * FS (bitince başlar), SS (birlikte başlar), FF (birlikte biter), SF (başlayınca biter).
+   * Planlamada en yaygını FS'tir; SS ve FF örtüşen işlerde kullanılır.
+   */
+  relation?: 'FS' | 'SS' | 'FF' | 'SF'
   /** Süreyi belirleyen kaynak veya kapasite varsayımı */
   assumption: string
   /** Programı besleyen metraj kalemi */
@@ -331,13 +340,54 @@ export interface ScheduleTask {
   progress: number
 }
 
-/** Sözleşmeden gelen, programda sabit duran tarihler */
+/**
+ * Sözleşmeden gelen sabit tarihler (key stage).
+ * Sözleşmelerde genelde "işe başlama (CD) + X gün" biçiminde verilir ve
+ * çoğunun kendine ait bir gecikme cezası vardır.
+ */
 export interface ScheduleMilestone {
   id: string
+  no: string
   label: string
+  /** İşe başlama (commencement date) + kaç gün */
+  dueDays: number
+  /** Takvim karşılığı */
+  dueDate: string
+  /** Programdaki ay karşılığı — şeritte konumlandırmak için */
   month: number
+  /** Kendine ait gecikme cezası varsa tutarı */
+  penalty?: number
+  penaltyNote?: string
   source: string
   kind: 'Sözleşme' | 'İdare' | 'İç hedef'
+}
+
+/* ---------------- Personel ve ekipman ---------------- */
+
+/** Teklif aşamasında planlanan kadro. Aylar, kişinin işte olduğu program aylarıdır. */
+export interface StaffItem {
+  id: string
+  title: string
+  duty: string
+  count: number
+  /** Kişi başı aylık maliyet (maaş + yan gider) */
+  monthlyCost: number
+  /** İhtiyaç duyulan program ayları (0 tabanlı) */
+  months: number[]
+  note?: string
+}
+
+/** Şantiyede kullanılacak makine ve ekipman. */
+export interface EquipmentItem {
+  id: string
+  name: string
+  group: string
+  count: number
+  /** Adet başı aylık maliyet (kira veya amortisman) */
+  monthlyCost: number
+  months: number[]
+  ownership: 'Kendi' | 'Kira'
+  note?: string
 }
 
 /* ---------------- 10. Özet ---------------- */

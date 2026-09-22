@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { scheduleMilestones, scheduleTasks, project } from '../data/mock'
 import type { ScheduleTask, TabKey } from '../data/types'
-import { AddonBadge, Badge, Btn, Card, Kpi, PageHead, ReadOnlyNote, StickyPane, Table, Td, Th } from '../components/ui'
-import { num } from '../lib/format'
+import {
+  AddonBadge, Badge, Btn, Card, Kpi, PageHead, ReadOnlyNote, StickyPane, Table, Td, Th,
+} from '../components/ui'
+import { date, money, num } from '../lib/format'
 
 const MONTHS = 24
 
@@ -11,6 +13,19 @@ const START = new Date(2026, 10, 1)
 function monthLabel(m: number): string {
   const d = new Date(START.getFullYear(), START.getMonth() + m, 1)
   return new Intl.DateTimeFormat('tr-TR', { month: 'short', year: '2-digit' }).format(d)
+}
+
+/** Aktiviteler ayın 1'inde başlar/biter — planlama dosyalarındaki alışkanlık. */
+function monthDate(m: number): string {
+  const d = new Date(START.getFullYear(), START.getMonth() + m, 1)
+  return new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' }).format(d)
+}
+
+const RELATION_NOTE: Record<string, string> = {
+  FS: 'Bitince başlar (finish → start)',
+  SS: 'Birlikte başlar (start → start)',
+  FF: 'Birlikte biter (finish → finish)',
+  SF: 'Başlayınca biter (start → finish)',
 }
 
 /**
@@ -31,7 +46,10 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
         right={<>
           <AddonBadge />
           <Btn disabled={!writable} onClick={() => onGo('boq')}>Metrajdan üret</Btn>
-          <Btn>MS Project (XML)</Btn>
+          <Btn disabled={!writable} title="Hazır program dosyası yükle">Kaynak ekle</Btn>
+          <Btn title="MS Project dosyası (.xml / .mpp)">MS Project</Btn>
+          <Btn title="Primavera P6 dosyası (.xer)">P6 (XER)</Btn>
+          <Btn title="Excel olarak dışa aktar">Excel</Btn>
           <Btn primary disabled={!writable}>+ İş ekle</Btn>
         </>}
       />
@@ -72,7 +90,7 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
               <div className="relative flex flex-1">
                 {Array.from({ length: MONTHS }, (_, m) => (
                   <div key={m} className="flex-1 border-r border-[var(--border)] px-0.5 py-1.5 text-center text-[9.5px] text-[var(--muted)]">
-                    {m % 3 === 0 ? monthLabel(m) : m + 1}
+                    {m % 3 === 0 ? `01 ${monthLabel(m)}` : m + 1}
                   </div>
                 ))}
               </div>
@@ -141,10 +159,15 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
           >
             <div className="flex flex-col gap-3 text-[12.5px]">
               <div className="grid grid-cols-2 gap-2">
-                <Mini label="Başlangıç" value={`${sel.startMonth + 1}. ay (${monthLabel(sel.startMonth)})`} />
+                <Mini label="Başlangıç" value={monthDate(sel.startMonth)} />
+                <Mini label="Bitiş" value={monthDate(sel.startMonth + sel.months)} />
                 <Mini label="Süre" value={`${sel.months} ay ≈ ${sel.months * 30} gün`} />
-                <Mini label="Bağlı olduğu iş" value={sel.dependsOn ? `WBS ${sel.dependsOn}` : 'Yok — işe başlamayla'} />
                 <Mini label="Metraj kalemi" value={sel.boqRef ?? '—'} />
+                <Mini
+                  label="Bağlantı"
+                  value={sel.dependsOn ? `${sel.relation ?? 'FS'} · WBS ${sel.dependsOn}` : 'Bağlantısız'}
+                />
+                <Mini label="İlişki tipi" value={sel.relation ? RELATION_NOTE[sel.relation] : 'İşe başlamayla'} />
               </div>
               <div>
                 <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Süre varsayımı</div>
@@ -158,6 +181,28 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
             </div>
           </Card>
 
+          <Card title="Program logu" help="Planlama dosyasının sağlık kontrolü: kaç aktivite var, hangi ilişki tipleri kullanılmış, bağlantısız aktivite kalmış mı. Bağlantısız aktivite, programın hesaplanmasını bozar.">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <Mini label="Aktivite" value={`${scheduleTasks.length} adet`} />
+              <Mini label="Kritik yol" value={`${critical.length} aktivite`} />
+              <Mini label="Bağlantısız" value={`${scheduleTasks.filter((t) => !t.dependsOn).length} aktivite`} />
+              {(['FS', 'SS', 'FF', 'SF'] as const).map((r) => (
+                <Mini key={r} label={`${r} ilişkisi`} value={`${scheduleTasks.filter((t) => (t.relation ?? (t.dependsOn ? 'FS' : undefined)) === r).length} adet`} />
+              ))}
+              <Mini label="En uzun aktivite" value={`${Math.max(...scheduleTasks.map((t) => t.months))} ay`} />
+            </div>
+            <div className="mt-3 flex flex-col gap-1.5 text-[11.5px] leading-relaxed text-[var(--muted)]">
+              <div>• <b className="text-[var(--ink)]">FS</b> {RELATION_NOTE.FS} — en yaygın kurgu.</div>
+              <div>• <b className="text-[var(--ink)]">SS</b> {RELATION_NOTE.SS} · <b className="text-[var(--ink)]">FF</b> {RELATION_NOTE.FF} — örtüşen işlerde.</div>
+              <div>• <b className="text-[var(--ink)]">SF</b> {RELATION_NOTE.SF} — nadiren kullanılır; bu programda yok.</div>
+              <div className="mt-1" style={{ color: scheduleTasks.filter((t) => !t.dependsOn).length > 1 ? 'var(--warn)' : 'var(--ok)' }}>
+                {scheduleTasks.filter((t) => !t.dependsOn).length > 1
+                  ? '⚠ Birden fazla bağlantısız aktivite var — kontrol edilmeli.'
+                  : '✓ Yalnızca ilk aktivite bağlantısız; program zinciri bütün.'}
+              </div>
+            </div>
+          </Card>
+
           <Card title="Kritik yol zinciri" help="Bu işlerden herhangi birinin gecikmesi teslim tarihini doğrudan öteler. Gecikme cezası riski bu zincire bağlıdır.">
             <div className="flex flex-col gap-2 text-[12.5px]">
               {critical.map((t, i) => (
@@ -165,7 +210,7 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
                   <span className="mono text-[11px] text-[var(--faint)]">{i + 1}.</span>
                   <button onClick={() => setSel(t)} className="text-left text-[var(--ink)] hover:text-[var(--accent)]">{t.name}</button>
                   <span className="ml-auto tnum text-[11.5px] text-[var(--muted)]">
-                    {t.startMonth + 1}–{t.startMonth + t.months}. ay
+                    {monthDate(t.startMonth)} → {monthDate(t.startMonth + t.months)}
                   </span>
                 </div>
               ))}
@@ -179,17 +224,50 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
 
         <StickyPane>
           <div className="flex flex-col gap-4">
-            <Card title="Kilometre taşları" help="Sözleşme ve idarenin belirlediği sabit tarihler. Program bunlara göre kurulur; kaçırılması doğrudan yaptırım doğurur." pad={false}>
-              <Table head={<tr><Th w={40} right>Ay</Th><Th w={230}>Kilometre taşı</Th><Th w={90}>Tür</Th><Th w={200}>Kaynak</Th></tr>}>
+            <Card
+              title="Kilometre taşları (key stage)"
+              help="Sözleşmeden gelen sabit tarihler. Genelde “işe başlama (CD) + X gün” biçiminde verilir ve çoğunun kendine ait gecikme cezası vardır; bu ceza ana işin cezasından ayrı işler."
+              right={<Btn small disabled={!writable}>+ Kilometre taşı</Btn>}
+              pad={false}
+            >
+              <Table head={
+                <tr>
+                  <Th w={50}>No</Th>
+                  <Th w={220}>Açıklama</Th>
+                  <Th w={110}>Tamamlanma</Th>
+                  <Th w={90} right>Ceza</Th>
+                  <Th w={190}>Ceza detayı ve kaynak</Th>
+                </tr>
+              }>
                 {scheduleMilestones.map((m) => (
                   <tr key={m.id} className="hover:bg-[var(--surface-2)]">
-                    <Td right>{m.month === 0 ? '0' : num(m.month, m.month % 1 ? 1 : 0)}</Td>
+                    <Td nowrap>
+                      <div className="mono text-[11.5px] font-semibold text-[var(--accent)]">{m.no}</div>
+                      <Badge tone={m.kind === 'Sözleşme' ? 'crit' : m.kind === 'İdare' ? 'warn' : 'neutral'}>{m.kind}</Badge>
+                    </Td>
                     <Td><span className="text-[12.5px] text-[var(--ink)]">{m.label}</span></Td>
-                    <Td nowrap><Badge tone={m.kind === 'Sözleşme' ? 'crit' : m.kind === 'İdare' ? 'warn' : 'neutral'}>{m.kind}</Badge></Td>
-                    <Td><span className="text-[11.5px] text-[var(--muted)]">{m.source}</span></Td>
+                    <Td nowrap>
+                      <div className="text-[12px] font-medium text-[var(--ink)]">CD + {num(m.dueDays)} gün</div>
+                      <div className="tnum text-[11px] text-[var(--faint)]">{date(m.dueDate)}</div>
+                    </Td>
+                    <Td right>
+                      {m.penalty
+                        ? <span className="font-semibold text-[var(--crit)] tnum">{num(m.penalty)}</span>
+                        : <span className="text-[var(--faint)]">—</span>}
+                    </Td>
+                    <Td>
+                      {m.penaltyNote && <div className="text-[11.5px] text-[var(--ink)]">{m.penaltyNote}</div>}
+                      <div className="text-[11px] text-[var(--faint)]">{m.source}</div>
+                    </Td>
                   </tr>
                 ))}
               </Table>
+              <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] bg-[var(--surface-2)] px-4 py-2 text-[11.5px] text-[var(--muted)]">
+                <span>CD = işe başlama tarihi (commencement date)</span>
+                <span className="ml-auto">
+                  Ara teslim cezaları toplamı: <b className="text-[var(--crit)]">{money(scheduleMilestones.reduce((a, m) => a + (m.penalty ?? 0), 0), project.currency)}</b> / hafta
+                </span>
+              </div>
             </Card>
 
             <Card title="Programın dayanağı ve açık konular" help="Programı bağlayan sözleşme maddeleri ve henüz netleşmemiş konular.">

@@ -38,3 +38,7 @@ body{margin:0;background:var(--bg);color:var(--ink);
 
 /* Kanıt vurgusu — doküman metninde AI'ın dayandığı satır */
 mark.evidence{background:var(--accent-soft);color:var(--ink);border-bottom:2px solid var(--accent);padding:0 1px}
+
+/* Düzeltme izi — eklenen sarı ve altı çizili, çıkarılan soluk ve üstü çizili */
+ins.redline-add{background:var(--gold-bg);color:var(--gold);text-decoration:underline;text-decoration-color:var(--gold);padding:0 2px;border-radius:2px}
+del.redline-del{color:var(--faint);text-decoration:line-through;text-decoration-color:var(--crit)}
