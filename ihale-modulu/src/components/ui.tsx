@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { Severity } from '../data/types'
 
@@ -69,9 +69,10 @@ export function SeverityBadge({ value }: { value: Severity }) {
 /** Serbest metin durumları için sezgisel renklendirme (referans projedeki mantık). */
 export function stateTone(value: string): Tone {
   const v = value.toLocaleLowerCase('tr')
-  if (['karşılanıyor', 'tamamlandı', 'kabul', 'onaylandı', 'analiz edildi', 'geçerli', 'kapandı', 'taslak hazır', 'var'].includes(v)) return 'ok'
+  if (['kontrol edildi', 'etkisi sıfırlandı', 'karşılanıyor', 'tamamlandı', 'kabul', 'onaylandı', 'analiz edildi', 'geçerli', 'kapandı', 'taslak hazır', 'var'].includes(v)) return 'ok'
   if (['karşılanmıyor', 'gecikti', 'ret', 'hata', 'eksik', 'açık', 'yok'].includes(v)) return 'crit'
-  if (['inceleniyor', 'incelemede', 'devam', 'analiz ediliyor', 'sırada', 'bekliyor', 'düzenleniyor', 'izleniyor', 'yeni', 'boş'].includes(v)) return 'warn'
+  if (v === 'devam ediyor') return 'accent'
+  if (['kontrol ediliyor', 'inceleniyor', 'incelemede', 'devam', 'analiz ediliyor', 'sırada', 'bekliyor', 'düzenleniyor', 'izleniyor', 'yeni', 'boş'].includes(v)) return 'warn'
   return 'neutral'
 }
 
@@ -420,6 +421,190 @@ export function PreviewPane({ title, preview, editable, user = 'e.yilmaz', log =
   )
 }
 
+/* ---------------- Kaynak doküman görüntüleyici ---------------- */
+
+/** Hedef sayfanın dışındaki sayfalar için örnek metin — gerçek sürümde dokümanın kendi sayfaları gelir. */
+const FILLER = [
+  'Yüklenici, işin yapımı sırasında yürürlükteki mevzuata, sözleşme belgelerine ve Mühendisin yazılı talimatlarına uymakla yükümlüdür. Talimatların uygulanmasından doğan maliyetler sözleşmede öngörülen usule göre değerlendirilir.',
+  'Sözleşme belgeleri birbirini tamamlar nitelikte olup aralarında çelişki bulunması hâlinde öncelik sırası Sözleşme Özel Şartları, İdari Şartname, Teknik Şartname ve çizimler şeklindedir.',
+  'Yüklenici, iş yerinde çalışan personelin iş sağlığı ve güvenliği önlemlerini almak, gerekli ekipmanı sağlamak ve bu konudaki kayıtları düzenli olarak tutmakla sorumludur.',
+  'İşverenin onayı alınmadan işin tamamı veya bir kısmı alt yüklenicilere devredilemez. Onay verilmesi, Yüklenicinin sözleşmeden doğan sorumluluklarını ortadan kaldırmaz.',
+  'Hakedişler aylık olarak düzenlenir ve Mühendis tarafından onaylandıktan sonra ödemeye esas alınır. Hakediş ekinde metraj cetvelleri ve imalat fotoğrafları sunulur.',
+  'Malzemelerin şartnameye uygunluğu, kullanılmadan önce yapılacak deney ve muayenelerle belirlenir. Deney masrafları aksi belirtilmedikçe Yükleniciye aittir.',
+  'Yüklenici, iş programında öngörülen ara teslim tarihlerine uymakla yükümlüdür. Programdaki değişiklikler Mühendisin onayına sunulur ve onaylanan program esas alınır.',
+  'İş yerinde bulunan mevcut yapı ve tesislerin korunmasından Yüklenici sorumludur. Verilen zararlar Yüklenici tarafından bedeli karşılığında giderilir.',
+  'Taraflar arasındaki yazışmalar Türkçe yapılır. Bildirimler, sözleşmede gösterilen adreslere yazılı olarak ve teslim alındı belgesi karşılığında gönderilir.',
+  'Yüklenici, işin sonunda şantiyeyi temizlemek, geçici tesisleri kaldırmak ve iş yerini düzenli biçimde İşverene teslim etmekle yükümlüdür.',
+]
+
+function fillerFor(page: number, n: number, offset = 0): string[] {
+  return Array.from({ length: n }, (_, i) => FILLER[(page * 3 + offset + i) % FILLER.length])
+}
+
+/** Hedef sayfanın çevresinde açılan sayfa aralığı; önceki/sonraki sayfalar istenince eklenir. */
+function around(page: number, total: number, span = 3) {
+  return { from: Math.max(1, page - span), to: Math.min(total, page + span) }
+}
+
+/**
+ * Sağ panelde duran kaynak doküman.
+ * Kayda tıklanınca dokümanın ilgili sayfası açılır, bahsi geçen paragraf boyanır.
+ * Belge A4 sayfaları hâlinde alt alta dizilir; yukarı-aşağı kaydırılarak
+ * paragrafın öncesi ve sonrası okunabilir, önceki/sonraki sayfalar yüklenebilir.
+ */
+export function DocViewer({ title = 'Kaynak', doc, page, pages, clause, body, highlight, paragraph = 3 }: {
+  title?: string
+  doc: string
+  page: number
+  pages?: number
+  clause?: string
+  /** Hedef paragrafın metni */
+  body: string
+  /** Paragraf içinde boyanacak cümle; verilmezse paragrafın tamamı boyanır */
+  highlight?: string
+  /** Hedef paragrafın sayfadaki sırası */
+  paragraph?: number
+}) {
+  const total = Math.max(pages ?? page + 3, page)
+  const [range, setRange] = useState(() => around(page, total))
+  const [current, setCurrent] = useState(page)
+  const boxRef = useRef<HTMLDivElement>(null)
+  const markRef = useRef<HTMLElement>(null)
+  /** Sayfa eklendikten sonra kaydırılacak hedef sayfa */
+  const pendingPage = useRef<number | null>(null)
+  /** Başa sayfa eklenince görünen yerin kaymaması için önceki yükseklik */
+  const prevHeight = useRef<number | null>(null)
+
+  // Seçim değişince görüntüleyici yeni kaynağa döner
+  const key = `${doc}|${page}|${highlight ?? body}`
+  const [shown, setShown] = useState(key)
+  if (shown !== key) {
+    setShown(key)
+    setRange(around(page, total))
+    setCurrent(page)
+  }
+
+  // Hedef paragrafı görünür alanın üst üçte birine getir
+  useEffect(() => {
+    const box = boxRef.current
+    const mark = markRef.current
+    if (!box || !mark) return
+    const top = mark.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop
+    box.scrollTo({ top: Math.max(0, top - box.clientHeight / 3), behavior: 'smooth' })
+  }, [key])
+
+  useLayoutEffect(() => {
+    const box = boxRef.current
+    if (!box) return
+    if (prevHeight.current != null) {
+      box.scrollTop += box.scrollHeight - prevHeight.current
+      prevHeight.current = null
+    }
+    if (pendingPage.current != null) {
+      scrollToPage(pendingPage.current)
+      pendingPage.current = null
+    }
+  }, [range])
+
+  function scrollToPage(p: number) {
+    const box = boxRef.current
+    const el = box?.querySelector<HTMLElement>(`[data-page="${p}"]`)
+    if (!box || !el) return
+    box.scrollTo({ top: el.offsetTop - 12, behavior: 'smooth' })
+  }
+
+  function loadBefore() {
+    if (boxRef.current) prevHeight.current = boxRef.current.scrollHeight
+    setRange((r) => ({ ...r, from: Math.max(1, r.from - 3) }))
+  }
+
+  function go(p: number) {
+    if (p < 1 || p > total) return
+    if (p < range.from || p > range.to) {
+      pendingPage.current = p
+      setRange((r) => ({ from: Math.min(r.from, p), to: Math.max(r.to, p) }))
+    } else {
+      scrollToPage(p)
+    }
+  }
+
+  /** Kaydırdıkça üstteki sayaç görünen sayfayı gösterir. */
+  function onScroll() {
+    const box = boxRef.current
+    if (!box) return
+    const line = box.scrollTop + box.clientHeight / 3
+    let visible = range.from
+    box.querySelectorAll<HTMLElement>('[data-page]').forEach((el) => {
+      if (el.offsetTop <= line) visible = Number(el.dataset.page)
+    })
+    if (visible !== current) setCurrent(visible)
+  }
+
+  const target = highlight && body.includes(highlight) ? body.split(highlight) : null
+  const list = Array.from({ length: range.to - range.from + 1 }, (_, i) => range.from + i)
+
+  return (
+    <section className="flex flex-col rounded-lg border border-[var(--border)] bg-[var(--surface)]">
+      <header className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
+        <span className="text-[12.5px] font-semibold text-[var(--ink)]">{title}</span>
+        <span className="mono truncate text-[11.5px] text-[var(--muted)]">{doc}</span>
+        {clause && <Badge tone="accent">Madde {clause}</Badge>}
+        <span className="ml-auto flex items-center gap-1.5">
+          <Btn small title="Önceki sayfa" onClick={() => go(current - 1)}>‹</Btn>
+          <span className="tnum text-[12px] text-[var(--muted)]">{current} / {total}</span>
+          <Btn small title="Sonraki sayfa" onClick={() => go(current + 1)}>›</Btn>
+          <Btn small title="Kaynak paragrafa dön" onClick={() => go(page)}>s. {page}</Btn>
+        </span>
+      </header>
+
+      <div ref={boxRef} onScroll={onScroll}
+        className="relative overflow-y-auto bg-[var(--surface-3)] px-4 py-3"
+        style={{ height: 'calc(100vh - 140px)', minHeight: 640 }}>
+        {range.from > 1 && (
+          <button onClick={loadBefore}
+            className="mx-auto mb-3 block rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-[11.5px] text-[var(--muted)] hover:text-[var(--accent)]">
+            ↑ Önceki sayfalar (s. {Math.max(1, range.from - 3)}–{range.from - 1})
+          </button>
+        )}
+
+        {list.map((p) => {
+          const isTarget = p === page
+          const before = isTarget ? fillerFor(p, paragraph - 1) : fillerFor(p, 5)
+          const after = isTarget ? fillerFor(p, 2, 5) : []
+          return (
+            <article key={p} data-page={p}
+              className="mx-auto mb-4 flex w-full max-w-[600px] flex-col rounded-sm border border-[var(--border)] bg-white px-9 py-8 text-[12.5px] leading-[1.85] text-[#1f2937] shadow-sm"
+              style={{ aspectRatio: '1 / 1.414' }}>
+              <div className="mb-4 flex items-center justify-between border-b border-[#e5e7eb] pb-1.5 text-[10px] text-[#9ca3af]">
+                <span className="truncate">{doc}</span>
+                <span>{p}</span>
+              </div>
+              {before.map((t, i) => <p key={i} className="mb-3">{t}</p>)}
+              {isTarget && (
+                <p className="relative mb-3">
+                  <span className="absolute -left-7 top-0.5 text-[10px] font-semibold text-[var(--accent)]" title={`${p}. sayfa, ${paragraph}. paragraf`}>¶{paragraph}</span>
+                  {target
+                    ? <>{target[0]}<mark ref={markRef} className="evidence">{highlight}</mark>{target.slice(1).join(highlight)}</>
+                    : <mark ref={markRef} className="evidence">{body}</mark>}
+                </p>
+              )}
+              {after.map((t, i) => <p key={`a${i}`} className="mb-3">{t}</p>)}
+              <div className="mt-auto pt-4 text-center text-[10px] text-[#9ca3af]">Sayfa {p} / {total}</div>
+            </article>
+          )
+        })}
+
+        {range.to < total && (
+          <button onClick={() => setRange((r) => ({ ...r, to: Math.min(total, r.to + 3) }))}
+            className="mx-auto mb-1 block rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-[11.5px] text-[var(--muted)] hover:text-[var(--accent)]">
+            ↓ Sonraki sayfalar (s. {range.to + 1}–{Math.min(total, range.to + 3)})
+          </button>
+        )}
+      </div>
+    </section>
+  )
+}
+
 /* ---------------- AI soru-cevap ---------------- */
 
 /** Ekranın altına veya pop-up'a konan soru-cevap kutusu. Yanıtlar maddeye atıflı gelir. */
@@ -482,7 +667,7 @@ export function AiChat({ suggestions, answers, compact }: {
 
 /** Sayfa kaydırılırken sağdaki önizlemenin ekranda kalmasını sağlar. */
 export function StickyPane({ children }: { children: ReactNode }) {
-  return <div className="xl:sticky xl:top-[62px]">{children}</div>
+  return <div className="xl:sticky xl:top-[62px] xl:self-start">{children}</div>
 }
 
 /* ---------------- Form alanı ---------------- */

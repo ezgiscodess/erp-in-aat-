@@ -145,6 +145,8 @@ export interface GoNoGoCriterion {
 
 /* ---------------- 4. Kritik ihale şartları ---------------- */
 
+export type TermState = 'Kontrol Edildi' | 'Kontrol Ediliyor' | 'Devam Ediyor' | 'Etkisi Sıfırlandı'
+
 export interface CriticalTerm {
   id: string
   topic: string
@@ -155,7 +157,13 @@ export interface CriticalTerm {
   impact: string
   action: string
   owner: string
-  state: 'Karşılanıyor' | 'Eksik' | 'İnceleniyor' | 'Karşılanmıyor'
+  /**
+   * Kontrol Edildi: şart karşılanıyor, dosyada kapandı.
+   * Kontrol Ediliyor: sorumlusu inceliyor.
+   * Devam Ediyor: aksiyon alındı, sonucu bekleniyor (banka, zeyilname talebi…).
+   * Etkisi Sıfırlandı: şart değişmedi ama etkisi fiyata ya da kurguya yansıtılarak nötrlendi.
+   */
+  state: TermState
   /** Şartın çıkarıldığı doküman (docs listesindeki id) */
   docId: string
   /** Doküman sayfasındaki asıl paragraf — sağdaki önizlemede gösterilir */
@@ -254,6 +262,10 @@ export interface BidRisk {
   provision: number
   /** Karşılık teklif fiyatına dâhil edilsin mi */
   inBid: boolean
+  /** Kontrat riskleri: dayandığı sözleşme maddesi (clauses listesindeki id) */
+  clauseId?: string
+  /** Kontrat riskleri: kaçırılırsa hakkın düştüğü bildirim süresi */
+  timeBar?: string
 }
 
 /* ---------------- 7. Kontrat analizi ---------------- */

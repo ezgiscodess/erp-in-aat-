@@ -1,10 +1,28 @@
 import { useState } from 'react'
 import { library, project } from '../data/mock'
 import type { LibraryItem, Period } from '../data/types'
-import { Badge, Bar, Btn, Chips, Field, Modal, Search, StateBadge, Table, Td, Th } from '../components/ui'
+import { Badge, Bar, Btn, Chips, ColumnFilter, Field, Modal, Search, StateBadge, Table, Td, Th } from '../components/ui'
 import { date, daysLabel, moneyShort } from '../lib/format'
 
 type Filter = 'Tümü' | 'İhaleler' | 'Projeler'
+
+/** Liste görünümündeki sütun filtreleri — her sütun kendi değer grubuna göre süzülür. */
+type ColKey = 'tur' | 'kod' | 'is' | 'tarih' | 'bedel' | 'dosya' | 'ilerleme' | 'durum'
+
+const COL_VALUES: Record<ColKey, (i: LibraryItem) => string> = {
+  tur: (i) => (i.kind === 'ihale' ? 'İhale' : 'Proje'),
+  kod: (i) => i.code.split('-')[1] ?? '—',
+  is: (i) => i.employer,
+  tarih: (i) => (i.daysLeft < 0 ? 'Geçmiş' : i.daysLeft <= 30 ? '30 gün içinde' : '30 günden sonra'),
+  bedel: (i) => (i.value < 30e6 ? '30 M altı' : i.value <= 60e6 ? '30–60 M' : '60 M üstü'),
+  dosya: (i) => (i.docCount < 10 ? '0–9 dosya' : i.docCount < 20 ? '10–19 dosya' : '20+ dosya'),
+  ilerleme: (i) => (i.progress >= 100 ? '%100' : i.progress >= 50 ? '%50–99' : '%50 altı'),
+  durum: (i) => i.status,
+}
+
+const NO_FILTER: Record<ColKey, string> = {
+  tur: 'Tümü', kod: 'Tümü', is: 'Tümü', tarih: 'Tümü', bedel: 'Tümü', dosya: 'Tümü', ilerleme: 'Tümü', durum: 'Tümü',
+}
 
 /**
  * Giriş sonrası ara sayfa: şirkete yüklenmiş ihale ve projeler.
@@ -17,6 +35,7 @@ export function Hub({ onOpen, onLogout }: { onOpen: (item: LibraryItem) => void;
   const [items, setItems] = useState<LibraryItem[]>(library)
   const [uploading, setUploading] = useState(false)
   const [justAdded, setJustAdded] = useState<string | null>(null)
+  const [cols, setCols] = useState<Record<ColKey, string>>(NO_FILTER)
 
   const tenders = items.filter((i) => i.kind === 'ihale')
   const projects = items.filter((i) => i.kind === 'proje')
@@ -24,6 +43,7 @@ export function Hub({ onOpen, onLogout }: { onOpen: (item: LibraryItem) => void;
   const list = items.filter((i) => {
     if (filter === 'İhaleler' && i.kind !== 'ihale') return false
     if (filter === 'Projeler' && i.kind !== 'proje') return false
+    if ((Object.keys(cols) as ColKey[]).some((k) => cols[k] !== 'Tümü' && COL_VALUES[k](i) !== cols[k])) return false
     if (q.trim()) {
       const s = q.toLocaleLowerCase('tr')
       return [i.code, i.name, i.employer, i.location].some((v) => v.toLocaleLowerCase('tr').includes(s))
@@ -33,6 +53,17 @@ export function Hub({ onOpen, onLogout }: { onOpen: (item: LibraryItem) => void;
 
   /** Teklif tarihi en yakın olan açık ihale */
   const nearest = tenders.filter((t) => t.daysLeft >= 0).sort((a, b) => a.daysLeft - b.daysLeft)[0]
+
+  /** Sütun başlığı + o sütunun filtresi */
+  function head(k: ColKey, label: string) {
+    return (
+      <span className="flex items-center gap-1.5">
+        {label}
+        <ColumnFilter value={cols[k]} onChange={(v) => setCols((c) => ({ ...c, [k]: v }))}
+          values={[...new Set(items.map(COL_VALUES[k]))]} />
+      </span>
+    )
+  }
 
   function addItem(item: LibraryItem) {
     setItems((prev) => [item, ...prev])
@@ -70,10 +101,11 @@ export function Hub({ onOpen, onLogout }: { onOpen: (item: LibraryItem) => void;
 
         {/* Özet şerit */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Summary label="Açık ihale" value={tenders.filter((t) => t.daysLeft >= 0).length}
-            sub={nearest ? `En yakını ${nearest.code} · ${daysLabel(nearest.daysLeft)}` : 'Açık ihale yok'} tone="accent" />
-          <Summary label="Yürüyen proje" value={projects.length} sub="Sözleşmesi imzalanmış işler" tone="ok" />
-          <Summary label="Toplam dosya" value={items.reduce((a, i) => a + i.docCount, 0)} sub="Yüklenmiş doküman" tone="neutral" />
+          <Summary label="Çalışma" value={items.length}
+            sub={`${tenders.length} ihale + ${projects.length} proje yüklü`} tone="neutral" />
+          <Summary label="Devam eden ihaleler" value={tenders.filter((t) => t.daysLeft >= 0).length}
+            sub={nearest ? `En yakını ${nearest.code} · ${daysLabel(nearest.daysLeft)}` : 'Devam eden ihale yok'} tone="accent" />
+          <Summary label="Devam eden projeler" value={projects.length} sub="Sözleşmesi imzalanmış işler" tone="ok" />
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -85,13 +117,13 @@ export function Hub({ onOpen, onLogout }: { onOpen: (item: LibraryItem) => void;
 
           {/* Görünüm seçici: kare ızgara / sıralı liste */}
           <div className="ml-auto flex overflow-hidden rounded-md border border-[var(--border)]">
-            {([['kare', '▦ Kare ızgara'], ['sirali', '☰ Sıralı liste']] as const).map(([k, label]) => (
-              <button key={k} onClick={() => setView(k)}
-                className="px-2.5 py-1 text-[11.5px] font-medium transition-colors"
+            {([['kare', '▦', 'Kare ızgara'], ['sirali', '☰', 'Sıralı liste']] as const).map(([k, icon, label]) => (
+              <button key={k} onClick={() => setView(k)} title={label} aria-label={label}
+                className="px-2.5 py-1 text-[13px] leading-none transition-colors"
                 style={view === k
                   ? { background: 'var(--accent)', color: '#fff' }
                   : { background: 'var(--surface)', color: 'var(--muted)' }}>
-                {label}
+                {icon}
               </button>
             ))}
           </div>
@@ -112,14 +144,14 @@ export function Hub({ onOpen, onLogout }: { onOpen: (item: LibraryItem) => void;
         ) : (
           <Table head={
             <tr>
-              <Th w={64}>Tür</Th>
-              <Th w={110}>Kod</Th>
-              <Th w={300}>İş</Th>
-              <Th w={120}>Tarih</Th>
-              <Th w={100} right>Bedel</Th>
-              <Th w={60} right>Dosya</Th>
-              <Th w={130}>İlerleme</Th>
-              <Th w={110}>Durum</Th>
+              <Th w={64}>{head('tur', 'Tür')}</Th>
+              <Th w={110}>{head('kod', 'Kod')}</Th>
+              <Th w={300}>{head('is', 'İş')}</Th>
+              <Th w={120}>{head('tarih', 'Tarih')}</Th>
+              <Th w={100}>{head('bedel', 'Bedel')}</Th>
+              <Th w={60}>{head('dosya', 'Dosya')}</Th>
+              <Th w={130}>{head('ilerleme', 'İlerleme')}</Th>
+              <Th w={110}>{head('durum', 'Durum')}</Th>
               <Th w={60}>İşlem</Th>
             </tr>
           }>

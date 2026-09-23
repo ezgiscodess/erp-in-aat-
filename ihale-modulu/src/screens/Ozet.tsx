@@ -17,7 +17,7 @@ export function Ozet({ onGo }: { onGo: (t: TabKey) => void }) {
   const overhead = 6_400_000      // şantiye genel giderleri + merkez payı
   const profit = 5_500_000        // hedeflenen kâr
   const critFindings = findings.filter((f) => f.severity === 'Kritik')
-  const openTerms = criticalTerms.filter((t) => ['Eksik', 'Karşılanmıyor'].includes(t.state))
+  const openTerms = criticalTerms.filter((t) => t.state === 'Devam Ediyor')
   const missingCerts = certificates.filter((c) => c.required && !c.owned)
   const against = clauses.filter((c) => c.position === 'Yüklenici aleyhine')
   const topRisks = [...bidRisks].sort((a, b) => b.probability * b.impact - a.probability * a.impact).slice(0, 4)

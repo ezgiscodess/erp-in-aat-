@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { scheduleMilestones, scheduleTasks, project } from '../data/mock'
+import { boqItems, scheduleMilestones, scheduleTasks, project } from '../data/mock'
 import type { ScheduleTask, TabKey } from '../data/types'
 import {
-  AddonBadge, Badge, Btn, Card, Kpi, PageHead, ReadOnlyNote, StickyPane, Table, Td, Th,
+  AddonBadge, Badge, Bar, Btn, Card, Kpi, PageHead, ReadOnlyNote, StickyPane, Table, Td, Th,
 } from '../components/ui'
-import { date, money, num } from '../lib/format'
+import { date, num } from '../lib/format'
 
 const MONTHS = 24
 
@@ -21,13 +21,6 @@ function monthDate(m: number): string {
   return new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' }).format(d)
 }
 
-const RELATION_NOTE: Record<string, string> = {
-  FS: 'Bitince başlar (finish → start)',
-  SS: 'Birlikte başlar (start → start)',
-  FF: 'Birlikte biter (finish → finish)',
-  SF: 'Başlayınca biter (start → finish)',
-}
-
 /**
  * Teklifle birlikte verilecek iş programı.
  * Süreler metrajdan türetilir (miktar ÷ günlük kapasite); kritik yol bitiş tarihini belirler.
@@ -42,15 +35,15 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
     <>
       <PageHead
         title="İş Programı"
-        note="Metrajdan türetilen iş programı. Her satırın süresi miktar ÷ günlük kapasite ile hesaplanır; kritik yoldaki işler bitiş tarihini doğrudan belirler. Sözleşmeden gelen tarihler kilometre taşı olarak sabit durur."
+        note="Metrajdan türetilen iş programı. Doküman analiz edildiğinde ve metraj güncellendiğinde program otomatik yenilenir. Her satırın süresi miktar ÷ günlük kapasite ile hesaplanır; kritik yoldaki işler bitiş tarihini doğrudan belirler. Sözleşmeden gelen tarihler kilometre taşı olarak sabit durur."
         right={<>
           <AddonBadge />
-          <Btn disabled={!writable} onClick={() => onGo('boq')}>Metrajdan üret</Btn>
-          <Btn disabled={!writable} title="Hazır program dosyası yükle">Kaynak ekle</Btn>
+          <Btn disabled={!writable} title="Doküman analizi ve metrajdaki son değişiklikleri programa yansıtır. Program bu değişikliklerle zaten otomatik güncellenir; bu düğme hemen yenilemek içindir.">↻ Güncelle</Btn>
           <Btn title="MS Project dosyası (.xml / .mpp)">MS Project</Btn>
           <Btn title="Primavera P6 dosyası (.xer)">P6 (XER)</Btn>
+          <Btn title="PDF olarak dışa aktar">PDF</Btn>
           <Btn title="Excel olarak dışa aktar">Excel</Btn>
-          <Btn primary disabled={!writable}>+ İş ekle</Btn>
+          <Btn primary disabled={!writable}>+ Aktivite ekle</Btn>
         </>}
       />
 
@@ -59,7 +52,7 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Kpi label="Toplam süre" value={`${finish} ay`} sub={`${project.durationDays} takvim günü`}
           help="Programın ilk işinden son işin bitişine kadar geçen süre. Sözleşmedeki iş süresiyle aynı olmak zorundadır." />
-        <Kpi label="İş kalemi" value={scheduleTasks.length} sub="WBS satırı"
+        <Kpi label="Aktivite" value={scheduleTasks.length} sub="WBS satırı"
           help="Programdaki ana iş kalemleri. Her biri metrajdaki bir veya birkaç poza bağlıdır." />
         <Kpi label="Kritik yol" value={`${critical.length} iş`} sub="Bitişi doğrudan belirleyen zincir" tone="crit"
           help="Gecikmesi doğrudan bitiş tarihini öteleyen işler. Bu zincirde bolluk (float) yoktur." />
@@ -155,7 +148,7 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
           <Card
             title={`${sel.wbs} · ${sel.name}`}
             subtitle={sel.group}
-            right={sel.critical ? <Badge tone="crit" dot>Kritik yol</Badge> : <Badge tone="neutral">Bolluk var</Badge>}
+            right={sel.critical ? <Badge tone="crit" dot>Kritik yol</Badge> : undefined}
           >
             <div className="flex flex-col gap-3 text-[12.5px]">
               <div className="grid grid-cols-2 gap-2">
@@ -165,9 +158,9 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
                 <Mini label="Metraj kalemi" value={sel.boqRef ?? '—'} />
                 <Mini
                   label="Bağlantı"
-                  value={sel.dependsOn ? `${sel.relation ?? 'FS'} · WBS ${sel.dependsOn}` : 'Bağlantısız'}
+                  value={sel.dependsOn ? `${sel.relation ?? 'FS'} · WBS ${sel.dependsOn}` : 'İşe başlamayla'}
                 />
-                <Mini label="İlişki tipi" value={sel.relation ? RELATION_NOTE[sel.relation] : 'İşe başlamayla'} />
+                <Progress task={sel} />
               </div>
               <div>
                 <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Süre varsayımı</div>
@@ -177,28 +170,6 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
                 <Btn small disabled={!writable}>Süreyi düzenle</Btn>
                 <Btn small disabled={!writable}>Bağımlılık ekle</Btn>
                 <Btn small onClick={() => onGo('boq')}>Metraj kalemine git →</Btn>
-              </div>
-            </div>
-          </Card>
-
-          <Card title="Program logu" help="Planlama dosyasının sağlık kontrolü: kaç aktivite var, hangi ilişki tipleri kullanılmış, bağlantısız aktivite kalmış mı. Bağlantısız aktivite, programın hesaplanmasını bozar.">
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              <Mini label="Aktivite" value={`${scheduleTasks.length} adet`} />
-              <Mini label="Kritik yol" value={`${critical.length} aktivite`} />
-              <Mini label="Bağlantısız" value={`${scheduleTasks.filter((t) => !t.dependsOn).length} aktivite`} />
-              {(['FS', 'SS', 'FF', 'SF'] as const).map((r) => (
-                <Mini key={r} label={`${r} ilişkisi`} value={`${scheduleTasks.filter((t) => (t.relation ?? (t.dependsOn ? 'FS' : undefined)) === r).length} adet`} />
-              ))}
-              <Mini label="En uzun aktivite" value={`${Math.max(...scheduleTasks.map((t) => t.months))} ay`} />
-            </div>
-            <div className="mt-3 flex flex-col gap-1.5 text-[11.5px] leading-relaxed text-[var(--muted)]">
-              <div>• <b className="text-[var(--ink)]">FS</b> {RELATION_NOTE.FS} — en yaygın kurgu.</div>
-              <div>• <b className="text-[var(--ink)]">SS</b> {RELATION_NOTE.SS} · <b className="text-[var(--ink)]">FF</b> {RELATION_NOTE.FF} — örtüşen işlerde.</div>
-              <div>• <b className="text-[var(--ink)]">SF</b> {RELATION_NOTE.SF} — nadiren kullanılır; bu programda yok.</div>
-              <div className="mt-1" style={{ color: scheduleTasks.filter((t) => !t.dependsOn).length > 1 ? 'var(--warn)' : 'var(--ok)' }}>
-                {scheduleTasks.filter((t) => !t.dependsOn).length > 1
-                  ? '⚠ Birden fazla bağlantısız aktivite var — kontrol edilmeli.'
-                  : '✓ Yalnızca ilk aktivite bağlantısız; program zinciri bütün.'}
               </div>
             </div>
           </Card>
@@ -214,10 +185,6 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
                   </span>
                 </div>
               ))}
-              <p className="mt-1 text-[11.5px] leading-relaxed text-[var(--faint)]">
-                Zincirin toplam süresi sözleşmedeki {project.durationDays} günü tam doldurur; bolluk yoktur.
-                Kazık tedarikindeki 2 aylık gecikme doğrudan teslim tarihine yansır.
-              </p>
             </div>
           </Card>
         </div>
@@ -225,8 +192,8 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
         <StickyPane>
           <div className="flex flex-col gap-4">
             <Card
-              title="Kilometre taşları (key stage)"
-              help="Sözleşmeden gelen sabit tarihler. Genelde “işe başlama (CD) + X gün” biçiminde verilir ve çoğunun kendine ait gecikme cezası vardır; bu ceza ana işin cezasından ayrı işler."
+              title="Kilometre taşları"
+              help="Sözleşmeden gelen sabit tarihler. Genelde “işe başlama (CD) + X gün” biçiminde verilir (CD: commencement date, işe başlama tarihi) ve çoğunun kendine ait gecikme cezası vardır; bu ceza ana işin cezasından ayrı işler."
               right={<Btn small disabled={!writable}>+ Kilometre taşı</Btn>}
               pad={false}
             >
@@ -262,12 +229,6 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
                   </tr>
                 ))}
               </Table>
-              <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] bg-[var(--surface-2)] px-4 py-2 text-[11.5px] text-[var(--muted)]">
-                <span>CD = işe başlama tarihi (commencement date)</span>
-                <span className="ml-auto">
-                  Ara teslim cezaları toplamı: <b className="text-[var(--crit)]">{money(scheduleMilestones.reduce((a, m) => a + (m.penalty ?? 0), 0), project.currency)}</b> / hafta
-                </span>
-              </div>
             </Card>
 
             <Card title="Programın dayanağı ve açık konular" help="Programı bağlayan sözleşme maddeleri ve henüz netleşmemiş konular.">
@@ -291,6 +252,27 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
         </StickyPane>
       </div>
     </>
+  )
+}
+
+/**
+ * Aktivitenin ilerlemesi: yüzde ve metraj olarak.
+ * Miktar, aktivitenin bağlı olduğu metraj kaleminden gelir; yapılan miktar proje döneminde sahadan girilir.
+ */
+function Progress({ task }: { task: ScheduleTask }) {
+  const item = boqItems.find((b) => b.no === task.boqRef)
+  const done = item ? (item.qty * task.progress) / 100 : 0
+  return (
+    <div className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1.5">
+      <div className="flex items-center gap-2">
+        <span className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--faint)]">İlerleme</span>
+        <span className="ml-auto text-[12.5px] font-semibold text-[var(--ink)] tnum">
+          %{task.progress}
+          {item && <span className="ml-2 font-normal text-[var(--muted)]">{num(done)} / {num(item.qty)} {item.unit}</span>}
+        </span>
+      </div>
+      <div className="mt-1.5"><Bar value={task.progress} tone={task.progress >= 100 ? 'ok' : 'accent'} /></div>
+    </div>
   )
 }
 

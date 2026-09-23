@@ -1,12 +1,16 @@
 import { useState } from 'react'
 import { criticalTerms, docs } from '../data/mock'
-import type { CriticalTerm } from '../data/types'
+import type { CriticalTerm, TermState } from '../data/types'
 import {
-  AiChat, Badge, Btn, Card, Chips, ColumnFilter, ExportButtons, Kpi, PageHead, PreviewPane, ReadOnlyNote,
+  AiChat, Btn, Card, Chips, ColumnFilter, DocViewer, ExportButtons, Kpi, PageHead, ReadOnlyNote,
   Search, severityTone, StateBadge, StickyPane, Table, Td, Th,
 } from '../components/ui'
 
-type Filter = 'Tümü' | 'Açık konular' | 'Kritik' | 'Karşılanıyor'
+type Filter = 'Tümü' | 'Açık konular' | 'Kritik' | 'Kontrol edilen'
+
+/** Durumlar sırasıyla: işin başı → sonu. Kapanmış sayılanlar: Kontrol Edildi ve Etkisi Sıfırlandı. */
+const STATES: TermState[] = ['Kontrol Ediliyor', 'Devam Ediyor', 'Kontrol Edildi', 'Etkisi Sıfırlandı']
+const OPEN: TermState[] = ['Kontrol Ediliyor', 'Devam Ediyor']
 
 /** İhale dokümanındaki bağlayıcı şartların listesi; seçilen şartın kaynağı sağda açılır. */
 export function KritikSartlar({ writable, role }: { writable: boolean; role: string }) {
@@ -22,9 +26,9 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
     if (topicFilter !== 'Tümü' && t.topic !== topicFilter) return false
     if (sevFilter !== 'Tümü' && t.severity !== sevFilter) return false
     if (stateFilter !== 'Tümü' && t.state !== stateFilter) return false
-    if (filter === 'Açık konular' && !['Eksik', 'Karşılanmıyor', 'İnceleniyor'].includes(t.state)) return false
+    if (filter === 'Açık konular' && !OPEN.includes(t.state)) return false
     if (filter === 'Kritik' && t.severity !== 'Kritik') return false
-    if (filter === 'Karşılanıyor' && t.state !== 'Karşılanıyor') return false
+    if (filter === 'Kontrol edilen' && t.state !== 'Kontrol Edildi') return false
     if (q.trim()) {
       const s = q.toLocaleLowerCase('tr')
       return [t.topic, t.requirement, t.impact, t.action, t.owner].some((v) => v.toLocaleLowerCase('tr').includes(s))
@@ -34,9 +38,9 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
 
   const counts = {
     'Tümü': criticalTerms.length,
-    'Açık konular': criticalTerms.filter((t) => ['Eksik', 'Karşılanmıyor', 'İnceleniyor'].includes(t.state)).length,
+    'Açık konular': criticalTerms.filter((t) => OPEN.includes(t.state)).length,
     'Kritik': criticalTerms.filter((t) => t.severity === 'Kritik').length,
-    'Karşılanıyor': criticalTerms.filter((t) => t.state === 'Karşılanıyor').length,
+    'Kontrol edilen': criticalTerms.filter((t) => t.state === 'Kontrol Edildi').length,
   }
 
   function toggle(id: string) {
@@ -50,38 +54,40 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
     <>
       <PageHead
         title="Kritik İhale Şartları"
-        note="Doküman analizinden çıkan, teklifi ve sözleşmeyi bağlayan şartlar. Her şart bir sorumluya ve duruma bağlanır; kaynağı sağdaki önizlemede görülebilir."
+        note="Doküman analizinden çıkan, teklifi ve sözleşmeyi bağlayan kriterler. Durumlar: Kontrol Ediliyor (sorumlusu inceliyor) → Devam Ediyor (aksiyon alındı, sonucu bekleniyor) → Kontrol Edildi (kriter karşılanıyor) ya da Etkisi Sıfırlandı (kriter değişmedi ama etkisi fiyata veya kurguya yansıtılarak nötrlendi)."
         right={<>
           <ExportButtons />
-          <Btn primary disabled={!writable}>+ Şart ekle</Btn>
+          <Btn primary disabled={!writable}>+ Kriter ekle</Btn>
         </>}
       />
 
       {!writable && <ReadOnlyNote role={role} />}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Kpi label="Toplam şart" value={criticalTerms.length} sub="Analizden çıkarıldı"
-          help="İhale dokümanlarından çıkarılan bağlayıcı şart sayısı. Zeyilname geldiğinde liste güncellenir." />
-        <Kpi label="Kritik şart" value={criticalTerms.filter((t) => t.severity === 'Kritik').length} sub="Teklifi doğrudan bağlar" tone="crit"
-          help="Karşılanmaması hâlinde teklifin geçersiz olmasına ya da ciddi bedel farkına yol açan şartlar." />
-        <Kpi label="Karşılanmıyor" value={criticalTerms.filter((t) => t.state === 'Karşılanmıyor').length} sub="Teklif fiyatına yansıtılmalı" tone="crit"
-          help="Firmanın bugünkü durumuyla karşılayamadığı şartlar. Ya teklif fiyatına karşılık eklenir ya da zeyilname ile değiştirilmesi istenir." />
-        <Kpi label="İnceleniyor" value={criticalTerms.filter((t) => t.state === 'İnceleniyor').length} sub="Sorumlusunda bekliyor" tone="warn"
-          help="Durumu henüz netleşmemiş şartlar. Teklif teslimine kadar kapanması gerekir." />
+        <Kpi label="Toplam kriter" value={criticalTerms.length} sub="Analizden çıkarıldı"
+          help="İhale dokümanlarından çıkarılan bağlayıcı kriter sayısı. Zeyilname geldiğinde liste güncellenir." />
+        <Kpi label="Kritik" value={criticalTerms.filter((t) => t.severity === 'Kritik').length} sub="Teklifi doğrudan bağlar" tone="crit"
+          help="Karşılanmaması hâlinde teklifin geçersiz olmasına ya da ciddi bedel farkına yol açan kriterler." />
+        <Kpi label="Kontrol edilen" value={criticalTerms.filter((t) => t.state === 'Kontrol Edildi').length}
+          sub={`+ ${criticalTerms.filter((t) => t.state === 'Etkisi Sıfırlandı').length} kriterin etkisi sıfırlandı`} tone="ok"
+          help="Karşılandığı teyit edilen kriterler. Etkisi sıfırlananlar (ör. fiyata karşılık eklenerek nötrlenenler) alt satırda ayrıca sayılır." />
+        <Kpi label="Kontrol ediliyor" value={criticalTerms.filter((t) => t.state === 'Kontrol Ediliyor').length}
+          sub={`${criticalTerms.filter((t) => t.state === 'Devam Ediyor').length} kriterde aksiyon devam ediyor`} tone="warn"
+          help="Durumu henüz netleşmemiş kriterler. Teklif teslimine kadar kapanması gerekir." />
         <Kpi label="Zeyilname talebi" value={2} sub="İdareye sorulacak" tone="accent"
           help="Değiştirilmesi için idareye yazılı talep gönderilecek şartlar. Soru listesine eklenenler buraya düşer." />
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
         <Chips<Filter> value={filter} onChange={setFilter}
-          items={(['Tümü', 'Açık konular', 'Kritik', 'Karşılanıyor'] as Filter[]).map((k) => ({ key: k, label: k, count: counts[k] }))} />
-        <div className="ml-auto"><Search value={q} onChange={setQ} placeholder="Şartlarda ara…" /></div>
+          items={(['Tümü', 'Açık konular', 'Kritik', 'Kontrol edilen'] as Filter[]).map((k) => ({ key: k, label: k, count: counts[k] }))} />
+        <div className="ml-auto"><Search value={q} onChange={setQ} placeholder="Kriterlerde ara…" /></div>
       </div>
 
       {checked.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 rounded-md border px-3 py-2"
           style={{ background: 'var(--accent-soft)', borderColor: 'var(--accent)' }}>
-          <span className="text-[12.5px] font-semibold" style={{ color: 'var(--accent)' }}>{checked.length} şart seçildi</span>
+          <span className="text-[12.5px] font-semibold" style={{ color: 'var(--accent)' }}>{checked.length} kriter seçildi</span>
           <span className="ml-auto flex flex-wrap gap-1.5">
             <Btn small disabled={!writable}>Soru listesine aktar</Btn>
             <Btn small disabled={!writable}>Riske bağla</Btn>
@@ -94,8 +100,8 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <div>
           <Card
-            title={`Şartlar (${filtered.length})`}
-            help="Satıra tıklayınca şartın geldiği doküman sayfası sağda açılır. Soldaki kutucuklarla birden fazla şart seçip toplu işlem yapabilirsiniz."
+            title={`Kriterler (${filtered.length})`}
+            help="Satıra tıklayınca kriterin geldiği doküman sayfası sağda açılır; aksiyon ve sorumlu satırın altında yazar. Soldaki kutucuklarla birden fazla şart seçip toplu işlem yapabilirsiniz."
             pad={false}
           >
             <Table head={
@@ -112,14 +118,14 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
                 </Th>
                 <Th w={236}>
                   <span className="flex items-center gap-1.5">
-                    Şart, etkisi ve kaynağı
+                    Kriter, etkisi ve kaynağı
                     <ColumnFilter value={sevFilter} onChange={setSevFilter} values={['Kritik', 'Yüksek', 'Orta', 'Düşük']} />
                   </span>
                 </Th>
                 <Th w={110}>
                   <span className="flex items-center gap-1.5">
                     Durum
-                    <ColumnFilter value={stateFilter} onChange={setStateFilter} values={['Karşılanıyor', 'Karşılanmıyor', 'İnceleniyor', 'Eksik']} />
+                    <ColumnFilter value={stateFilter} onChange={setStateFilter} values={STATES} />
                   </span>
                 </Th>
               </tr>
@@ -140,6 +146,11 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
                   <Td>
                     <div className="text-[12.5px] text-[var(--ink)]">{t.requirement}</div>
                     <div className="mt-0.5 text-[11.5px] text-[var(--muted)]">→ {t.impact}</div>
+                    {t.id === sel.id && (
+                      <div className="mt-1 text-[11.5px] text-[var(--ink)]">
+                        <span className="font-semibold">Aksiyon · {t.owner}:</span> {t.action}
+                      </div>
+                    )}
                     <div className="mt-0.5">
                       <span className="mono text-[11px] text-[var(--accent)]">{t.clause}</span>
                       <span className="ml-1 text-[11px] text-[var(--faint)]">s.{t.page}</span>
@@ -153,45 +164,14 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
         </div>
 
         <StickyPane>
-          <div className="flex flex-col gap-3">
-            {/* Şartın etkisi önizlemenin üstünde durur: önce ne anlama geldiği, sonra kaynağı */}
-            <div className="rounded-lg border bg-[var(--surface)] p-3"
-              style={{ borderColor: sel.severity === 'Kritik' ? 'var(--crit)' : 'var(--border)' }}>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[13px] font-semibold text-[var(--ink)]">{sel.topic}</span>
-                <Badge tone={severityTone(sel.severity)} dot>{sel.severity}</Badge>
-                <span className="ml-auto"><StateBadge value={sel.state} /></span>
-              </div>
-              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <div className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1.5">
-                  <div className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--faint)]">Şartın etkisi</div>
-                  <div className="mt-0.5 text-[12.5px] text-[var(--ink)]">{sel.impact}</div>
-                </div>
-                <div className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1.5">
-                  <div className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--faint)]">Aksiyon · {sel.owner}</div>
-                  <div className="mt-0.5 text-[12.5px] text-[var(--ink)]">{sel.action}</div>
-                </div>
-              </div>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <Btn small disabled={!writable}>Soru listesine ekle</Btn>
-                <Btn small primary disabled={!writable}>Durumu güncelle</Btn>
-              </div>
-            </div>
-
-            <PreviewPane
-              title="Şartın kaynağı"
-            preview={{
-              doc: doc.name,
-              page: sel.page,
-              pages: doc.pages,
-              clause: sel.clause,
-              highlight: sel.quote,
-              body: sel.context,
-            }}
-              paper
-              height={300}
-            />
-          </div>
+          <DocViewer
+            doc={doc.name}
+            page={sel.page}
+            pages={doc.pages}
+            clause={sel.clause}
+            body={sel.context}
+            highlight={sel.quote}
+          />
         </StickyPane>
       </div>
 

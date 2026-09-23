@@ -8,7 +8,7 @@ export function BilgiPaneli({ writable, role }: { writable: boolean; role: strin
   const [editKunye, setEditKunye] = useState(false)
   const [editTakvim, setEditTakvim] = useState(false)
 
-  const openTerms = criticalTerms.filter((t) => t.state === 'Eksik' || t.state === 'Karşılanmıyor').length
+  const openTerms = criticalTerms.filter((t) => t.state === 'Devam Ediyor').length
 
   const kunye: { label: string; value: string; note?: string; tone?: 'crit' | 'warn'; help?: string }[] = [
     { label: 'İhale takip no', value: project.code, help: 'Firmanın kendi ERP takip kodu. İş eklenirken girilir; ihale dokümanındaki idare numarası ayrıca kaydedilir.' },
@@ -46,7 +46,7 @@ export function BilgiPaneli({ writable, role }: { writable: boolean; role: strin
           help="İdarenin açıkladığı yaklaşık bedel. Açıklanmayan ihalelerde boş kalır." />
         <Kpi label="İş süresi" value={`${num(project.durationDays)} gün`} sub="≈ 24 ay"
           help="Yer tesliminden kabule kadar olan sözleşme süresi." />
-        <Kpi label="Kritik şart" value={openTerms} sub="Karşılanmayan / eksik" tone="crit"
+        <Kpi label="Kritik şart" value={openTerms} sub="Aksiyonu devam ediyor" tone="crit"
           help="Kritik İhale Şartları sekmesinde 'karşılanmıyor' veya 'eksik' durumda olan şart sayısı." />
         <Kpi label="Metraj kalemi" value={boqItems.length} sub="Poz listesinden · ek paket" tone="accent"
           help="İhale dokümanındaki poz sayısı. Metraj (BoQ / Take-off) ek pakete dâhildir; paket kapalıyken bu kutu pasif görünür. Birim fiyatlar Birim Fiyat Havuzu'ndan eşleşir." />

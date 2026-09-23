@@ -1,6 +1,6 @@
 import type { TabKey } from '../data/types'
 import {
-  bidRisks, boqItems, certificates, clauses, contractSections, criticalTerms, docs,
+  bidRisks, boqItems, certificates, contractRisks, contractSections, criticalTerms, docs,
   equipmentPlan, goNoGoCriteria, scheduleTasks, staffPlan,
 } from '../data/mock'
 
@@ -23,14 +23,14 @@ export function tabProgress(tab: TabKey): number {
 
     case 'kritik_sartlar':
       // Durumu netleşmiş şartlar (inceleme bitmiş olanlar)
-      return pct(criticalTerms.filter((t) => t.state !== 'İnceleniyor').length, criticalTerms.length)
+      return pct(criticalTerms.filter((t) => t.state !== 'Kontrol Ediliyor').length, criticalTerms.length)
 
     case 'teklif_riskleri':
       // Karşılığı kararlaştırılmış riskler (bedeli olup karşılığı girilen ya da bilinçli sıfır)
       return pct(bidRisks.filter((r) => r.provision > 0 || !r.inBid).length, bidRisks.length)
 
     case 'kontrat_analiz':
-      return pct(clauses.length, clauses.length)
+      return pct(contractRisks.filter((r) => r.provision > 0 || !r.inBid).length, contractRisks.length)
 
     case 'go_nogo':
       return pct(goNoGoCriteria.filter((c) => c.score > 0).length, goNoGoCriteria.length)

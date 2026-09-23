@@ -3,7 +3,7 @@ import type { LibraryItem, TabKey } from './data/types'
 import { library, project } from './data/mock'
 import { tabs, accessFor, canWrite, defaultRole, roleLabel } from './lib/roles'
 import { progressTone, tabProgress } from './lib/progress'
-import { Badge, Btn } from './components/ui'
+import { Badge } from './components/ui'
 import { Login } from './screens/Login'
 import { Hub } from './screens/Hub'
 import { DokumanAnaliz } from './screens/DokumanAnaliz'
@@ -59,15 +59,13 @@ export default function App() {
           <span className="text-[11px] text-[var(--muted)]">{open.kind === 'ihale' ? 'İhale' : 'Proje'}</span>
         </div>
 
-        {/* Açık iş ve ara sayfaya dönüş */}
+        {/* Ara sayfaya dönüş — işin adı üst şeritte durduğu için burada tekrar edilmez */}
         <button
           onClick={() => setView('hub')}
-          className="flex flex-col gap-0.5 border-b border-[var(--border)] px-3 py-2.5 text-left transition-colors hover:bg-[var(--surface-2)]"
+          className="border-b border-[var(--border)] px-4 py-2 text-left text-[11.5px] font-semibold text-[var(--muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--accent)]"
           title="Yüklü proje ve ihaleler sayfasına dön"
         >
-          <span className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--faint)]">← Yüklü işler</span>
-          <span className="mono text-[11.5px] text-[var(--accent)]">{open.code}</span>
-          <span className="line-clamp-2 text-[12px] leading-snug text-[var(--muted)]">{open.name}</span>
+          ← Yüklü işler
         </button>
 
         {/* Sekmeler */}
@@ -78,20 +76,15 @@ export default function App() {
             const tone = progressTone(done)
             return (
               <button key={t.key} onClick={() => setTab(t.key)} title={`${t.note}\n\nSayfa doluluğu: %${done}`}
-                className="flex flex-col gap-1 rounded-md px-2.5 py-[6px] text-left text-[12.5px] font-medium transition-colors"
+                className="flex items-center gap-1.5 rounded-md px-2.5 py-[7px] text-left text-[12.5px] font-medium transition-colors"
                 style={on
                   ? { background: 'var(--accent-soft)', color: 'var(--accent)' }
                   : { color: 'var(--muted)' }}>
-                <span className="flex w-full items-center gap-1.5">
-                  <span className="min-w-0 flex-1 truncate">{t.label}</span>
-                  {t.addon && (
-                    <span className="rounded px-1 py-0.5 text-[9px] font-bold uppercase" style={{ background: 'var(--gold-bg)', color: 'var(--gold)', border: '1px solid var(--gold-border)' }}>Ek</span>
-                  )}
-                  <span className="w-8 flex-shrink-0 text-right text-[10.5px] tnum" style={{ color: `var(--${tone})` }}>%{done}</span>
-                </span>
-                <span className="h-[3px] w-full overflow-hidden rounded-full" style={{ background: 'var(--surface-3)' }}>
-                  <span className="block h-full rounded-full" style={{ width: `${done}%`, background: `var(--${tone})` }} />
-                </span>
+                <span className="min-w-0 flex-1 truncate">{t.label}</span>
+                {t.addon && (
+                  <span className="rounded px-1 py-0.5 text-[9px] font-bold uppercase" style={{ background: 'var(--gold-bg)', color: 'var(--gold)', border: '1px solid var(--gold-border)' }}>Ek</span>
+                )}
+                <span className="w-8 flex-shrink-0 text-right text-[10.5px] font-semibold tnum" style={{ color: `var(--${tone})` }}>%{done}</span>
               </button>
             )
           })}
@@ -117,7 +110,6 @@ export default function App() {
               ? <Badge tone="warn" dot>Teklife {open.daysLeft} gün</Badge>
               : <Badge tone="ok" dot>Yapım · %{open.progress}</Badge>}
             <Badge tone="neutral">{open.status}</Badge>
-            <Btn small onClick={() => setView('hub')}>Yüklü işler</Btn>
           </div>
         </header>
 

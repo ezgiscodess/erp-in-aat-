@@ -9,17 +9,22 @@ import type { Redline } from '../components/ui'
 
 type Sort = 'tarih-yeni' | 'tarih-eski' | 'ad' | 'tur' | 'durum'
 
+const PAGE_BANDS = ['1–20 sayfa', '21–100 sayfa', '100+ sayfa']
+function pageBand(n: number) {
+  return n <= 20 ? PAGE_BANDS[0] : n <= 100 ? PAGE_BANDS[1] : PAGE_BANDS[2]
+}
+
 /** En son yüklenen doküman — ekran açıldığında sağdaki panelde bu dosya durur. */
 const latest = [...docs].sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt))[0]
 
 /** Yüklenen ihale dokümanları solda, seçilen dosyanın orijinali sağda açılır. */
 export function DokumanAnaliz({ writable, role }: { writable: boolean; role: string }) {
   const [sel, setSel] = useState<TenderDoc>(latest)
-  /** Toplu yeniden analiz için işaretlenen dosyalar */
-  const [checked, setChecked] = useState<string[]>([])
   const [sort, setSort] = useState<Sort>('tarih-yeni')
   const [stateFilter, setStateFilter] = useState('Tümü')
   const [kindFilter, setKindFilter] = useState('Tümü')
+  const [pageFilter, setPageFilter] = useState('Tümü')
+  const [userFilter, setUserFilter] = useState('Tümü')
   const [askAnalyze, setAskAnalyze] = useState(false)
   /** Dokümana yapılan elle düzeltmeler — metinde iz bırakır */
   const [edits, setEdits] = useState<Record<string, Redline[]>>({})
@@ -32,6 +37,8 @@ export function DokumanAnaliz({ writable, role }: { writable: boolean; role: str
     const list = docs.filter((d) => {
       if (stateFilter !== 'Tümü' && d.state !== stateFilter) return false
       if (kindFilter !== 'Tümü' && d.kind !== kindFilter) return false
+      if (pageFilter !== 'Tümü' && pageBand(d.pages) !== pageFilter) return false
+      if (userFilter !== 'Tümü' && d.uploadedBy !== userFilter) return false
       return true
     })
     const by: Record<Sort, (a: TenderDoc, b: TenderDoc) => number> = {
@@ -42,11 +49,7 @@ export function DokumanAnaliz({ writable, role }: { writable: boolean; role: str
       'durum': (a, b) => a.state.localeCompare(b.state, 'tr'),
     }
     return [...list].sort(by[sort])
-  }, [sort, stateFilter, kindFilter])
-
-  function toggle(id: string) {
-    setChecked((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]))
-  }
+  }, [sort, stateFilter, kindFilter, pageFilter, userFilter])
 
   return (
     <>
@@ -58,15 +61,11 @@ export function DokumanAnaliz({ writable, role }: { writable: boolean; role: str
 
       {!writable && <ReadOnlyNote role={role} />}
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3">
         <Kpi label="Doküman" value={docs.length} sub={`${analyzed} analiz edildi · ${pending.length} bekliyor`}
           help="Bu ihale için yüklenen dosya sayısı. Zeyilname ve soru-cevap listeleri de buraya eklenir." />
         <Kpi label="Toplam sayfa" value={docs.reduce((a, d) => a + d.pages, 0)} sub="2 dosya taranmış (OCR)"
           help="Taranmış (görüntü) dosyalar OCR ile metne çevrilir; bu dosyalar OCR etiketiyle işaretlenir." />
-        <Kpi label="Son yüklenen" value={latest.kind} sub={`${latest.uploadedAt} · ${latest.uploadedBy}`} tone="accent"
-          help="En son yüklenen dosya. Ekran açıldığında sağdaki panelde bu dosyanın orijinali durur." />
-        <Kpi label="Analiz edilmemiş" value={pending.length} sub="Bulguları henüz dağılmadı" tone="warn"
-          help="Analizi bitmemiş dosyalar. Bu dosyalardaki şart ve riskler diğer sekmelere düşmez." />
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -76,15 +75,13 @@ export function DokumanAnaliz({ writable, role }: { writable: boolean; role: str
             <Btn disabled={!writable}>+ Doküman Yükle</Btn>
             <Btn primary disabled={!writable} onClick={() => setAskAnalyze(true)}>▶ Tümünü Analiz Et</Btn>
             <span className="ml-auto">
-              <Btn disabled={!writable} title="Seçili dosyaları yeniden analiz eder. Hiçbiri seçili değilse tüm dosyalar yeniden analiz edilir.">
-                Yeniden Analiz{checked.length > 0 ? ` (${checked.length})` : ''}
-              </Btn>
+              <Btn disabled={!writable} onClick={() => setAskAnalyze(true)} title="Dosyaları yeniden analiz eder">Yeniden Analiz</Btn>
             </span>
           </div>
 
           <Card
             title={`Yüklenen dokümanlar (${rows.length})`}
-            help="Satırın başındaki kutucukla birden fazla dosya seçip yeniden analiz edebilirsiniz; hiçbiri seçili değilse tümü analiz edilir. Satıra tıklayınca dosyanın orijinali sağda açılır."
+            help="Satıra tıklayınca dosyanın orijinali sağda açılır. Sütun başlıklarındaki ▼ ile listeyi süzebilirsiniz."
             right={<SortSelect<Sort> value={sort} onChange={setSort} items={[
               { key: 'tarih-yeni', label: 'Tarih (yeni → eski)' },
               { key: 'tarih-eski', label: 'Tarih (eski → yeni)' },
@@ -96,18 +93,24 @@ export function DokumanAnaliz({ writable, role }: { writable: boolean; role: str
           >
             <Table head={
               <tr>
-                <Th w={28}>
-                  <input type="checkbox" checked={checked.length === rows.length && rows.length > 0}
-                    onChange={(e) => setChecked(e.target.checked ? rows.map((d) => d.id) : [])} />
-                </Th>
                 <Th w={190}>
                   <span className="flex items-center gap-1.5">
                     Doküman
                     <ColumnFilter value={kindFilter} onChange={setKindFilter} values={[...new Set(docs.map((d) => d.kind))]} />
                   </span>
                 </Th>
-                <Th w={40} right>Sayfa</Th>
-                <Th w={84}>Yüklendi</Th>
+                <Th w={56}>
+                  <span className="flex items-center gap-1.5">
+                    Sayfa
+                    <ColumnFilter value={pageFilter} onChange={setPageFilter} values={PAGE_BANDS} />
+                  </span>
+                </Th>
+                <Th w={96}>
+                  <span className="flex items-center gap-1.5">
+                    Yüklendi
+                    <ColumnFilter value={userFilter} onChange={setUserFilter} values={[...new Set(docs.map((d) => d.uploadedBy))]} />
+                  </span>
+                </Th>
                 <Th w={104}>
                   <span className="flex items-center gap-1.5">
                     Durum
@@ -120,10 +123,6 @@ export function DokumanAnaliz({ writable, role }: { writable: boolean; role: str
               {rows.map((d) => (
                 <tr key={d.id} onClick={() => setSel(d)} className="cursor-pointer hover:bg-[var(--surface-2)]"
                   style={d.id === sel.id ? { background: 'var(--accent-soft)' } : undefined}>
-                  <Td nowrap>
-                    <input type="checkbox" checked={checked.includes(d.id)}
-                      onClick={(e) => e.stopPropagation()} onChange={() => toggle(d.id)} />
-                  </Td>
                   <Td>
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-[var(--ink)]">{d.name}</span>
@@ -232,7 +231,7 @@ function DocPreview({ doc, body, isLatest, writable, edits, onEdit }: {
         </span>
       </header>
 
-      <div className="h-[520px] overflow-y-auto bg-[var(--surface-2)] p-4">
+      <div className="overflow-y-auto bg-[var(--surface-3)] p-4" style={{ height: 'calc(100vh - 190px)', minHeight: 600 }}>
         {editing ? (
           <textarea
             value={draft}
@@ -241,7 +240,7 @@ function DocPreview({ doc, body, isLatest, writable, edits, onEdit }: {
             className="w-full resize-y rounded-md border border-[var(--accent)] bg-[var(--surface)] p-3 text-[12.5px] leading-relaxed text-[var(--ink)] outline-none"
           />
         ) : (
-          <div className="mx-auto max-w-[620px] rounded-sm border border-[var(--border)] bg-white px-7 py-6 text-[12.5px] leading-[1.9] text-[var(--ink)] shadow-sm">
+          <div className="mx-auto max-w-[600px] rounded-sm border border-[var(--border)] bg-white px-9 py-8 text-[12.5px] leading-[1.9] text-[var(--ink)] shadow-sm" style={{ aspectRatio: '1 / 1.414' }}>
             <div className="mb-3 h-2 w-1/3 rounded bg-[var(--surface-3)]" />
             <RedlineText body={body} edits={edits} />
             <div className="mt-3 h-2 w-full rounded bg-[var(--surface-3)]" />

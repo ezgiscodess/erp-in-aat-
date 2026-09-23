@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { goNoGoCriteria } from '../data/mock'
-import { Badge, Bar, Btn, Card, ExportButtons, Kpi, PageHead, ReadOnlyNote, Table, Td, Th } from '../components/ui'
+import type { GoNoGoCriterion } from '../data/types'
+import { Badge, Bar, Btn, Card, ExportButtons, Field, Kpi, Modal, PageHead, ReadOnlyNote, Table, Td, Th } from '../components/ui'
 import { num, pct } from '../lib/format'
 
 const THRESHOLD = 60
@@ -15,11 +16,19 @@ const TODO_TONE: Record<TodoState, 'crit' | 'ok' | 'neutral'> = {
 
 /** Ağırlıklı kriterlerle teklife girme kararı. Skor kuraldan gelir; karar insana aittir. */
 export function GoNoGo({ writable, role }: { writable: boolean; role: string }) {
+  const [criteria, setCriteria] = useState<GoNoGoCriterion[]>(goNoGoCriteria)
+  const [adding, setAdding] = useState(false)
+
+  /**
+   * Ağırlıklar arka planda çalışır: ekranda yalnızca puanlar görünür.
+   * Henüz puanlanmamış (yeni eklenen) kriterler skora katılmaz.
+   */
   const { total, groups } = useMemo(() => {
-    const w = goNoGoCriteria.reduce((a, c) => a + c.weight, 0)
-    const s = goNoGoCriteria.reduce((a, c) => a + c.weight * c.score, 0) / w
+    const scored = criteria.filter((c) => c.score > 0)
+    const w = scored.reduce((a, c) => a + c.weight, 0)
+    const s = scored.reduce((a, c) => a + c.weight * c.score, 0) / w
     const map = new Map<string, { weight: number; score: number }>()
-    for (const c of goNoGoCriteria) {
+    for (const c of scored) {
       const g = map.get(c.group) ?? { weight: 0, score: 0 }
       g.weight += c.weight
       g.score += c.weight * c.score
@@ -27,9 +36,9 @@ export function GoNoGo({ writable, role }: { writable: boolean; role: string }) 
     }
     return {
       total: s,
-      groups: [...map.entries()].map(([name, g]) => ({ name, weight: g.weight, score: g.score / g.weight })),
+      groups: [...map.entries()].map(([name, g]) => ({ name, score: g.score / g.weight })),
     }
-  }, [])
+  }, [criteria])
 
   const verdict = total >= THRESHOLD + 10 ? 'GO' : total >= THRESHOLD - 10 ? 'ŞARTLI GO' : 'NO-GO'
   const verdictTone = verdict === 'GO' ? 'ok' : verdict === 'ŞARTLI GO' ? 'warn' : 'crit'
@@ -54,11 +63,10 @@ export function GoNoGo({ writable, role }: { writable: boolean; role: string }) 
     <>
       <PageHead
         title="Go / No-Go Analiz"
-        note="Kriterler ağırlıklandırılır, skor otomatik hesaplanır. Nihai karar yönetime aittir ve gerekçesiyle kaydedilir."
+        note="Her kriterin arka planda bir ağırlığı vardır; skor puanlar ve ağırlıklardan otomatik hesaplanır. Ağırlık, kriter eklenirken girilir. Nihai karar yönetime aittir ve gerekçesiyle kaydedilir."
         right={<>
           <ExportButtons />
-          <Btn disabled={!writable}>Kriter ekle</Btn>
-          <Btn disabled={!writable}>Ağırlıkları düzenle</Btn>
+          <Btn primary disabled={!writable} onClick={() => setAdding(true)}>+ Kriter ekle</Btn>
         </>}
       />
 
@@ -81,13 +89,13 @@ export function GoNoGo({ writable, role }: { writable: boolean; role: string }) 
       {/* Solda kriter grupları, sağda koşul listesi */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
         <div className="lg:col-span-5">
-          <Card title="Kriter grupları" help="Kriterler gruplara ayrılır; her grubun toplam ağırlığı ve ağırlıklı puanı gösterilir. Kısa çubuk, o başlıkta zayıf olduğumuz anlamına gelir.">
+          <Card title="Kriter grupları" help="Kriterler gruplara ayrılır; her grubun ağırlıklı puanı gösterilir. Kısa çubuk, o başlıkta zayıf olduğumuz anlamına gelir.">
             <div className="flex flex-col gap-3">
               {groups.map((g) => (
                 <div key={g.name}>
                   <div className="mb-1 flex items-center justify-between text-[12.5px]">
                     <span className="font-medium text-[var(--ink)]">{g.name}</span>
-                    <span className="text-[var(--muted)] tnum">{num(g.score, 0)} / 100 · ağırlık {pct(g.weight)}</span>
+                    <span className="text-[var(--muted)] tnum">{num(g.score, 0)} / 100</span>
                   </div>
                   <Bar value={g.score} tone={g.score >= 70 ? 'ok' : g.score >= 50 ? 'warn' : 'crit'} />
                 </div>
@@ -156,7 +164,7 @@ export function GoNoGo({ writable, role }: { writable: boolean; role: string }) 
       {/* Kriter tablosu — karar düğmeleri burada */}
       <Card
         title="Kriterler"
-        help="Ağırlık: kriterin karara etkisi. Puan: 0–100 arası değerlendirme. Açıklamaya tıklayıp elle ekleme yapabilirsiniz; düzeltilen açıklama işaretlenir."
+        help="Puan: 0–100 arası değerlendirme. Ağırlıklar arka planda tutulur ve skoru hesaplarken kullanılır. Açıklamaya tıklayıp elle ekleme yapabilirsiniz; düzeltilen açıklama işaretlenir."
         right={<>
           <Btn small disabled={!writable}>No-Go öner</Btn>
           <Btn small primary disabled={!writable}>Şartlı GO onayına gönder</Btn>
@@ -166,30 +174,30 @@ export function GoNoGo({ writable, role }: { writable: boolean; role: string }) 
         <Table head={
           <tr>
             <Th w={230}>Kriter</Th>
-            <Th w={56} right>Ağırlık</Th>
             <Th w={110}>Puan</Th>
             <Th w={260}>Açıklama</Th>
             <Th w={140}>Kaynak</Th>
           </tr>
         }>
-          {goNoGoCriteria.map((c) => (
+          {criteria.map((c) => (
             <tr key={c.id} className="hover:bg-[var(--surface-2)]">
               <Td>
                 <div className="text-[11px] text-[var(--faint)]">{c.group}</div>
                 <div className="font-medium text-[var(--ink)]">{c.label}</div>
               </Td>
-              <Td right>{pct(c.weight)}</Td>
               <Td>
-                <div className="flex items-center gap-2">
-                  <div className="w-20"><Bar value={c.score} tone={c.score >= 70 ? 'ok' : c.score >= 50 ? 'warn' : 'crit'} /></div>
-                  <span className="tnum text-[12px] text-[var(--muted)]">{c.score}</span>
-                </div>
+                {c.score > 0 ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-20"><Bar value={c.score} tone={c.score >= 70 ? 'ok' : c.score >= 50 ? 'warn' : 'crit'} /></div>
+                    <span className="tnum text-[12px] text-[var(--muted)]">{c.score}</span>
+                  </div>
+                ) : <Badge tone="warn">Puanlanacak</Badge>}
               </Td>
               <Td>
                 {editing === c.id ? (
                   <textarea
                     autoFocus
-                    value={notes[c.id]}
+                    value={notes[c.id] ?? c.note}
                     onChange={(e) => setNotes((n) => ({ ...n, [c.id]: e.target.value }))}
                     onBlur={() => setEditing(null)}
                     rows={2}
@@ -202,8 +210,8 @@ export function GoNoGo({ writable, role }: { writable: boolean; role: string }) 
                     title="Açıklamayı elle düzenle"
                     className="w-full text-left text-[12.5px] text-[var(--muted)] hover:text-[var(--ink)]"
                   >
-                    {notes[c.id]}
-                    {notes[c.id] !== c.note && <span className="ml-1.5 text-[10.5px] text-[var(--gold)]">· elle düzeltildi</span>}
+                    {notes[c.id] ?? c.note}
+                    {notes[c.id] != null && notes[c.id] !== c.note && <span className="ml-1.5 text-[10.5px] text-[var(--gold)]">· elle düzeltildi</span>}
                   </button>
                 )}
               </Td>
@@ -212,6 +220,64 @@ export function GoNoGo({ writable, role }: { writable: boolean; role: string }) 
           ))}
         </Table>
       </Card>
+
+      {adding && (
+        <AddCriterion
+          groups={[...new Set(criteria.map((c) => c.group))]}
+          onClose={() => setAdding(false)}
+          onAdd={(c) => { setCriteria((list) => [...list, c]); setAdding(false) }}
+        />
+      )}
     </>
+  )
+}
+
+/** Yeni kriter: adı, açıklaması ve ağırlığı kullanıcı tarafından girilir; puanı sonra verilir. */
+function AddCriterion({ groups, onClose, onAdd }: {
+  groups: string[]; onClose: () => void; onAdd: (c: GoNoGoCriterion) => void
+}) {
+  const [label, setLabel] = useState('')
+  const [note, setNote] = useState('')
+  const [weight, setWeight] = useState('5')
+  const [group, setGroup] = useState(groups[0] ?? 'Diğer')
+  const ready = label.trim().length > 2 && Number(weight) > 0
+
+  return (
+    <Modal
+      title="Kriter ekle"
+      note="Kriterin adını, ne anlama geldiğini ve karara ne kadar etki edeceğini (ağırlık) yazın. Puan, kriter eklendikten sonra verilir."
+      onClose={onClose}
+      footer={<>
+        <span className="text-[11.5px] text-[var(--faint)]">{ready ? 'Eklenmeye hazır' : 'Kriter adı ve ağırlık zorunlu'}</span>
+        <span className="ml-auto flex gap-2">
+          <Btn onClick={onClose}>Vazgeç</Btn>
+          <Btn primary disabled={!ready} onClick={() => onAdd({
+            id: `N${Date.now()}`, group, label: label.trim(), weight: Number(weight), score: 0,
+            note: note.trim() || '—', source: 'Elle eklendi',
+          })}>Ekle</Btn>
+        </span>
+      </>}
+    >
+      <div className="flex flex-col gap-3">
+        <Field label="Kriter" value={label} onChange={setLabel} placeholder="Ör. Bölgede daha önce iş yapmış olmak" />
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Açıklama</span>
+          <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3}
+            placeholder="Kriter neyi ölçüyor, nasıl puanlanacak?"
+            className="resize-y rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-2 text-[13px] text-[var(--ink)] outline-none focus:border-[var(--accent)]" />
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Ağırlık (%)" value={weight} onChange={setWeight} type="number"
+            hint="Karara etkisi — diğer ağırlıklar buna göre oranlanır" />
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Grup</span>
+            <select value={group} onChange={(e) => setGroup(e.target.value)}
+              className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-2 text-[13px] text-[var(--ink)] outline-none focus:border-[var(--accent)]">
+              {groups.map((g) => <option key={g} value={g}>{g}</option>)}
+            </select>
+          </label>
+        </div>
+      </div>
+    </Modal>
   )
 }
