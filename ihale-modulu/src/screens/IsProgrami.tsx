@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { boqItems, scheduleMilestones, scheduleTasks, project } from '../data/mock'
-import type { ScheduleTask, TabKey } from '../data/types'
+import type { ScheduleMilestone, ScheduleTask, TabKey } from '../data/types'
 import {
-  AddonBadge, Badge, Bar, Btn, Card, Kpi, PageHead, ReadOnlyNote, StickyPane, Table, Td, Th,
+  AddonBadge, Badge, Bar, Btn, Card, Kpi, Modal, PageHead, ReadOnlyNote, StickyPane, Table, Td, Th,
 } from '../components/ui'
 import { date, num } from '../lib/format'
 
@@ -27,6 +27,7 @@ function monthDate(m: number): string {
  */
 export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: string; onGo: (t: TabKey) => void }) {
   const [sel, setSel] = useState<ScheduleTask>(scheduleTasks[4])
+  const [openMs, setOpenMs] = useState<ScheduleMilestone | null>(null)
 
   const finish = Math.max(...scheduleTasks.map((t) => t.startMonth + t.months))
   const critical = scheduleTasks.filter((t) => t.critical)
@@ -156,10 +157,6 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
                 <Mini label="Bitiş" value={monthDate(sel.startMonth + sel.months)} />
                 <Mini label="Süre" value={`${sel.months} ay ≈ ${sel.months * 30} gün`} />
                 <Mini label="Metraj kalemi" value={sel.boqRef ?? '—'} />
-                <Mini
-                  label="Bağlantı"
-                  value={sel.dependsOn ? `${sel.relation ?? 'FS'} · WBS ${sel.dependsOn}` : 'İşe başlamayla'}
-                />
                 <Progress task={sel} />
               </div>
               <div>
@@ -193,7 +190,7 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
           <div className="flex flex-col gap-4">
             <Card
               title="Kilometre taşları"
-              help="Sözleşmeden gelen sabit tarihler. Genelde “işe başlama (CD) + X gün” biçiminde verilir (CD: commencement date, işe başlama tarihi) ve çoğunun kendine ait gecikme cezası vardır; bu ceza ana işin cezasından ayrı işler."
+              help="Sözleşmeden gelen sabit tarihler. Genelde “işe başlama (CD) + X gün” biçiminde verilir (CD: commencement date, işe başlama tarihi) ve çoğunun kendine ait gecikme cezası vardır; bu ceza ana işin cezasından ayrı işler. Dokümanda tamamlanma tanımı ve kabul şartları verilmişse “Aç” ile görülür."
               right={<Btn small disabled={!writable}>+ Kilometre taşı</Btn>}
               pad={false}
             >
@@ -210,7 +207,11 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
                   <tr key={m.id} className="hover:bg-[var(--surface-2)]">
                     <Td nowrap>
                       <div className="mono text-[11.5px] font-semibold text-[var(--accent)]">{m.no}</div>
-                      <Badge tone={m.kind === 'Sözleşme' ? 'crit' : m.kind === 'İdare' ? 'warn' : 'neutral'}>{m.kind}</Badge>
+                      <div className="mt-1">
+                        <Btn small minW={40} disabled={!m.definition}
+                          title={m.definition ? 'Tamamlanma tanımı ve kabul şartları' : 'Dokümanda tamamlanma tanımı yok'}
+                          onClick={() => setOpenMs(m)}>Aç</Btn>
+                      </div>
                     </Td>
                     <Td><span className="text-[12.5px] text-[var(--ink)]">{m.label}</span></Td>
                     <Td nowrap>
@@ -251,6 +252,40 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
           </div>
         </StickyPane>
       </div>
+
+      {openMs && (
+        <Modal
+          title={`${openMs.no} · ${openMs.label}`}
+          note={`${openMs.source} · CD + ${num(openMs.dueDays)} gün (${date(openMs.dueDate)})`}
+          onClose={() => setOpenMs(null)}
+          footer={<span className="ml-auto"><Btn onClick={() => setOpenMs(null)}>Kapat</Btn></span>}
+        >
+          <div className="flex flex-col gap-3 text-[12.5px]">
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Tamamlanma tanımı</div>
+              <p className="mt-1 leading-relaxed text-[var(--ink)]">{openMs.definition}</p>
+            </div>
+            {openMs.acceptance && (
+              <div>
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Kabul şartları</div>
+                <ul className="mt-1 flex flex-col gap-1.5">
+                  {openMs.acceptance.map((a) => (
+                    <li key={a} className="flex gap-2 leading-relaxed text-[var(--ink)]">
+                      <span className="text-[var(--accent)]">•</span>{a}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {openMs.penaltyNote && (
+              <div className="rounded-md border px-3 py-2" style={{ background: 'var(--crit-bg)', borderColor: 'var(--crit)' }}>
+                <span className="font-semibold text-[var(--crit)]">Ceza: </span>
+                <span className="text-[var(--ink)]">{openMs.penaltyNote}</span>
+              </div>
+            )}
+          </div>
+        </Modal>
+      )}
     </>
   )
 }

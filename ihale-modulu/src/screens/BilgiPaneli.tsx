@@ -1,12 +1,15 @@
 import { useState } from 'react'
 import { boqItems, criticalTerms, project, scopeSections, timeline } from '../data/mock'
-import { Badge, Btn, Card, ExportButtons, Kpi, PageHead, ReadOnlyNote, StateBadge, Table, Td, Th } from '../components/ui'
+import { Badge, Btn, Card, ExportButtons, Field, Kpi, Modal, PageHead, ReadOnlyNote, StateBadge, Table, Td, Th } from '../components/ui'
 import { date, daysLabel, money, num } from '../lib/format'
 
 /** İhalenin künyesi: tek bakışta "bu iş nedir, ne zaman, hangi koşullarla". Alanlar elle düzeltilebilir. */
 export function BilgiPaneli({ writable, role }: { writable: boolean; role: string }) {
   const [editKunye, setEditKunye] = useState(false)
   const [editTakvim, setEditTakvim] = useState(false)
+  /** Künyeye elle eklenen alanlar — her alanın AI'a ne arayacağını söyleyen bir promptu vardır */
+  const [custom, setCustom] = useState<{ label: string; prompt: string }[]>([])
+  const [addingField, setAddingField] = useState(false)
 
   const openTerms = criticalTerms.filter((t) => t.state === 'Devam Ediyor').length
 
@@ -27,6 +30,7 @@ export function BilgiPaneli({ writable, role }: { writable: boolean; role: strin
     { label: 'Kesin teminat', value: '%6 (≈ 4,92 M EUR)' },
     { label: 'Gecikme cezası', value: 'Günlük ‰0,5 · üst sınır %15', note: 'Piyasa pratiği %10', tone: 'crit', help: 'Gecikilen her takvim günü için sözleşme bedelinin on binde beşi kesilir; toplam ceza sözleşme bedelinin %15’ini geçemez (İdari Şartname 31.4, s.41).' },
     { label: 'İş deneyimi', value: 'Teklif bedelinin %80’i', note: 'Tek başımıza %62', tone: 'warn' },
+    ...custom.map((c) => ({ label: c.label, value: 'Dokümanlar taranıyor…', note: 'Yeni alan', tone: 'warn' as const, help: `Prompt: ${c.prompt}` })),
   ]
 
   return (
@@ -58,14 +62,17 @@ export function BilgiPaneli({ writable, role }: { writable: boolean; role: strin
             title="İhale künyesi"
             help="Kırmızı işaretli alanlar teklif fiyatını doğrudan etkiler. Alanların çoğu doküman analizinden gelir; yanlışsa 'Düzenle' ile elle düzeltilir."
             right={writable
-              ? <Btn small primary={editKunye} onClick={() => setEditKunye((v) => !v)}>{editKunye ? 'Kaydet' : '✎ Düzenle'}</Btn>
+              ? <>
+                <Btn small onClick={() => setAddingField(true)} title="Künyeye yeni bilgi alanı ekle">Künyeyi düzenle</Btn>
+                <Btn small minW={76} primary={editKunye} onClick={() => setEditKunye((v) => !v)}>{editKunye ? 'Kaydet' : '✎ Düzenle'}</Btn>
+              </>
               : undefined}
             pad={false}
           >
             <div className="grid grid-cols-1 sm:grid-cols-2">
               {kunye.map((k, i) => (
                 <div key={k.label} className={`border-b border-[var(--border)] px-4 py-2.5 ${i % 2 === 0 ? 'sm:border-r' : ''}`}>
-                  <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]" title={k.help}>
                     {k.label}
                   </div>
                   {editKunye ? (
@@ -151,6 +158,50 @@ export function BilgiPaneli({ writable, role }: { writable: boolean; role: strin
           </div>
         </div>
       </div>
+
+      {addingField && (
+        <AddKunyeField
+          onClose={() => setAddingField(false)}
+          onAdd={(f) => { setCustom((c) => [...c, f]); setAddingField(false) }}
+        />
+      )}
     </>
+  )
+}
+
+
+/**
+ * Künyeye yeni alan: hangi bilginin yer alacağı ve AI'ın bu bilgiyi dokümanlarda nasıl arayacağı (prompt).
+ * Kayıttan sonra alan doküman analizinde doldurulur; sonraki ihalelerde standart künyeye alınabilir.
+ */
+function AddKunyeField({ onClose, onAdd }: { onClose: () => void; onAdd: (f: { label: string; prompt: string }) => void }) {
+  const [label, setLabel] = useState('')
+  const [prompt, setPrompt] = useState('')
+  const ready = label.trim().length > 2 && prompt.trim().length > 5
+
+  return (
+    <Modal
+      title="Künyeyi düzenle"
+      note="Künyede yer alacak bilgiyi ve bu bilginin dokümanlardan nasıl çıkarılacağını (prompt) yazın. Kayıttan sonra alan doküman analizinde otomatik doldurulur."
+      onClose={onClose}
+      footer={<>
+        <span className="text-[11.5px] text-[var(--faint)]">{ready ? 'Kaydedilmeye hazır' : 'Bilgi adı ve prompt zorunlu'}</span>
+        <span className="ml-auto flex gap-2">
+          <Btn onClick={onClose}>Vazgeç</Btn>
+          <Btn primary disabled={!ready} onClick={() => onAdd({ label: label.trim(), prompt: prompt.trim() })}>Kaydet</Btn>
+        </span>
+      </>}
+    >
+      <div className="flex flex-col gap-3">
+        <Field label="Yer alacak bilgi" value={label} onChange={setLabel} placeholder="Ör. Sigorta yükümlülüğü" />
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Prompt</span>
+          <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4}
+            placeholder="Ör. Sözleşme ve idari şartnamede yüklenicinin yaptırması gereken sigortaları, teminat tutarlarını ve süresini bul; madde numarasıyla yaz."
+            className="resize-y rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-2 text-[13px] leading-relaxed text-[var(--ink)] outline-none focus:border-[var(--accent)]" />
+          <span className="text-[11px] text-[var(--faint)]">AI bu talimatla dokümanları tarar; bulduğu değeri kaynağıyla birlikte künyeye yazar.</span>
+        </label>
+      </div>
+    </Modal>
   )
 }

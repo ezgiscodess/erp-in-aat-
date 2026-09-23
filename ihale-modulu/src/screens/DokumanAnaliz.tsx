@@ -117,7 +117,7 @@ export function DokumanAnaliz({ writable, role }: { writable: boolean; role: str
                     <ColumnFilter value={stateFilter} onChange={setStateFilter} values={[...new Set(docs.map((d) => d.state))]} />
                   </span>
                 </Th>
-                <Th w={56}>İşlem</Th>
+                <Th w={56} center>İşlem</Th>
               </tr>
             }>
               {rows.map((d) => (
@@ -137,7 +137,7 @@ export function DokumanAnaliz({ writable, role }: { writable: boolean; role: str
                     <div className="mono text-[11px] text-[var(--faint)]">{d.uploadedBy}</div>
                   </Td>
                   <Td nowrap><StateBadge value={d.state} /></Td>
-                  <Td nowrap><Btn small onClick={() => setSel(d)}>Aç</Btn></Td>
+                  <Td nowrap center><Btn small minW={40} onClick={() => setSel(d)}>Aç</Btn></Td>
                 </tr>
               ))}
             </Table>

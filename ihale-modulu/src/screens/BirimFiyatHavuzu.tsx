@@ -4,7 +4,7 @@ import type { UnitPrice } from '../data/types'
 import { Badge, Btn, Card, ExportButtons, Chips, Empty, Kpi, PageHead, ReadOnlyNote, Search, Table, Td, Th } from '../components/ui'
 import { date, num } from '../lib/format'
 
-type Filter = 'Tümü' | 'Kendi analizimiz' | 'BCBS' | 'Piyasa teklifi' | 'Geçmiş proje'
+type Filter = 'Tümü' | 'Analiz' | 'BCBS' | 'Piyasa teklifi' | 'Geçmiş proje'
 
 /**
  * Firmanın kendi birim fiyat havuzu. Projeye değil firmaya aittir; arka planda çalışır ve
@@ -82,7 +82,7 @@ export function BirimFiyatHavuzu({ writable, role }: { writable: boolean; role: 
             <Field label="Birim" placeholder="m³" />
             <Field label="Birim fiyat" placeholder="4,85" />
             <Field label="Para birimi" placeholder="EUR" />
-            <Field label="Kaynak" placeholder="Kendi analizimiz" />
+            <Field label="Kaynak" placeholder="Analiz" />
           </div>
           <div className="mt-3 flex items-center gap-2">
             <Btn primary disabled={!writable}>Havuza kaydet</Btn>
@@ -93,7 +93,7 @@ export function BirimFiyatHavuzu({ writable, role }: { writable: boolean; role: 
 
       <div className="flex flex-wrap items-center gap-2">
         <Chips<Filter> value={filter} onChange={setFilter}
-          items={(['Tümü', 'Kendi analizimiz', 'BCBS', 'Piyasa teklifi', 'Geçmiş proje'] as Filter[])
+          items={(['Tümü', 'Analiz', 'BCBS', 'Piyasa teklifi', 'Geçmiş proje'] as Filter[])
             .map((k) => ({ key: k, label: k, count: counts[k] ?? 0 }))} />
         <div className="ml-auto"><Search value={q} onChange={setQ} placeholder="Poz no veya iş kalemi ara…" /></div>
       </div>
@@ -113,7 +113,7 @@ export function BirimFiyatHavuzu({ writable, role }: { writable: boolean; role: 
             <Th w={130}>Kaynak</Th>
             <Th w={110}>Güncelleme</Th>
             <Th w={90} right>Kullanım</Th>
-            <Th w={90}>İşlem</Th>
+            <Th w={100} center>İşlem</Th>
           </tr>
         }>
           {rows.length === 0 && (
@@ -138,7 +138,7 @@ export function BirimFiyatHavuzu({ writable, role }: { writable: boolean; role: 
 
 function Row({ u, writable }: { u: UnitPrice; writable: boolean }) {
   const old = new Date(u.updatedAt) < new Date('2026-06-01')
-  const tone = u.source === 'BCBS' ? 'neutral' : u.source === 'Kendi analizimiz' ? 'accent' : u.source === 'Piyasa teklifi' ? 'ok' : 'warn'
+  const tone = u.source === 'BCBS' ? 'neutral' : u.source === 'Analiz' ? 'accent' : u.source === 'Piyasa teklifi' ? 'ok' : 'warn'
   return (
     <tr className="hover:bg-[var(--surface-2)]">
       <Td mono nowrap>{u.no}</Td>
@@ -152,7 +152,7 @@ function Row({ u, writable }: { u: UnitPrice; writable: boolean }) {
         <div className="text-[11px]" style={{ color: old ? 'var(--warn)' : 'var(--faint)' }}>{old ? 'güncellenmeli' : u.updatedBy}</div>
       </Td>
       <Td right><span className="text-[12px] text-[var(--muted)]">{u.usedIn} proje</span></Td>
-      <Td nowrap><Btn small disabled={!writable}>✎ Düzenle</Btn></Td>
+      <Td nowrap center><Btn small minW={76} disabled={!writable}>Düzenle</Btn></Td>
     </tr>
   )
 }

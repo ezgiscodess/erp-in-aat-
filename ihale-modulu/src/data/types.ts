@@ -219,7 +219,7 @@ export interface UnitPrice {
   unit: string
   price: number
   currency: string
-  source: 'Kendi analizimiz' | 'BCBS' | 'Piyasa teklifi' | 'Geçmiş proje'
+  source: 'Analiz' | 'BCBS' | 'Piyasa teklifi' | 'Geçmiş proje'
   updatedAt: string
   updatedBy: string
   /** Kaç projede kullanıldı */
@@ -372,6 +372,10 @@ export interface ScheduleMilestone {
   penaltyNote?: string
   source: string
   kind: 'Sözleşme' | 'İdare' | 'İç hedef'
+  /** Dokümanda tanımlıysa: kilometre taşının "tamamlandı" sayılma tanımı */
+  definition?: string
+  /** Dokümanda tanımlıysa: kabul şartları */
+  acceptance?: string[]
 }
 
 /* ---------------- Personel ve ekipman ---------------- */

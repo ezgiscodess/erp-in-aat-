@@ -152,7 +152,7 @@ export function Hub({ onOpen, onLogout }: { onOpen: (item: LibraryItem) => void;
               <Th w={60}>{head('dosya', 'Dosya')}</Th>
               <Th w={130}>{head('ilerleme', 'İlerleme')}</Th>
               <Th w={110}>{head('durum', 'Durum')}</Th>
-              <Th w={60}>İşlem</Th>
+              <Th w={60} center>İşlem</Th>
             </tr>
           }>
             {list.map((i) => (
@@ -177,7 +177,7 @@ export function Hub({ onOpen, onLogout }: { onOpen: (item: LibraryItem) => void;
                   </div>
                 </Td>
                 <Td nowrap><StateBadge value={i.status} /></Td>
-                <Td nowrap><Btn small primary onClick={() => onOpen(i)}>Aç</Btn></Td>
+                <Td nowrap center><Btn small primary onClick={() => onOpen(i)}>Aç</Btn></Td>
               </tr>
             ))}
           </Table>

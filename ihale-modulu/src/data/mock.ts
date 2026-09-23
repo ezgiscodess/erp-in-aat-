@@ -591,33 +591,33 @@ export const certificates: Certificate[] = [
 /* ---------------- Birim Fiyat Havuzu (firma geneli, projeden bağımsız) ---------------- */
 
 export const unitPrices: UnitPrice[] = [
-  { id: 'U1', no: '1000458', description: 'Yumuşak zeminlerde makineli kazı yapılması', unit: 'm³', price: 4.85, currency: 'EUR', source: 'Kendi analizimiz', updatedAt: '2026-08-12', updatedBy: 'a.koc', usedIn: 7 },
-  { id: 'U2', no: '1000101', description: 'Şantiye kurulumu, geçici tesisler ve mobilizasyon', unit: 'Götürü', price: 2_450_000, currency: 'EUR', source: 'Kendi analizimiz', updatedAt: '2026-09-02', updatedBy: 'a.koc', usedIn: 3 },
+  { id: 'U1', no: '1000458', description: 'Yumuşak zeminlerde makineli kazı yapılması', unit: 'm³', price: 4.85, currency: 'EUR', source: 'Analiz', updatedAt: '2026-08-12', updatedBy: 'a.koc', usedIn: 7 },
+  { id: 'U2', no: '1000101', description: 'Şantiye kurulumu, geçici tesisler ve mobilizasyon', unit: 'Götürü', price: 2_450_000, currency: 'EUR', source: 'Analiz', updatedAt: '2026-09-02', updatedBy: 'a.koc', usedIn: 3 },
   { id: 'U3', no: '1000205', description: 'Mevcut saha kaplamasının sökümü ve taşınması', unit: 'm²', price: 9.4, currency: 'EUR', source: 'Geçmiş proje', updatedAt: '2026-06-28', updatedBy: 'm.demir', usedIn: 5 },
   { id: 'U4', no: '1000312', description: 'Deniz tabanı tarama (dredging), yumuşak zemin', unit: 'm³', price: 11.8, currency: 'EUR', source: 'Piyasa teklifi', updatedAt: '2026-09-10', updatedBy: 's.kaya', usedIn: 2 },
   { id: 'U5', no: '1000487', description: 'Çelik boru kazık Ø1220 mm temin ve çakım', unit: 'ton', price: 1_640, currency: 'EUR', source: 'Piyasa teklifi', updatedAt: '2026-09-14', updatedBy: 's.kaya', usedIn: 2 },
-  { id: 'U6', no: '1000520', description: 'Betonarme imalat C35/45, donatı dâhil', unit: 'm³', price: 268, currency: 'EUR', source: 'Kendi analizimiz', updatedAt: '2026-07-19', updatedBy: 'a.koc', usedIn: 11 },
-  { id: 'U7', no: '1000534', description: 'Prekast kiriş üretimi ve montajı', unit: 'ad', price: 14_900, currency: 'EUR', source: 'Kendi analizimiz', updatedAt: '2026-05-30', updatedBy: 'm.demir', usedIn: 4 },
+  { id: 'U6', no: '1000520', description: 'Betonarme imalat C35/45, donatı dâhil', unit: 'm³', price: 268, currency: 'EUR', source: 'Analiz', updatedAt: '2026-07-19', updatedBy: 'a.koc', usedIn: 11 },
+  { id: 'U7', no: '1000534', description: 'Prekast kiriş üretimi ve montajı', unit: 'ad', price: 14_900, currency: 'EUR', source: 'Analiz', updatedAt: '2026-05-30', updatedBy: 'm.demir', usedIn: 4 },
   { id: 'U8', no: '1000560', description: 'Blok taş anroşman (1–3 ton)', unit: 'ton', price: 27.5, currency: 'EUR', source: 'BCBS', updatedAt: '2026-04-11', updatedBy: 'sistem', usedIn: 6 },
   { id: 'U9', no: '1000612', description: 'Granüler dolgu serilmesi ve sıkıştırılması', unit: 'm³', price: 6.9, currency: 'EUR', source: 'BCBS', updatedAt: '2026-04-11', updatedBy: 'sistem', usedIn: 9 },
   { id: 'U10', no: '1000625', description: 'Alt temel ve temel (kırmataş) serilmesi', unit: 'm³', price: 18.2, currency: 'EUR', source: 'BCBS', updatedAt: '2026-04-11', updatedBy: 'sistem', usedIn: 8 },
-  { id: 'U11', no: '1000640', description: 'Ağır hizmet beton parke kaplama 100 mm', unit: 'm²', price: 31.4, currency: 'EUR', source: 'Kendi analizimiz', updatedAt: '2026-08-01', updatedBy: 'a.koc', usedIn: 5 },
+  { id: 'U11', no: '1000640', description: 'Ağır hizmet beton parke kaplama 100 mm', unit: 'm²', price: 31.4, currency: 'EUR', source: 'Analiz', updatedAt: '2026-08-01', updatedBy: 'a.koc', usedIn: 5 },
   { id: 'U12', no: '1000655', description: 'Bitümlü sıcak karışım (BSK) asfalt kaplama', unit: 'ton', price: 88, currency: 'EUR', source: 'BCBS', updatedAt: '2026-04-11', updatedBy: 'sistem', usedIn: 12 },
   { id: 'U13', no: '1000710', description: 'Betonarme boru döşenmesi Ø600–Ø1000', unit: 'm', price: 142, currency: 'EUR', source: 'Geçmiş proje', updatedAt: '2026-03-22', updatedBy: 'm.demir', usedIn: 7 },
-  { id: 'U14', no: '1000722', description: 'Yangın hattı ve hidrant sistemi', unit: 'm', price: 96, currency: 'EUR', source: 'Kendi analizimiz', updatedAt: '2026-02-14', updatedBy: 'a.koc', usedIn: 3 },
+  { id: 'U14', no: '1000722', description: 'Yangın hattı ve hidrant sistemi', unit: 'm', price: 96, currency: 'EUR', source: 'Analiz', updatedAt: '2026-02-14', updatedBy: 'a.koc', usedIn: 3 },
   { id: 'U15', no: '1000810', description: 'OG kablolama ve ring besleme (34,5 kV)', unit: 'm', price: 128, currency: 'EUR', source: 'Piyasa teklifi', updatedAt: '2026-09-05', updatedBy: 's.kaya', usedIn: 2 },
   { id: 'U16', no: '1000822', description: 'Saha aydınlatma direği 30 m, projektörlü', unit: 'ad', price: 24_600, currency: 'EUR', source: 'Piyasa teklifi', updatedAt: '2026-08-22', updatedBy: 's.kaya', usedIn: 3 },
   { id: 'U17', no: '1000910', description: 'Rıhtım babası 150 ton, montaj dâhil', unit: 'ad', price: 12_800, currency: 'EUR', source: 'Geçmiş proje', updatedAt: '2026-01-30', updatedBy: 'm.demir', usedIn: 2 },
   { id: 'U18', no: '1000922', description: 'Usturmaça sistemi (cell fender), montaj dâhil', unit: 'ad', price: 46_500, currency: 'EUR', source: 'Piyasa teklifi', updatedAt: '2026-09-08', updatedBy: 's.kaya', usedIn: 2 },
-  { id: 'U19', no: '1000935', description: 'Vinç rayı ve ankraj sistemi', unit: 'm', price: 640, currency: 'EUR', source: 'Kendi analizimiz', updatedAt: '2026-06-02', updatedBy: 'a.koc', usedIn: 1 },
+  { id: 'U19', no: '1000935', description: 'Vinç rayı ve ankraj sistemi', unit: 'm', price: 640, currency: 'EUR', source: 'Analiz', updatedAt: '2026-06-02', updatedBy: 'a.koc', usedIn: 1 },
   { id: 'U20', no: '1001010', description: 'Çevre güvenlik duvarı ve kapı sistemleri', unit: 'm', price: 285, currency: 'EUR', source: 'BCBS', updatedAt: '2026-04-11', updatedBy: 'sistem', usedIn: 4 },
-  { id: 'U21', no: '1001110', description: 'İç bölme, sıva ve boya imalatları', unit: 'm²', price: 118, currency: 'EUR', source: 'Kendi analizimiz', updatedAt: '2026-07-05', updatedBy: 'a.koc', usedIn: 6 },
+  { id: 'U21', no: '1001110', description: 'İç bölme, sıva ve boya imalatları', unit: 'm²', price: 118, currency: 'EUR', source: 'Analiz', updatedAt: '2026-07-05', updatedBy: 'a.koc', usedIn: 6 },
   { id: 'U22', no: '1001125', description: 'Zemin ve duvar kaplaması (seramik / epoksi)', unit: 'm²', price: 96, currency: 'EUR', source: 'BCBS', updatedAt: '2026-04-11', updatedBy: 'sistem', usedIn: 5 },
   { id: 'U23', no: '1001210', description: 'Kompozit panel cephe kaplaması', unit: 'm²', price: 168, currency: 'EUR', source: 'Piyasa teklifi', updatedAt: '2026-08-18', updatedBy: 's.kaya', usedIn: 3 },
   { id: 'U24', no: '1001222', description: 'Çatı su yalıtımı ve membran örtü', unit: 'm²', price: 42, currency: 'EUR', source: 'BCBS', updatedAt: '2026-04-11', updatedBy: 'sistem', usedIn: 7 },
   { id: 'U25', no: '1001310', description: 'Peyzaj düzenlemesi ve ağaçlandırma', unit: 'm²', price: 24, currency: 'EUR', source: 'Geçmiş proje', updatedAt: '2026-05-12', updatedBy: 'm.demir', usedIn: 4 },
   { id: 'U26', no: '1001035', description: 'Fiber omurga ve saha veri ağı', unit: 'm', price: 54, currency: 'EUR', source: 'Piyasa teklifi', updatedAt: '2026-09-03', updatedBy: 's.kaya', usedIn: 2 },
-  { id: 'U27', no: '1000118', description: 'Şantiye geçici yolu ve saha çitlemesi', unit: 'm', price: 62, currency: 'EUR', source: 'Kendi analizimiz', updatedAt: '2026-06-20', updatedBy: 'a.koc', usedIn: 5 },
+  { id: 'U27', no: '1000118', description: 'Şantiye geçici yolu ve saha çitlemesi', unit: 'm', price: 62, currency: 'EUR', source: 'Analiz', updatedAt: '2026-06-20', updatedBy: 'a.koc', usedIn: 5 },
 ]
 
 /* ---------------- Kapsam bilgisi (İhale Bilgi Paneli altında) ---------------- */
@@ -769,12 +769,12 @@ export const scheduleTasks: ScheduleTask[] = [
  * çoğunun kendine ait gecikme cezası vardır ve bu ceza ana işin cezasından ayrı işler.
  */
 export const scheduleMilestones: ScheduleMilestone[] = [
-  { id: 'M1', no: 'KS-1', label: 'Tasarım danışmanının onayı ve uygulama projelerinin teslimi', dueDays: 120, dueDate: '2027-03-01', month: 4, source: 'Sözleşme md. 8.1', kind: 'Sözleşme' },
-  { id: 'M2', no: 'KS-2', label: 'Çelik kazıkların sahaya teslimi ve çakıma başlama', dueDays: 270, dueDate: '2027-08-01', month: 9, penalty: 25_000, penaltyNote: 'Haftalık 25.000 EUR · ana ceza tavanına dâhil', source: 'Özel Şartlar 8.2 (a)', kind: 'Sözleşme' },
+  { id: 'M1', no: 'KS-1', label: 'Tasarım danışmanının onayı ve uygulama projelerinin teslimi', dueDays: 120, dueDate: '2027-03-01', month: 4, source: 'Sözleşme md. 8.1', kind: 'Sözleşme', definition: 'Uygulama projelerinin tamamı tasarım danışmanınca “onaylandı” veya “yorumlu onaylandı” statüsüne getirildiğinde tamamlanmış sayılır.', acceptance: ['Proje listesindeki 64 paftanın tamamı teslim edilmiş olmalı', 'Açık yorum kalmamalı ya da yorumlar kapatma planına bağlanmalı', 'İdarenin yazılı onay yazısı tebliğ edilmiş olmalı'] },
+  { id: 'M2', no: 'KS-2', label: 'Çelik kazıkların sahaya teslimi ve çakıma başlama', dueDays: 270, dueDate: '2027-08-01', month: 9, penalty: 25_000, penaltyNote: 'Haftalık 25.000 EUR · ana ceza tavanına dâhil', source: 'Özel Şartlar 8.2 (a)', kind: 'Sözleşme', definition: 'Toplam kazık tonajının en az %40’ı sahaya teslim edilip ilk test kazığı çakıldığında tamamlanmış sayılır.', acceptance: ['Teslim edilen kazıkların üretici test raporları (EN 10219) onaylanmış olmalı', 'Test kazığının dinamik yükleme deneyi yapılmış olmalı'] },
   { id: 'M3', no: 'KS-3', label: 'Deniz tabanı taramasının tamamlanması (döküm izni şartı)', dueDays: 270, dueDate: '2027-08-01', month: 9, penalty: 40_000, penaltyNote: 'Haftalık 40.000 EUR · izin idareden gecikirse muaf', source: 'Teknik Şartname 4.2', kind: 'İdare' },
-  { id: 'M4', no: 'KS-4', label: 'Rıhtım tabliyesinin tamamlanması — ara teslim', dueDays: 510, dueDate: '2028-03-01', month: 17, penalty: 120_000, penaltyNote: 'Haftalık 120.000 EUR · ara teslim cezası, tavan %5', source: 'Özel Şartlar 8.2 (b)', kind: 'Sözleşme' },
+  { id: 'M4', no: 'KS-4', label: 'Rıhtım tabliyesinin tamamlanması — ara teslim', dueDays: 510, dueDate: '2028-03-01', month: 17, penalty: 120_000, penaltyNote: 'Haftalık 120.000 EUR · ara teslim cezası, tavan %5', source: 'Özel Şartlar 8.2 (b)', kind: 'Sözleşme', definition: 'Rıhtım tabliyesi betonunun tamamı dökülüp 28 günlük dayanım sonuçları alındığında ara teslim yapılmış sayılır.', acceptance: ['Beton numune sonuçları C35/45 sınıfını sağlamalı', 'Kot ve düzlem ölçümleri tolerans içinde olmalı (±10 mm)', 'Ara teslim tutanağı Mühendis tarafından imzalanmalı'] },
   { id: 'M5', no: 'KS-5', label: 'Saha kaplamaları ve altyapının tamamlanması', dueDays: 630, dueDate: '2028-07-01', month: 21, source: 'İç hedef — kaplama ekibinin çıkışı', kind: 'İç hedef' },
-  { id: 'M6', no: 'KS-6', label: 'Tüm işlerin tamamlanması ve geçici kabul', dueDays: 720, dueDate: '2028-10-01', month: 24, penalty: 41_000, penaltyNote: 'Günlük ‰0,5 ≈ 41.000 EUR · tavan %15 (12,3 M EUR)', source: 'Sözleşme md. 10.1', kind: 'Sözleşme' },
+  { id: 'M6', no: 'KS-6', label: 'Tüm işlerin tamamlanması ve geçici kabul', dueDays: 720, dueDate: '2028-10-01', month: 24, penalty: 41_000, penaltyNote: 'Günlük ‰0,5 ≈ 41.000 EUR · tavan %15 (12,3 M EUR)', source: 'Sözleşme md. 10.1', kind: 'Sözleşme', definition: 'İşlerin tamamı sözleşmeye uygun biçimde bitirilip testleri geçtiğinde Mühendis geçici kabul belgesini (Taking-Over Certificate) düzenler.', acceptance: ['Tüm sistemlerin test ve devreye alma raporları onaylanmış olmalı', 'As-built çizimler ve işletme-bakım kılavuzları teslim edilmiş olmalı', 'Eksik iş listesi (punch list) kabulü engellemeyecek düzeyde olmalı', 'İşletme personeli eğitimleri tamamlanmış olmalı'] },
 ]
 
 /* ---------------- Personel ve ekipman ---------------- */

@@ -126,7 +126,7 @@ export function Boq({ writable, role, onGo }: { writable: boolean; role: string;
                           return (
                             <span className="flex items-center gap-1.5">
                               <Badge tone="crit">havuzda yok</Badge>
-                              <Btn small disabled={!writable} onClick={(() => setEditItem(b))}>Gir</Btn>
+                              <span className="ml-auto"><Btn small minW={68} disabled={!writable} onClick={(() => setEditItem(b))}>Gir</Btn></span>
                             </span>
                           )
                         }
@@ -140,7 +140,7 @@ export function Boq({ writable, role, onGo }: { writable: boolean; role: string;
                             <span className="text-[11px] text-[var(--faint)]">{project.currency}</span>
                             {byHand && <Badge tone="gold">elle</Badge>}
                             {!byHand && b.poolMatch === 'Benzer poz' && <Badge tone="warn">≈</Badge>}
-                            <Btn small disabled={!writable} onClick={() => setEditItem(b)}>Düzenle</Btn>
+                            <span className="ml-auto pl-2"><Btn small minW={68} disabled={!writable} onClick={() => setEditItem(b)}>Düzenle</Btn></span>
                           </span>
                         )
                       })()}

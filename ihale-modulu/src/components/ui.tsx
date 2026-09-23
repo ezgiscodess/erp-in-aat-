@@ -27,18 +27,23 @@ export function Card({ title, subtitle, right, children, pad = true, help }: {
 
 /* ---------------- Buton ---------------- */
 
-export function Btn({ children, primary, disabled, onClick, title, small }: {
+export function Btn({ children, primary, disabled, onClick, title, small, minW }: {
   children: ReactNode; primary?: boolean; disabled?: boolean; onClick?: () => void; title?: string; small?: boolean
+  /** Aynı sütundaki düğmelerin eşit genişlikte durması için */
+  minW?: number
 }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className={`rounded-md border font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${small ? 'px-2 py-1 text-[12px]' : 'px-3 py-1.5 text-[12.5px]'}`}
-      style={primary
-        ? { background: 'var(--accent)', color: '#fff', borderColor: 'var(--accent)' }
-        : { background: 'var(--surface-2)', color: 'var(--muted)', borderColor: 'var(--border)' }}
+      className={`rounded-md border text-center font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${small ? 'px-2 py-1 text-[12px]' : 'px-3 py-1.5 text-[12.5px]'}`}
+      style={{
+        minWidth: minW,
+        ...(primary
+          ? { background: 'var(--accent)', color: '#fff', borderColor: 'var(--accent)' }
+          : { background: 'var(--surface-2)', color: 'var(--muted)', borderColor: 'var(--border)' }),
+      }}
     >
       {children}
     </button>
@@ -131,20 +136,23 @@ export function Table({ children, head }: { children: ReactNode; head: ReactNode
   )
 }
 
-export function Th({ children, w, right }: { children: ReactNode; w?: number; right?: boolean }) {
+export function Th({ children, w, right, center }: { children: ReactNode; w?: number; right?: boolean; center?: boolean }) {
   return (
-    <th className={`whitespace-nowrap border-b border-r border-[var(--border)] bg-[var(--surface-3)] px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-[var(--muted)] ${right ? 'text-right' : 'text-left'}`}
+    <th className={`whitespace-nowrap border-b border-r border-[var(--border)] bg-[var(--surface-3)] px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-[var(--muted)] ${right ? 'text-right' : center ? 'text-center' : 'text-left'}`}
       style={{ minWidth: w }}>
       {children}
     </th>
   )
 }
 
-export function Td({ children, right, mono, nowrap, className = '' }: {
-  children: ReactNode; right?: boolean; mono?: boolean; nowrap?: boolean; className?: string
+export function Td({ children, right, mono, nowrap, center, className = '' }: {
+  children: ReactNode; right?: boolean; mono?: boolean; nowrap?: boolean
+  /** Ortalanmış hücre — işlem düğmeleri ve kısa rozetler için */
+  center?: boolean
+  className?: string
 }) {
   return (
-    <td className={`border-b border-r border-[var(--border)] px-3 py-1.5 align-top ${right ? 'text-right tnum' : ''} ${mono ? 'mono text-[12px]' : ''} ${nowrap ? 'whitespace-nowrap' : ''} ${className}`}>
+    <td className={`border-b border-r border-[var(--border)] px-3 py-1.5 align-top ${center ? 'text-center' : ''} ${right ? 'text-right tnum' : ''} ${mono ? 'mono text-[12px]' : ''} ${nowrap ? 'whitespace-nowrap' : ''} ${className}`}>
       {children}
     </td>
   )

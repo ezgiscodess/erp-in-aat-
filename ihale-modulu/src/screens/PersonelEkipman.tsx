@@ -8,6 +8,13 @@ import { money, moneyShort, num } from '../lib/format'
 
 const MONTHS = 24
 
+/**
+ * Net maaştan işverene toplam aylık gidere geçiş katsayısı (vergi, SGK işveren payı, yan haklar).
+ * Şimdilik yaklaşık sabit; ileride İK departmanının tanımladığı arka modül hesaplayacak.
+ */
+const GROSS_FACTOR = 1.65
+const gross = (net: number) => Math.round(net * GROSS_FACTOR)
+
 /** Program ayını takvim etiketine çevirir (işe başlama Kasım 2026 varsayımı). */
 function monthLabel(m: number): string {
   const d = new Date(2026, 10 + m, 1)
@@ -25,7 +32,7 @@ export function PersonelEkipman({ writable, role }: { writable: boolean; role: s
   const [openStaff, setOpenStaff] = useState<StaffItem | null>(null)
   const [openEquip, setOpenEquip] = useState<EquipmentItem | null>(null)
 
-  const staffCost = staff.reduce((a, s) => a + s.count * s.monthlyCost * s.months.length, 0)
+  const staffCost = staff.reduce((a, s) => a + s.count * gross(s.monthlyCost) * s.months.length, 0)
   const equipCost = equipment.reduce((a, e) => a + e.count * e.monthlyCost * e.months.length, 0)
   const headcount = staff.reduce((a, s) => a + s.count, 0)
   const machines = equipment.reduce((a, e) => a + e.count, 0)
@@ -45,13 +52,13 @@ export function PersonelEkipman({ writable, role }: { writable: boolean; role: s
       {!writable && <ReadOnlyNote role={role} />}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi label="Kadro" value={headcount} sub={`${staff.length} görev tanımı`} tone="accent"
+        <Kpi label="Personel" value={headcount} sub={`${staff.length} görev tanımı`}
           help="İş süresince sahada bulunacak toplam kişi sayısı. Aynı görevde birden fazla kişi olabilir." />
         <Kpi label="Personel gideri" value={moneyShort(staffCost, project.currency)} sub="Süre boyunca toplam"
-          help="Kişi sayısı × aylık maliyet × sahada olduğu ay sayısı. Maaş ve yan giderleri içerir." />
-        <Kpi label="Makine / ekipman" value={machines} sub={`${equipment.length} kalem`} tone="accent"
+          help="Kişi sayısı × brüt aylık gider × sahada olduğu ay sayısı. Brüt gider, net maaşa vergi, SGK işveren payı ve yan hakların eklenmiş hâlidir." />
+        <Kpi label="Makine / ekipman" value={machines} sub={`${equipment.length} kalem`}
           help="Şantiyede kullanılacak toplam makine adedi. Kendi filomuz ve kiralananlar ayrı işaretlenir." />
-        <Kpi label="Ekipman gideri" value={moneyShort(equipCost, project.currency)} sub="Kira + amortisman" tone="warn"
+        <Kpi label="Ekipman gideri" value={moneyShort(equipCost, project.currency)} sub="Kira + amortisman"
           help="Adet × aylık maliyet × kullanım ayı. Kiralık ekipman fiyat dalgalanması Teklif Riskleri R12 ile bağlantılıdır." />
       </div>
 
@@ -67,10 +74,11 @@ export function PersonelEkipman({ writable, role }: { writable: boolean; role: s
             <tr>
               <Th w={190}>Görev</Th>
               <Th w={40} right>Kişi</Th>
-              <Th w={80} right>Aylık</Th>
+              <Th w={76} right>Net aylık<br />maaş</Th>
+              <Th w={76} right>Brüt aylık<br />gider</Th>
               <Th w={44} right>Ay</Th>
               <Th w={96} right>Toplam</Th>
-              <Th w={60}>İşlem</Th>
+              <Th w={84} center>İşlem</Th>
             </tr>
           }>
             {staff.map((s) => (
@@ -82,9 +90,10 @@ export function PersonelEkipman({ writable, role }: { writable: boolean; role: s
                 </Td>
                 <Td right>{s.count}</Td>
                 <Td right>{num(s.monthlyCost)}</Td>
+                <Td right><span title={`Net maaş × ${GROSS_FACTOR} — İK tanımlarına göre güncellenecek`}>{num(gross(s.monthlyCost))}</span></Td>
                 <Td right>{s.months.length}</Td>
-                <Td right><span className="font-semibold text-[var(--ink)]">{num(s.count * s.monthlyCost * s.months.length)}</span></Td>
-                <Td nowrap><Btn small disabled={!writable} onClick={() => setOpenStaff(s)}>Düzenle</Btn></Td>
+                <Td right><span className="font-semibold text-[var(--ink)]">{num(s.count * gross(s.monthlyCost) * s.months.length)}</span></Td>
+                <Td nowrap center><Btn small minW={68} disabled={!writable} onClick={() => setOpenStaff(s)}>Düzenle</Btn></Td>
               </tr>
             ))}
             <tr>
@@ -92,7 +101,8 @@ export function PersonelEkipman({ writable, role }: { writable: boolean; role: s
               <Td className="bg-[var(--surface-2)]" right><span className="text-[12px] font-bold">{headcount}</span></Td>
               <Td className="bg-[var(--surface-2)]">{''}</Td>
               <Td className="bg-[var(--surface-2)]">{''}</Td>
-              <Td className="bg-[var(--surface-2)]" right><span className="text-[12.5px] font-bold text-[var(--accent)]">{num(staffCost)}</span></Td>
+              <Td className="bg-[var(--surface-2)]">{''}</Td>
+              <Td className="bg-[var(--surface-2)]" right><span className="text-[12.5px] font-bold text-[var(--ink)]">{num(staffCost)}</span></Td>
               <Td className="bg-[var(--surface-2)]">{''}</Td>
             </tr>
           </Table>
@@ -108,10 +118,10 @@ export function PersonelEkipman({ writable, role }: { writable: boolean; role: s
             <tr>
               <Th w={190}>Ekipman</Th>
               <Th w={40} right>Ad.</Th>
-              <Th w={80} right>Aylık</Th>
+              <Th w={76} right>Aylık<br />gider</Th>
               <Th w={44} right>Ay</Th>
               <Th w={96} right>Toplam</Th>
-              <Th w={60}>İşlem</Th>
+              <Th w={84} center>İşlem</Th>
             </tr>
           }>
             {equipment.map((e) => (
@@ -128,7 +138,7 @@ export function PersonelEkipman({ writable, role }: { writable: boolean; role: s
                 <Td right>{num(e.monthlyCost)}</Td>
                 <Td right>{e.months.length}</Td>
                 <Td right><span className="font-semibold text-[var(--ink)]">{num(e.count * e.monthlyCost * e.months.length)}</span></Td>
-                <Td nowrap><Btn small disabled={!writable} onClick={() => setOpenEquip(e)}>Düzenle</Btn></Td>
+                <Td nowrap center><Btn small minW={68} disabled={!writable} onClick={() => setOpenEquip(e)}>Düzenle</Btn></Td>
               </tr>
             ))}
             <tr>
@@ -136,7 +146,7 @@ export function PersonelEkipman({ writable, role }: { writable: boolean; role: s
               <Td className="bg-[var(--surface-2)]" right><span className="text-[12px] font-bold">{machines}</span></Td>
               <Td className="bg-[var(--surface-2)]">{''}</Td>
               <Td className="bg-[var(--surface-2)]">{''}</Td>
-              <Td className="bg-[var(--surface-2)]" right><span className="text-[12.5px] font-bold text-[var(--accent)]">{num(equipCost)}</span></Td>
+              <Td className="bg-[var(--surface-2)]" right><span className="text-[12.5px] font-bold text-[var(--ink)]">{num(equipCost)}</span></Td>
               <Td className="bg-[var(--surface-2)]">{''}</Td>
             </tr>
           </Table>
@@ -145,8 +155,8 @@ export function PersonelEkipman({ writable, role }: { writable: boolean; role: s
 
       <Card title="Şantiye genel giderine yansıma" help="Personel ve ekipman toplamı, teklif fiyatındaki şantiye genel gideri kaleminin ana bileşenidir.">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Total label="Personel" value={staffCost} tone="var(--accent)" />
-          <Total label="Makine ve ekipman" value={equipCost} tone="var(--warn)" />
+          <Total label="Personel" value={staffCost} tone="var(--ink)" />
+          <Total label="Makine ve ekipman" value={equipCost} tone="var(--ink)" />
           <Total label="Toplam şantiye kadrosu gideri" value={staffCost + equipCost} tone="var(--ink)" />
         </div>
         <p className="mt-3 text-[12px] leading-relaxed text-[var(--muted)]">
@@ -159,10 +169,10 @@ export function PersonelEkipman({ writable, role }: { writable: boolean; role: s
       {openStaff && (
         <MonthModal
           title={openStaff.title}
-          subtitle={`${openStaff.duty} · ${openStaff.count} kişi · ${num(openStaff.monthlyCost)} ${project.currency}/ay`}
+          subtitle={`${openStaff.duty} · ${openStaff.count} kişi · net ${num(openStaff.monthlyCost)} · brüt ${num(gross(openStaff.monthlyCost))} ${project.currency}/ay`}
           months={openStaff.months}
           writable={writable}
-          unit={openStaff.count * openStaff.monthlyCost}
+          unit={openStaff.count * gross(openStaff.monthlyCost)}
           onClose={() => setOpenStaff(null)}
           onSave={(months) => {
             setStaff((list) => list.map((s) => (s.id === openStaff.id ? { ...s, months } : s)))

@@ -65,12 +65,12 @@ export function Sertifikalar({ writable, role }: { writable: boolean; role: stri
         <Table head={
           <tr>
             <Th w={280}>Belge</Th>
-            <Th w={80}>İstenen</Th>
-            <Th w={90}>Durum</Th>
-            <Th w={130}>Belge no</Th>
-            <Th w={120}>Geçerlilik</Th>
+            <Th w={80} center>İstenen</Th>
+            <Th w={90} center>Durum</Th>
+            <Th w={130} center>Belge no</Th>
+            <Th w={120} center>Geçerlilik</Th>
             <Th w={220}>Açıklama</Th>
-            <Th w={110}>İşlem</Th>
+            <Th w={110} center>İşlem</Th>
           </tr>
         }>
           {list.map((c) => {
@@ -82,10 +82,10 @@ export function Sertifikalar({ writable, role }: { writable: boolean; role: stri
                   ? { background: 'color-mix(in srgb, var(--crit-bg) 50%, transparent)' }
                   : isExpiring ? { background: 'color-mix(in srgb, var(--warn-bg) 45%, transparent)' } : undefined}>
                 <Td><span className="text-[12.5px] font-medium text-[var(--ink)]">{c.name}</span></Td>
-                <Td nowrap>{c.required ? <Badge tone="neutral">Zorunlu</Badge> : <span className="text-[var(--faint)]">Opsiyonel</span>}</Td>
-                <Td nowrap>{c.owned ? <Badge tone="ok" dot>Var</Badge> : <Badge tone="crit" dot>Yok</Badge>}</Td>
-                <Td mono nowrap>{c.number ?? '—'}</Td>
-                <Td nowrap>
+                <Td nowrap center>{c.required ? <Badge tone="neutral">Zorunlu</Badge> : <span className="text-[var(--faint)]">Opsiyonel</span>}</Td>
+                <Td nowrap center>{c.owned ? <Badge tone="ok" dot>Var</Badge> : <Badge tone="crit" dot>Yok</Badge>}</Td>
+                <Td mono nowrap center>{c.number ?? '—'}</Td>
+                <Td nowrap center>
                   {c.validUntil && c.validUntil !== '—' ? (
                     <div>
                       <div className="tnum text-[12.5px] text-[var(--ink)]">{date(c.validUntil)}</div>
@@ -96,10 +96,8 @@ export function Sertifikalar({ writable, role }: { writable: boolean; role: stri
                   ) : <span className="text-[var(--faint)]">—</span>}
                 </Td>
                 <Td><span className="text-[12px] text-[var(--muted)]">{c.note}</span></Td>
-                <Td nowrap>
-                  <span className="flex gap-1.5">
-                    {c.owned ? <Btn small>Görüntüle</Btn> : <Btn small primary disabled={!writable}>Yükle</Btn>}
-                  </span>
+                <Td nowrap center>
+                  {c.owned ? <Btn small minW={84}>Görüntüle</Btn> : <Btn small minW={84} primary disabled={!writable}>Yükle</Btn>}
                 </Td>
               </tr>
             )
