@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { goNoGoCriteria } from '../data/mock'
 import type { GoNoGoCriterion } from '../data/types'
-import { Badge, Bar, Btn, Card, ExportButtons, Field, Kpi, Modal, PageHead, ReadOnlyNote, Table, Td, Th } from '../components/ui'
+import { Badge, Bar, Btn, Card, ExportButtons, Field, IconBtn, Kpi, Modal, PageHead, ReadOnlyNote, RowActions, Table, Td, Th } from '../components/ui'
 import { num, pct } from '../lib/format'
 
 const THRESHOLD = 60
@@ -60,8 +60,10 @@ function today() {
 /** Ağırlıklı kriterlerle teklife girme kararı. Skor kuraldan gelir; karar insana aittir. */
 export function GoNoGo({ writable, role }: { writable: boolean; role: string }) {
   const [criteria, setCriteria] = useState<GoNoGoCriterion[]>(goNoGoCriteria)
-  const [adding, setAdding] = useState(false)
-  const [addingTodo, setAddingTodo] = useState(false)
+  /** Eklenen / düzenlenen kriter — 'new': yeni kriter */
+  const [adding, setAdding] = useState<GoNoGoCriterion | 'new' | null>(null)
+  /** Eklenen / düzenlenen To-Do */
+  const [addingTodo, setAddingTodo] = useState<Todo | 'new' | null>(null)
 
   /**
    * Ağırlıklar arka planda çalışır: ekranda yalnızca puanlar görünür.
@@ -120,7 +122,7 @@ export function GoNoGo({ writable, role }: { writable: boolean; role: string }) 
         note="Her kriterin arka planda bir ağırlığı vardır; skor puanlar ve ağırlıklardan otomatik hesaplanır. Ağırlık, kriter eklenirken girilir. Nihai karar yönetime aittir ve gerekçesiyle kaydedilir."
         right={<>
           <ExportButtons />
-          <Btn primary disabled={!writable} onClick={() => setAdding(true)}>+ Kriter ekle</Btn>
+          <Btn primary disabled={!writable} onClick={() => setAdding('new')}>+ Kriter ekle</Btn>
         </>}
       />
 
@@ -180,6 +182,7 @@ export function GoNoGo({ writable, role }: { writable: boolean; role: string }) 
             <Th w={130}>Kaynak</Th>
             <Th w={100}>Sorumlu</Th>
             <Th w={120} center>Onay / aksiyon</Th>
+            <Th w={72} center>İşlem</Th>
           </tr>
         }>
           {criteria.map((c) => {
@@ -234,6 +237,10 @@ export function GoNoGo({ writable, role }: { writable: boolean; role: string }) 
                       onClick={() => setApprovals((a) => ({ ...a, [c.id]: { by: ME, at: today() } }))}>Onayla</Btn>
                   )}
                 </Td>
+                <Td nowrap center>
+                  <RowActions name={c.label} disabled={!writable} onEdit={() => setAdding(c)}
+                    onDelete={() => setCriteria((list) => list.filter((x) => x.id !== c.id))} />
+                </Td>
               </tr>
             )
           })}
@@ -246,7 +253,7 @@ export function GoNoGo({ writable, role }: { writable: boolean; role: string }) 
         help="Teklife girilmesi için kapanması gereken işler. Her madde bir kritere bağlanabilir ve bir veya birden fazla kişiye atanır. Durum değiştiğinde kimin ve ne zaman aksiyon aldığı kaydedilir; yeni doküman analiz edildiğinde AI karşılanan maddeleri yakalar."
         right={<>
           <Badge tone={done === todos.length ? 'ok' : 'warn'}>{done} / {todos.length}</Badge>
-          <Btn small primary disabled={!writable} onClick={() => setAddingTodo(true)}>+ To-Do ekle</Btn>
+          <IconBtn icon="add" primary title="To-Do ekle" disabled={!writable} onClick={() => setAddingTodo('new')} />
         </>}
         pad={false}
       >
@@ -257,6 +264,7 @@ export function GoNoGo({ writable, role }: { writable: boolean; role: string }) 
             <Th w={160}>Atanan</Th>
             <Th w={250} center>Durum</Th>
             <Th w={120} center>Aksiyon alan</Th>
+            <Th w={72} center>İşlem</Th>
           </tr>
         }>
           {todos.map((t, i) => (
@@ -299,6 +307,10 @@ export function GoNoGo({ writable, role }: { writable: boolean; role: string }) 
                   ? <span className="mono text-[11px] text-[var(--muted)]">{t.action.by} · {t.action.at}</span>
                   : <span className="text-[var(--faint)]">—</span>}
               </Td>
+              <Td nowrap center>
+                <RowActions name="Bu To-Do" disabled={!writable} onEdit={() => setAddingTodo(t)}
+                  onDelete={() => setTodos((list) => list.filter((x) => x.id !== t.id))} />
+              </Td>
             </tr>
           ))}
         </Table>
@@ -306,17 +318,26 @@ export function GoNoGo({ writable, role }: { writable: boolean; role: string }) 
 
       {adding && (
         <AddCriterion
+          criterion={adding === 'new' ? null : adding}
           groups={[...new Set(criteria.map((c) => c.group))]}
-          onClose={() => setAdding(false)}
-          onAdd={(c) => { setCriteria((list) => [...list, c]); setAdding(false) }}
+          onClose={() => setAdding(null)}
+          onAdd={(c) => {
+            setCriteria((list) => (list.some((x) => x.id === c.id) ? list.map((x) => (x.id === c.id ? c : x)) : [...list, c]))
+            setNotes((n) => ({ ...n, [c.id]: c.note }))
+            setAdding(null)
+          }}
         />
       )}
 
       {addingTodo && (
         <AddTodo
+          todo={addingTodo === 'new' ? null : addingTodo}
           criteria={criteria}
-          onClose={() => setAddingTodo(false)}
-          onAdd={(t) => { setTodos((list) => [...list, t]); setAddingTodo(false) }}
+          onClose={() => setAddingTodo(null)}
+          onAdd={(t) => {
+            setTodos((list) => (list.some((x) => x.id === t.id) ? list.map((x) => (x.id === t.id ? t : x)) : [...list, t]))
+            setAddingTodo(null)
+          }}
         />
       )}
     </>
@@ -324,12 +345,12 @@ export function GoNoGo({ writable, role }: { writable: boolean; role: string }) 
 }
 
 /** Yeni To-Do: bir kriterden seçilir ya da serbest yazılır; bir veya birden fazla kişiye atanır. */
-function AddTodo({ criteria, onClose, onAdd }: {
-  criteria: GoNoGoCriterion[]; onClose: () => void; onAdd: (t: Todo) => void
+function AddTodo({ todo, criteria, onClose, onAdd }: {
+  todo: Todo | null; criteria: GoNoGoCriterion[]; onClose: () => void; onAdd: (t: Todo) => void
 }) {
-  const [criterionId, setCriterionId] = useState('')
-  const [text, setText] = useState('')
-  const [assignees, setAssignees] = useState<string[]>([])
+  const [criterionId, setCriterionId] = useState(todo?.criterionId ?? '')
+  const [text, setText] = useState(todo?.text ?? '')
+  const [assignees, setAssignees] = useState<string[]>(todo?.assignees ?? [])
   const ready = text.trim().length > 5 && assignees.length > 0
 
   function toggle(id: string) {
@@ -338,7 +359,7 @@ function AddTodo({ criteria, onClose, onAdd }: {
 
   return (
     <Modal
-      title="To-Do ekle"
+      title={todo ? 'To-Do düzenle' : 'To-Do ekle'}
       note="Yapılacak işi yazın, isterseniz bir Go/No-Go kriterine bağlayın ve bir veya birden fazla kişiye atayın."
       onClose={onClose}
       footer={<>
@@ -346,8 +367,9 @@ function AddTodo({ criteria, onClose, onAdd }: {
         <span className="ml-auto flex gap-2">
           <Btn onClick={onClose}>Vazgeç</Btn>
           <Btn primary disabled={!ready} onClick={() => onAdd({
-            id: `T${Date.now()}`, text: text.trim(), criterionId: criterionId || undefined, assignees, state: 'Yapılmadı',
-          })}>Ekle</Btn>
+            ...(todo ?? { id: `T${Date.now()}`, state: 'Yapılmadı' as TodoState }),
+            text: text.trim(), criterionId: criterionId || undefined, assignees,
+          })}>{todo ? 'Kaydet' : 'Ekle'}</Btn>
         </span>
       </>}
     >
@@ -389,18 +411,18 @@ function AddTodo({ criteria, onClose, onAdd }: {
 }
 
 /** Yeni kriter: adı, açıklaması ve ağırlığı kullanıcı tarafından girilir; puanı sonra verilir. */
-function AddCriterion({ groups, onClose, onAdd }: {
-  groups: string[]; onClose: () => void; onAdd: (c: GoNoGoCriterion) => void
+function AddCriterion({ criterion, groups, onClose, onAdd }: {
+  criterion: GoNoGoCriterion | null; groups: string[]; onClose: () => void; onAdd: (c: GoNoGoCriterion) => void
 }) {
-  const [label, setLabel] = useState('')
-  const [note, setNote] = useState('')
-  const [weight, setWeight] = useState('5')
-  const [group, setGroup] = useState(groups[0] ?? 'Diğer')
+  const [label, setLabel] = useState(criterion?.label ?? '')
+  const [note, setNote] = useState(criterion?.note ?? '')
+  const [weight, setWeight] = useState(String(criterion?.weight ?? 5))
+  const [group, setGroup] = useState(criterion?.group ?? groups[0] ?? 'Diğer')
   const ready = label.trim().length > 2 && Number(weight) > 0
 
   return (
     <Modal
-      title="Kriter ekle"
+      title={criterion ? 'Kriteri düzenle' : 'Kriter ekle'}
       note="Kriterin adını, ne anlama geldiğini ve karara ne kadar etki edeceğini (ağırlık) yazın. Puan, kriter eklendikten sonra verilir."
       onClose={onClose}
       footer={<>
@@ -408,9 +430,9 @@ function AddCriterion({ groups, onClose, onAdd }: {
         <span className="ml-auto flex gap-2">
           <Btn onClick={onClose}>Vazgeç</Btn>
           <Btn primary disabled={!ready} onClick={() => onAdd({
-            id: `N${Date.now()}`, group, label: label.trim(), weight: Number(weight), score: 0,
-            note: note.trim() || '—', source: 'Elle eklendi',
-          })}>Ekle</Btn>
+            ...(criterion ?? { id: `N${Date.now()}`, score: 0, source: 'Elle eklendi' }),
+            group, label: label.trim(), weight: Number(weight), note: note.trim() || '—',
+          })}>{criterion ? 'Kaydet' : 'Ekle'}</Btn>
         </span>
       </>}
     >

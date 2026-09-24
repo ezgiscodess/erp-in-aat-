@@ -2,7 +2,9 @@ import {
   bidRisks, boqItems, certificates, clauses, contractSections, criticalTerms, docs, findings, goNoGoCriteria, project, timeline,
 } from '../data/mock'
 import type { TabKey } from '../data/types'
-import { Badge, Bar, Btn, Card, Kpi, PageHead, SeverityBadge, StateBadge, Table, Td, Th } from '../components/ui'
+import { useState } from 'react'
+import { tabs } from '../lib/roles'
+import { Badge, Bar, Btn, Card, Field, IconBtn, Kpi, Modal, PageHead, RowActions, SeverityBadge, StateBadge, Table, Td, Th } from '../components/ui'
 import { date, daysLabel, money, moneyShort, num, pct } from '../lib/format'
 
 /**
@@ -24,7 +26,7 @@ export function Ozet({ onGo }: { onGo: (t: TabKey) => void }) {
   const bidPrice = boqTotal + overhead + riskProvision + profit
   const margin = (profit / bidPrice) * 100
 
-  const actions = [
+  const [actions, setActions] = useState<Action[]>([
     { p: 'Kritik', t: 'Gecikme cezası tavanının %10’a indirilmesi için zeyilname talebi gönderilsin', o: 'Teklif', d: '2026-09-30', tab: 'kritik_sartlar' as TabKey },
     { p: 'Kritik', t: 'Ödeme süresi çelişkisi (60/90 gün) yazılı olarak netleştirilsin', o: 'PMO', d: '2026-09-30', tab: 'kontrat_analiz' as TabKey },
     { p: 'Kritik', t: 'Rıhtım doğu ucu için ek sondaj talebi; aksi hâlde kazık kalemi birim fiyatlı kalsın', o: 'Teknik', d: '2026-09-30', tab: 'teklif_riskleri' as TabKey },
@@ -32,7 +34,9 @@ export function Ozet({ onGo }: { onGo: (t: TabKey) => void }) {
     { p: 'Yüksek', t: 'Kesin teminat için banka ek limiti alınsın', o: 'Finans', d: '2026-10-07', tab: 'kritik_sartlar' as TabKey },
     { p: 'Yüksek', t: 'ISO 45001 yenileme denetimi planlansın (43 gün kaldı)', o: 'Kalite', d: '2026-10-10', tab: 'sertifikalar' as TabKey },
     { p: 'Orta', t: 'Düşük güvenli 5 pozun metrajı elle kontrol edilsin', o: 'Teknik', d: '2026-10-07', tab: 'boq' as TabKey },
-  ]
+  ])
+  const [editing, setEditing] = useState<{ i: number; a: Action } | 'new' | null>(null)
+  const [reporting, setReporting] = useState(false)
 
   return (
     <>
@@ -40,8 +44,8 @@ export function Ozet({ onGo }: { onGo: (t: TabKey) => void }) {
         title="Özet & Karar"
         note="Tüm sekmelerin tek sayfalık görünümü. Her kart ilgili sekmeye götürür."
         right={<>
-          <Btn>Yönetim özeti (PDF)</Btn>
-          <Btn primary>Karar toplantısına gönder</Btn>
+          <Btn>Karar toplantısına gönder</Btn>
+          <Btn primary onClick={() => setReporting(true)} title="Bütün modül sayfalarının standart formatta dökümünü üretir">Raporu oluştur</Btn>
         </>}
       />
 
@@ -232,14 +236,18 @@ export function Ozet({ onGo }: { onGo: (t: TabKey) => void }) {
       {/* Aksiyonlar ve takvim */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
         <div className="lg:col-span-7">
-          <Card title="Yapılacaklar" help="Sistemin bulgulardan çıkardığı öneriler. Her satır bir termine bağlanır ve 'Aç' ile ilgili sekmeye gider." pad={false}>
-            <Table head={<tr><Th w={80}>Öncelik</Th><Th w={420}>Aksiyon</Th><Th w={110}>Termin</Th><Th w={90}>Git</Th></tr>}>
-              {actions.map((a) => (
+          <Card title="Yapılacaklar" help="Sistemin bulgulardan çıkardığı öneriler. Her satır bir termine bağlanır; göz simgesi ilgili sekmeye götürür."
+            right={<IconBtn icon="add" primary title="Yapılacak ekle" onClick={() => setEditing('new')} />} pad={false}>
+            <Table head={<tr><Th w={80}>Öncelik</Th><Th w={400}>Aksiyon</Th><Th w={100}>Termin</Th><Th w={96} center>İşlem</Th></tr>}>
+              {actions.map((a, i) => (
                 <tr key={a.t} className="hover:bg-[var(--surface-2)]">
                   <Td nowrap><Badge tone={a.p === 'Kritik' ? 'crit' : a.p === 'Yüksek' ? 'warn' : 'neutral'} dot>{a.p}</Badge></Td>
                   <Td><span className="text-[12.5px] text-[var(--ink)]">{a.t}</span></Td>
                   <Td nowrap><span className="tnum text-[12.5px]">{date(a.d)}</span></Td>
-                  <Td nowrap><Btn small onClick={() => onGo(a.tab)}>Aç →</Btn></Td>
+                  <Td nowrap center>
+                    <RowActions name="Bu aksiyon" onOpen={() => onGo(a.tab)} onEdit={() => setEditing({ i, a })}
+                      onDelete={() => setActions((l) => l.filter((_, j) => j !== i))} />
+                  </Td>
                 </tr>
               ))}
             </Table>
@@ -281,6 +289,16 @@ export function Ozet({ onGo }: { onGo: (t: TabKey) => void }) {
           </Card>
         </div>
       </div>
+
+      {editing && (
+        <ActionModal action={editing === 'new' ? null : editing.a} onClose={() => setEditing(null)}
+          onSave={(a) => {
+            setActions((l) => (editing === 'new' ? [...l, a] : l.map((x, j) => (j === editing.i ? a : x))))
+            setEditing(null)
+          }} />
+      )}
+
+      {reporting && <ReportModal onClose={() => setReporting(false)} />}
     </>
   )
 }
@@ -311,5 +329,104 @@ function SummaryCard({ title, lines, children, onGo, addon }: {
         <div className="border-t border-[var(--border)] pt-3">{children}</div>
       </div>
     </section>
+  )
+}
+
+
+interface Action { p: string; t: string; o: string; d: string; tab: TabKey }
+
+function ActionModal({ action, onClose, onSave }: { action: Action | null; onClose: () => void; onSave: (a: Action) => void }) {
+  const [t, setT] = useState(action?.t ?? '')
+  const [p, setP] = useState(action?.p ?? 'Yüksek')
+  const [o, setO] = useState(action?.o ?? '')
+  const [d, setD] = useState(action?.d ?? '')
+  const [tab, setTab] = useState<TabKey>(action?.tab ?? 'kritik_sartlar')
+  const ready = t.trim().length > 5 && !!d
+  const sel = 'rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-2 text-[13px] text-[var(--ink)] outline-none focus:border-[var(--accent)]'
+
+  return (
+    <Modal
+      title={action ? 'Aksiyonu düzenle' : 'Yapılacak ekle'}
+      onClose={onClose}
+      wide
+      footer={<>
+        <span className="text-[11.5px] text-[var(--faint)]">{ready ? 'Kaydedilmeye hazır' : 'Aksiyon ve termin zorunlu'}</span>
+        <span className="ml-auto flex gap-2">
+          <Btn onClick={onClose}>Vazgeç</Btn>
+          <Btn primary disabled={!ready} onClick={() => onSave({ t: t.trim(), p, o: o.trim() || '—', d, tab })}>Kaydet</Btn>
+        </span>
+      </>}
+    >
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="sm:col-span-2"><Field label="Aksiyon" value={t} onChange={setT} /></div>
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Öncelik</span>
+          <select value={p} onChange={(e) => setP(e.target.value)} className={sel}>
+            {['Kritik', 'Yüksek', 'Orta'].map((x) => <option key={x}>{x}</option>)}
+          </select>
+        </label>
+        <Field label="Termin" value={d} onChange={setD} type="date" />
+        <Field label="Sorumlu" value={o} onChange={setO} />
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">İlgili sekme</span>
+          <select value={tab} onChange={(e) => setTab(e.target.value as TabKey)} className={sel}>
+            {tabs.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}
+          </select>
+        </label>
+      </div>
+    </Modal>
+  )
+}
+
+/**
+ * Son dokunuş: bütün modül sayfalarının standart formatta, nizami dökümü.
+ * Değişiklik yapılmadıysa sayfalar olduğu gibi rapora girer; pasife çekilen kayıtlar girmez.
+ */
+function ReportModal({ onClose }: { onClose: () => void }) {
+  const [included, setIncluded] = useState<string[]>(tabs.map((t) => t.key))
+  const [format, setFormat] = useState<'PDF' | 'Word'>('PDF')
+  const [done, setDone] = useState(false)
+
+  return (
+    <Modal
+      title="Raporu oluştur"
+      note="Bütün modül sayfaları standart rapor formatında sırayla dökülür: kapak, künye, her sekmenin özet tablosu ve kaynak atıfları. Pasife çekilen kayıtlar rapora girmez."
+      onClose={onClose}
+      wide
+      footer={done ? <>
+        <span className="text-[12px] text-[var(--ok)]">✓ Rapor hazırlandı · {included.length} bölüm · {project.code}-Rapor.{format === 'PDF' ? 'pdf' : 'docx'}</span>
+        <span className="ml-auto flex gap-2"><Btn onClick={onClose}>Kapat</Btn><Btn primary>İndir</Btn></span>
+      </> : <>
+        <span className="text-[11.5px] text-[var(--faint)]">{included.length} / {tabs.length} bölüm seçili</span>
+        <span className="ml-auto flex gap-2">
+          <Btn onClick={onClose}>Vazgeç</Btn>
+          <Btn primary disabled={included.length === 0} onClick={() => setDone(true)}>Oluştur</Btn>
+        </span>
+      </>}
+    >
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-2 text-[12px] text-[var(--muted)]">
+          Format
+          {(['PDF', 'Word'] as const).map((f) => (
+            <button key={f} onClick={() => setFormat(f)}
+              className="rounded-full border px-2.5 py-0.5 text-[12px]"
+              style={format === f
+                ? { background: 'var(--accent-soft)', borderColor: 'var(--accent)', color: 'var(--accent)' }
+                : { background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--muted)' }}>{f}</button>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+          {tabs.map((t, i) => (
+            <label key={t.key} className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1.5 text-[12.5px] text-[var(--ink)]">
+              <input type="checkbox" checked={included.includes(t.key)}
+                onChange={() => setIncluded((l) => (l.includes(t.key) ? l.filter((x) => x !== t.key) : [...l, t.key]))} />
+              <span className="mono w-5 text-[11px] text-[var(--faint)]">{i + 1}</span>
+              {t.label}
+              {t.addon && <span className="ml-auto"><Badge tone="gold">Ek</Badge></span>}
+            </label>
+          ))}
+        </div>
+      </div>
+    </Modal>
   )
 }

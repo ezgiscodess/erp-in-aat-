@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { criticalTerms, docs } from '../data/mock'
 import type { CriticalTerm, TermState } from '../data/types'
 import {
-  AiChat, Btn, Card, Chips, ColumnFilter, DocViewer, ExportButtons, Kpi, PageHead, ReadOnlyNote,
-  Search, severityTone, StateBadge, StickyPane, Table, Td, Th,
+  AiChat, Btn, Card, Chips, ColumnFilter, DocViewer, ExportButtons, Field, IconBtn, Kpi, Modal, PageHead, ReadOnlyNote,
+  Search, severityTone, StateBadge, StickyPane, Switch, Table, Td, Th,
 } from '../components/ui'
 
-type Filter = 'Tümü' | 'Açık konular' | 'Kritik' | 'Kontrol edilen'
+type Filter = 'Tümü' | 'Açık konular' | 'Kritik' | 'Kontrol edilen' | 'Pasif'
 
 /** Durumlar sırasıyla: işin başı → sonu. Kapanmış sayılanlar: Kontrol Edildi ve Etkisi Sıfırlandı. */
 const STATES: TermState[] = ['Kontrol Ediliyor', 'Devam Ediyor', 'Kontrol Edildi', 'Etkisi Sıfırlandı']
@@ -16,13 +16,20 @@ const OPEN: TermState[] = ['Kontrol Ediliyor', 'Devam Ediyor']
 export function KritikSartlar({ writable, role }: { writable: boolean; role: string }) {
   const [filter, setFilter] = useState<Filter>('Tümü')
   const [q, setQ] = useState('')
+  const [terms, setTerms] = useState<CriticalTerm[]>(criticalTerms)
   const [sel, setSel] = useState<CriticalTerm>(criticalTerms[2])
+  /** Standartta bütün kriterler aktif gelir; pasife çekilen kriter ekranda gizlenir ve çıktıya girmez. */
+  const [passive, setPassive] = useState<string[]>([])
+  /** Düzenlenen kriter — null: kapalı, 'new': yeni kriter */
+  const [editing, setEditing] = useState<CriticalTerm | 'new' | null>(null)
   const [checked, setChecked] = useState<string[]>([])
   const [topicFilter, setTopicFilter] = useState('Tümü')
   const [sevFilter, setSevFilter] = useState('Tümü')
   const [stateFilter, setStateFilter] = useState('Tümü')
 
-  const filtered = criticalTerms.filter((t) => {
+  const filtered = terms.filter((t) => {
+    if (filter === 'Pasif') return passive.includes(t.id)
+    if (passive.includes(t.id)) return false
     if (topicFilter !== 'Tümü' && t.topic !== topicFilter) return false
     if (sevFilter !== 'Tümü' && t.severity !== sevFilter) return false
     if (stateFilter !== 'Tümü' && t.state !== stateFilter) return false
@@ -36,11 +43,13 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
     return true
   })
 
+  const active = terms.filter((t) => !passive.includes(t.id))
   const counts = {
-    'Tümü': criticalTerms.length,
-    'Açık konular': criticalTerms.filter((t) => OPEN.includes(t.state)).length,
-    'Kritik': criticalTerms.filter((t) => t.severity === 'Kritik').length,
-    'Kontrol edilen': criticalTerms.filter((t) => t.state === 'Kontrol Edildi').length,
+    'Tümü': active.length,
+    'Açık konular': active.filter((t) => OPEN.includes(t.state)).length,
+    'Kritik': active.filter((t) => t.severity === 'Kritik').length,
+    'Kontrol edilen': active.filter((t) => t.state === 'Kontrol Edildi').length,
+    'Pasif': passive.length,
   }
 
   function toggle(id: string) {
@@ -56,23 +65,23 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
         title="Kritik İhale Şartları"
         note="Doküman analizinden çıkan, teklifi ve sözleşmeyi bağlayan kriterler. Durumlar: Kontrol Ediliyor (sorumlusu inceliyor) → Devam Ediyor (aksiyon alındı, sonucu bekleniyor) → Kontrol Edildi (kriter karşılanıyor) ya da Etkisi Sıfırlandı (kriter değişmedi ama etkisi fiyata veya kurguya yansıtılarak nötrlendi)."
         right={<>
-          <ExportButtons />
-          <Btn primary disabled={!writable}>+ Kriter ekle</Btn>
+          <ExportButtons excluded={passive.length} />
+          <Btn primary disabled={!writable} onClick={() => setEditing('new')}>+ Kriter ekle</Btn>
         </>}
       />
 
       {!writable && <ReadOnlyNote role={role} />}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Kpi label="Toplam kriter" value={criticalTerms.length} sub="Analizden çıkarıldı"
+        <Kpi label="Toplam kriter" value={active.length} sub="Analizden çıkarıldı"
           help="İhale dokümanlarından çıkarılan bağlayıcı kriter sayısı. Zeyilname geldiğinde liste güncellenir." />
-        <Kpi label="Kritik" value={criticalTerms.filter((t) => t.severity === 'Kritik').length} sub="Teklifi doğrudan bağlar" tone="crit"
+        <Kpi label="Kritik" value={active.filter((t) => t.severity === 'Kritik').length} sub="Teklifi doğrudan bağlar" tone="crit"
           help="Karşılanmaması hâlinde teklifin geçersiz olmasına ya da ciddi bedel farkına yol açan kriterler." />
-        <Kpi label="Kontrol edilen" value={criticalTerms.filter((t) => t.state === 'Kontrol Edildi').length}
-          sub={`+ ${criticalTerms.filter((t) => t.state === 'Etkisi Sıfırlandı').length} kriterin etkisi sıfırlandı`} tone="ok"
+        <Kpi label="Kontrol edilen" value={active.filter((t) => t.state === 'Kontrol Edildi').length}
+          sub={`+ ${active.filter((t) => t.state === 'Etkisi Sıfırlandı').length} kriterin etkisi sıfırlandı`} tone="ok"
           help="Karşılandığı teyit edilen kriterler. Etkisi sıfırlananlar (ör. fiyata karşılık eklenerek nötrlenenler) alt satırda ayrıca sayılır." />
-        <Kpi label="Kontrol ediliyor" value={criticalTerms.filter((t) => t.state === 'Kontrol Ediliyor').length}
-          sub={`${criticalTerms.filter((t) => t.state === 'Devam Ediyor').length} kriterde aksiyon devam ediyor`} tone="warn"
+        <Kpi label="Kontrol ediliyor" value={active.filter((t) => t.state === 'Kontrol Ediliyor').length}
+          sub={`${active.filter((t) => t.state === 'Devam Ediyor').length} kriterde aksiyon devam ediyor`} tone="warn"
           help="Durumu henüz netleşmemiş kriterler. Teklif teslimine kadar kapanması gerekir." />
         <Kpi label="Zeyilname talebi" value={2} sub="İdareye sorulacak" tone="accent"
           help="Değiştirilmesi için idareye yazılı talep gönderilecek şartlar. Soru listesine eklenenler buraya düşer." />
@@ -80,7 +89,7 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
 
       <div className="flex flex-wrap items-center gap-2">
         <Chips<Filter> value={filter} onChange={setFilter}
-          items={(['Tümü', 'Açık konular', 'Kritik', 'Kontrol edilen'] as Filter[]).map((k) => ({ key: k, label: k, count: counts[k] }))} />
+          items={(['Tümü', 'Açık konular', 'Kritik', 'Kontrol edilen', 'Pasif'] as Filter[]).map((k) => ({ key: k, label: k, count: counts[k] }))} />
         <div className="ml-auto"><Search value={q} onChange={setQ} placeholder="Kriterlerde ara…" /></div>
       </div>
 
@@ -110,13 +119,13 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
                   <input type="checkbox" checked={checked.length === filtered.length && filtered.length > 0}
                     onChange={(e) => setChecked(e.target.checked ? filtered.map((t) => t.id) : [])} />
                 </Th>
-                <Th w={104}>
+                <Th w={96}>
                   <span className="flex items-center gap-1.5">
                     Konu
                     <ColumnFilter value={topicFilter} onChange={setTopicFilter} values={criticalTerms.map((t) => t.topic)} />
                   </span>
                 </Th>
-                <Th w={236}>
+                <Th w={206}>
                   <span className="flex items-center gap-1.5">
                     Kriter, etkisi ve kaynağı
                     <ColumnFilter value={sevFilter} onChange={setSevFilter} values={['Kritik', 'Yüksek', 'Orta', 'Düşük']} />
@@ -128,11 +137,15 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
                     <ColumnFilter value={stateFilter} onChange={setStateFilter} values={STATES} />
                   </span>
                 </Th>
+                <Th w={40} center>Aktif</Th>
               </tr>
             }>
               {filtered.map((t) => (
                 <tr key={t.id} onClick={() => setSel(t)} className="cursor-pointer hover:bg-[var(--surface-2)]"
-                  style={t.id === sel.id ? { background: 'var(--accent-soft)' } : undefined}>
+                  style={{
+                    ...(t.id === sel.id ? { background: 'var(--accent-soft)' } : {}),
+                    ...(passive.includes(t.id) ? { opacity: 0.55 } : {}),
+                  }}>
                   <Td nowrap>
                     <input type="checkbox" checked={checked.includes(t.id)}
                       onClick={(e) => e.stopPropagation()} onChange={() => toggle(t.id)} />
@@ -157,6 +170,13 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
                     </div>
                   </Td>
                   <Td nowrap><StateBadge value={t.state} /></Td>
+                  <Td nowrap center>
+                    <span className="inline-flex flex-col items-center gap-2 pt-0.5">
+                      <Switch on={!passive.includes(t.id)} disabled={!writable}
+                        onChange={(on) => setPassive((p) => (on ? p.filter((x) => x !== t.id) : [...p, t.id]))} />
+                      <IconBtn icon="edit" disabled={!writable} onClick={() => setEditing(t)} />
+                    </span>
+                  </Td>
                 </tr>
               ))}
             </Table>
@@ -212,6 +232,69 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
           }}
         />
       </Card>
+
+      {editing && (
+        <TermModal
+          term={editing === 'new' ? null : editing}
+          onClose={() => setEditing(null)}
+          onSave={(t) => {
+            setTerms((list) => (list.some((x) => x.id === t.id) ? list.map((x) => (x.id === t.id ? t : x)) : [...list, t]))
+            setSel(t)
+            setEditing(null)
+          }}
+        />
+      )}
     </>
+  )
+}
+
+
+/** Kriter ekleme / düzenleme penceresi — ekle ve düzenle aynı formu kullanır. */
+function TermModal({ term, onClose, onSave }: {
+  term: CriticalTerm | null; onClose: () => void; onSave: (t: CriticalTerm) => void
+}) {
+  const [topic, setTopic] = useState(term?.topic ?? '')
+  const [requirement, setRequirement] = useState(term?.requirement ?? '')
+  const [impact, setImpact] = useState(term?.impact ?? '')
+  const [action, setAction] = useState(term?.action ?? '')
+  const [owner, setOwner] = useState(term?.owner ?? '')
+  const [clause, setClause] = useState(term?.clause ?? '')
+  const [state, setState] = useState<TermState>(term?.state ?? 'Kontrol Ediliyor')
+  const ready = topic.trim().length > 1 && requirement.trim().length > 3
+
+  return (
+    <Modal
+      title={term ? 'Kriteri düzenle' : 'Kriter ekle'}
+      note={term ? `${term.topic} · ${term.clause}` : 'Dokümanda gözden kaçan ya da elle eklenmesi gereken bağlayıcı kriter.'}
+      onClose={onClose}
+      wide
+      footer={<>
+        <span className="text-[11.5px] text-[var(--faint)]">{ready ? 'Kaydedilmeye hazır' : 'Konu ve kriter metni zorunlu'}</span>
+        <span className="ml-auto flex gap-2">
+          <Btn onClick={onClose}>Vazgeç</Btn>
+          <Btn primary disabled={!ready} onClick={() => onSave({
+            ...(term ?? { id: `CT${Date.now()}`, page: 1, severity: 'Orta' as const, docId: 'D1', context: requirement, quote: requirement }),
+            topic: topic.trim(), requirement: requirement.trim(), impact: impact.trim(), action: action.trim(),
+            owner: owner.trim() || '—', clause: clause.trim() || '—', state,
+          })}>Kaydet</Btn>
+        </span>
+      </>}
+    >
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Field label="Konu" value={topic} onChange={setTopic} placeholder="Ör. Geçici teminat" />
+        <Field label="Madde" value={clause} onChange={setClause} placeholder="Ör. İdari Ş. 25.1" />
+        <div className="sm:col-span-2"><Field label="Kriter" value={requirement} onChange={setRequirement} placeholder="Dokümandaki şart" /></div>
+        <div className="sm:col-span-2"><Field label="Etkisi" value={impact} onChange={setImpact} placeholder="Teklife / sözleşmeye etkisi" /></div>
+        <div className="sm:col-span-2"><Field label="Aksiyon" value={action} onChange={setAction} placeholder="Yapılacak iş" /></div>
+        <Field label="Sorumlu" value={owner} onChange={setOwner} placeholder="Ör. Finans" />
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Durum</span>
+          <select value={state} onChange={(e) => setState(e.target.value as TermState)}
+            className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-2 text-[13px] text-[var(--ink)] outline-none focus:border-[var(--accent)]">
+            {STATES.map((x) => <option key={x} value={x}>{x}</option>)}
+          </select>
+        </label>
+      </div>
+    </Modal>
   )
 }

@@ -25,7 +25,7 @@ export const tabs: TabDef[] = [
   { key: 'boq', label: 'Metraj (BoQ / Take-off)', addon: true, note: 'İhale dokümanındaki poz listesi ve metrajlar. İhale dokümanında birim fiyat bulunmaz; fiyatlar Birim Fiyat Havuzu’ndan eşleşir.' },
   { key: 'personel_ekipman', label: 'Personel & Ekipman', addon: true, note: 'İş süresince ihtiyaç duyulacak kadro ve makine parkı; aylık maliyet ve hangi aylarda sahada olacağı.' },
   { key: 'is_programi', label: 'İş Programı', addon: true, note: 'Metrajdan türetilen iş programı: imalat süreleri, aktivite ilişkileri, kritik yol ve key stage tarihleri.' },
-  { key: 'birim_fiyat', label: 'Birim Fiyat Havuzu', note: 'Firmanın kendi poz numarası ve iş kalemi bazlı birim fiyat havuzu. Projeye değil firmaya aittir; metraj kalemleri buradan fiyatlanır.' },
+  { key: 'birim_fiyat', label: 'Birim Fiyat Havuzu', hidden: true, note: 'Firmanın kendi poz numarası ve iş kalemi bazlı birim fiyat havuzu. Projeye değil firmaya aittir; metraj kalemleri buradan fiyatlanır.' },
   { key: 'sertifikalar', label: 'Sertifikalar', addon: true, note: 'İstenen belgeler, firmadaki durum ve geçerlilikler' },
   { key: 'ozet', label: 'Özet & Karar', note: 'Tüm sekmelerin tek sayfada toplandığı karar ekranı' },
   { key: 'kontrat_hazirlama', label: 'Kontrat Hazırlama', addon: true, note: 'İhale kazanıldıktan sonra şablondan sözleşme taslağı üretimi' },

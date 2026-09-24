@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { library, project } from '../data/mock'
 import type { LibraryItem, Period } from '../data/types'
-import { Badge, Bar, Btn, Chips, ColumnFilter, Field, Modal, Search, StateBadge, Table, Td, Th } from '../components/ui'
+import { Badge, Bar, Btn, Chips, ColumnFilter, Field, Modal, RowActions, Search, StateBadge, Table, Td, Th } from '../components/ui'
 import { date, daysLabel, moneyShort } from '../lib/format'
 
 type Filter = 'Tümü' | 'İhaleler' | 'Projeler'
@@ -63,6 +63,10 @@ export function Hub({ onOpen, onLogout }: { onOpen: (item: LibraryItem) => void;
           values={[...new Set(items.map(COL_VALUES[k]))]} />
       </span>
     )
+  }
+
+  function removeItem(id: string) {
+    setItems((prev) => prev.filter((i) => i.id !== id))
   }
 
   function addItem(item: LibraryItem) {
@@ -132,7 +136,7 @@ export function Hub({ onOpen, onLogout }: { onOpen: (item: LibraryItem) => void;
         {view === 'kare' ? (
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-3">
             {list.map((i) => (
-              <ItemCard key={i.id} item={i} fresh={i.id === justAdded} onOpen={() => onOpen(i)} />
+              <ItemCard key={i.id} item={i} fresh={i.id === justAdded} onOpen={() => onOpen(i)} onDelete={() => removeItem(i.id)} />
             ))}
             <button onClick={() => setUploading(true)}
               className="flex min-h-[188px] flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-[var(--border-strong)] bg-[var(--surface)] text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]">
@@ -152,7 +156,7 @@ export function Hub({ onOpen, onLogout }: { onOpen: (item: LibraryItem) => void;
               <Th w={60}>{head('dosya', 'Dosya')}</Th>
               <Th w={130}>{head('ilerleme', 'İlerleme')}</Th>
               <Th w={110}>{head('durum', 'Durum')}</Th>
-              <Th w={60} center>İşlem</Th>
+              <Th w={96} center>İşlem</Th>
             </tr>
           }>
             {list.map((i) => (
@@ -177,7 +181,12 @@ export function Hub({ onOpen, onLogout }: { onOpen: (item: LibraryItem) => void;
                   </div>
                 </Td>
                 <Td nowrap><StateBadge value={i.status} /></Td>
-                <Td nowrap center><Btn small primary onClick={() => onOpen(i)}>Aç</Btn></Td>
+                <Td nowrap center>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Btn small primary onClick={() => onOpen(i)}>Aç</Btn>
+                    <RowActions name={i.name} onDelete={() => removeItem(i.id)} />
+                  </span>
+                </Td>
               </tr>
             ))}
           </Table>
@@ -200,7 +209,7 @@ function Summary({ label, value, sub, tone }: { label: string; value: number; su
   )
 }
 
-function ItemCard({ item, fresh, onOpen }: { item: LibraryItem; fresh: boolean; onOpen: () => void }) {
+function ItemCard({ item, fresh, onOpen, onDelete }: { item: LibraryItem; fresh: boolean; onOpen: () => void; onDelete: () => void }) {
   const urgent = item.kind === 'ihale' && item.daysLeft >= 0 && item.daysLeft <= 30
   return (
     <article
@@ -236,7 +245,10 @@ function ItemCard({ item, fresh, onOpen }: { item: LibraryItem; fresh: boolean; 
 
       <div className="flex items-center gap-2 border-t border-[var(--border)] pt-3">
         <span className="text-[11px] text-[var(--faint)]">Son işlem {item.updatedAt} · {item.updatedBy}</span>
-        <span className="ml-auto"><Btn small primary onClick={onOpen}>Aç</Btn></span>
+        <span className="ml-auto flex items-center gap-1.5">
+          <Btn small primary onClick={onOpen}>Aç</Btn>
+          <RowActions name={item.name} onDelete={onDelete} />
+        </span>
       </div>
     </article>
   )

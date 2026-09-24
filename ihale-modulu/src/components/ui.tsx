@@ -314,14 +314,17 @@ export interface EditLogEntry {
  * Sağ tarafta duran doküman önizleme ekranı.
  * `editable` verilirse metin elle düzeltilebilir ve her kayıt "Manuel düzeltme" olarak loga düşer.
  */
-export function PreviewPane({ title, preview, editable, user = 'e.yilmaz', log = [], onSave, footer, height, paper }: {
+export function PreviewPane({ title, preview, editable, user = 'e.yilmaz', log = [], onSave, footer, height, paper, headerExtra }: {
   title?: string
   preview: PreviewDoc
   editable?: boolean
   user?: string
   log?: EditLogEntry[]
   onSave?: (text: string, entry: EditLogEntry) => void
-  footer?: ReactNode
+  /** Alt şerit. Fonksiyon verilirse düzenlenebilir önizlemede log düğmesini yerleştirmek için çağrılır. */
+  footer?: ReactNode | ((logButton: ReactNode) => ReactNode)
+  /** Başlıktaki ek düğmeler (sayfa araçlarının solunda) */
+  headerExtra?: ReactNode
   /** Metin alanının sabit yüksekliği — soldaki tabloyla eşit görünmesi için */
   height?: number
   /** Orijinal dosya görünümü: beyaz sayfa çerçevesi içinde gösterir */
@@ -330,6 +333,8 @@ export function PreviewPane({ title, preview, editable, user = 'e.yilmaz', log =
   const [editing, setEditing] = useState(false)
   const [text, setText] = useState(preview.body)
   const [entries, setEntries] = useState<EditLogEntry[]>(log)
+  const [zoom, setZoom] = useState(1)
+  const [showLog, setShowLog] = useState(false)
 
   // Seçim değişince panel yeni dokümana döner
   const [shown, setShown] = useState(preview.doc + preview.page)
@@ -351,6 +356,10 @@ export function PreviewPane({ title, preview, editable, user = 'e.yilmaz', log =
     onSave?.(text, entry)
   }
 
+  const logButton = editable
+    ? <Btn small onClick={() => setShowLog(true)} title="Bu dokümanda yapılan değişikliklerin kaydı">Log ({entries.length})</Btn>
+    : null
+
   const parts = preview.highlight && text.includes(preview.highlight)
     ? text.split(preview.highlight)
     : null
@@ -363,18 +372,18 @@ export function PreviewPane({ title, preview, editable, user = 'e.yilmaz', log =
           <span className="mono text-[11.5px] text-[var(--muted)]">{preview.doc}</span>
           {preview.clause && <Badge tone="accent">Madde {preview.clause}</Badge>}
           <span className="ml-auto flex items-center gap-1.5">
-            {editable && !editing && <Btn small onClick={() => setEditing(true)}>✎ Elle düzelt</Btn>}
+            {headerExtra}
+            {editable && !editing && <IconBtn icon="edit" title="Elle düzelt" onClick={() => setEditing(true)} />}
             {editable && editing && <>
               <Btn small onClick={() => { setText(preview.body); setEditing(false) }}>Vazgeç</Btn>
               <Btn small primary onClick={save}>Kaydet</Btn>
             </>}
-            <Btn small>‹</Btn>
-            <span className="tnum text-[12px] text-[var(--muted)]">{preview.page}{preview.pages ? ` / ${preview.pages}` : ''}</span>
-            <Btn small>›</Btn>
+            <ViewerTools page={preview.page} pages={preview.pages} zoom={zoom} onZoom={setZoom} />
           </span>
         </header>
 
-        <div className={`overflow-y-auto ${paper ? 'bg-[var(--surface-2)] p-4' : 'p-4'}`} style={height ? { height } : undefined}>
+        <div className={`overflow-y-auto ${paper ? 'bg-[var(--surface-3)] p-4' : 'p-4'}`}
+          style={height ? { height } : paper ? { height: footer || editable ? 'calc(100vh - 330px)' : 'calc(100vh - 200px)', minHeight: 440 } : undefined}>
           {editing ? (
             <textarea
               value={text}
@@ -383,7 +392,8 @@ export function PreviewPane({ title, preview, editable, user = 'e.yilmaz', log =
               className="w-full resize-y rounded-md border border-[var(--accent)] bg-[var(--surface)] p-3 text-[12.5px] leading-relaxed text-[var(--ink)] outline-none"
             />
           ) : (
-            <div className={`text-[12.5px] leading-[1.9] text-[var(--ink)] ${paper ? 'mx-auto max-w-[620px] rounded-sm border border-[var(--border)] bg-white px-7 py-6 shadow-sm' : ''}`}>
+            <div className={`leading-[1.9] text-[var(--ink)] ${paper ? 'mx-auto rounded-sm border border-[var(--border)] bg-white px-9 py-8 shadow-sm' : ''}`}
+              style={{ fontSize: 12.5 * zoom, ...(paper ? { maxWidth: 600 * zoom, aspectRatio: '1 / 1.414' } : {}) }}>
               <div className="mb-3 h-2 w-1/3 rounded bg-[var(--surface-3)]" />
               {parts ? (
                 <p>{parts[0]}<mark className="evidence">{preview.highlight}</mark>{parts.slice(1).join(preview.highlight)}</p>
@@ -404,11 +414,15 @@ export function PreviewPane({ title, preview, editable, user = 'e.yilmaz', log =
             </div>
           )}
         </div>
-        {footer && <div className="border-t border-[var(--border)] p-3">{footer}</div>}
+        {(footer || logButton) && (
+          <div className="border-t border-[var(--border)] p-3">
+            {typeof footer === 'function' ? footer(logButton) : <>{footer}{!footer && <div className="flex justify-end">{logButton}</div>}</>}
+          </div>
+        )}
       </section>
 
-      {editable && (
-        <Card title="Düzeltme logu" help="Bu dokümanda yapılan her değişiklik kim, ne zaman ve hangi türde yaptı bilgisiyle kaydedilir. Elle yapılan düzeltmeler 'Manuel düzeltme' olarak işaretlenir." pad={false}>
+      {showLog && (
+        <Modal title="Düzeltme logu" note="Bu dokümanda yapılan her değişiklik kim, ne zaman ve hangi türde yaptı bilgisiyle kaydedilir." onClose={() => setShowLog(false)} wide>
           {entries.length === 0 ? (
             <Empty>Henüz düzeltme yapılmadı.</Empty>
           ) : (
@@ -423,7 +437,7 @@ export function PreviewPane({ title, preview, editable, user = 'e.yilmaz', log =
               ))}
             </Table>
           )}
-        </Card>
+        </Modal>
       )}
     </div>
   )
@@ -476,6 +490,7 @@ export function DocViewer({ title = 'Kaynak', doc, page, pages, clause, body, hi
   const total = Math.max(pages ?? page + 3, page)
   const [range, setRange] = useState(() => around(page, total))
   const [current, setCurrent] = useState(page)
+  const [zoom, setZoom] = useState(1)
   const boxRef = useRef<HTMLDivElement>(null)
   const markRef = useRef<HTMLElement>(null)
   /** Sayfa eklendikten sonra kaydırılacak hedef sayfa */
@@ -558,9 +573,7 @@ export function DocViewer({ title = 'Kaynak', doc, page, pages, clause, body, hi
         <span className="mono truncate text-[11.5px] text-[var(--muted)]">{doc}</span>
         {clause && <Badge tone="accent">Madde {clause}</Badge>}
         <span className="ml-auto flex items-center gap-1.5">
-          <Btn small title="Önceki sayfa" onClick={() => go(current - 1)}>‹</Btn>
-          <span className="tnum text-[12px] text-[var(--muted)]">{current} / {total}</span>
-          <Btn small title="Sonraki sayfa" onClick={() => go(current + 1)}>›</Btn>
+          <ViewerTools page={current} pages={total} onPrev={() => go(current - 1)} onNext={() => go(current + 1)} zoom={zoom} onZoom={setZoom} />
           <Btn small title="Kaynak paragrafa dön" onClick={() => go(page)}>s. {page}</Btn>
         </span>
       </header>
@@ -581,8 +594,8 @@ export function DocViewer({ title = 'Kaynak', doc, page, pages, clause, body, hi
           const after = isTarget ? fillerFor(p, 2, 5) : []
           return (
             <article key={p} data-page={p}
-              className="mx-auto mb-4 flex w-full max-w-[600px] flex-col rounded-sm border border-[var(--border)] bg-white px-9 py-8 text-[12.5px] leading-[1.85] text-[#1f2937] shadow-sm"
-              style={{ aspectRatio: '1 / 1.414' }}>
+              style={{ aspectRatio: '1 / 1.414', maxWidth: 600 * zoom, fontSize: 12.5 * zoom }}
+              className="mx-auto mb-4 flex w-full flex-col rounded-sm border border-[var(--border)] bg-white px-9 py-8 leading-[1.85] text-[#1f2937] shadow-sm">
               <div className="mb-4 flex items-center justify-between border-b border-[#e5e7eb] pb-1.5 text-[10px] text-[#9ca3af]">
                 <span className="truncate">{doc}</span>
                 <span>{p}</span>
@@ -766,14 +779,135 @@ export function Dropzone({ files, onAdd, onRemove }: {
 /* ---------------- Çıktı düğmeleri ---------------- */
 
 /** Her sayfanın sağ üstünde duran çıktı seçenekleri. */
-export function ExportButtons({ extra }: { extra?: ReactNode }) {
+export function ExportButtons({ extra, excluded = 0 }: {
+  extra?: ReactNode
+  /** Pasife çekilen kayıt sayısı — bunlar çıktıya girmez */
+  excluded?: number
+}) {
+  const note = excluded > 0 ? ` · ${excluded} pasif kayıt çıktıya girmez` : ' · bütün kayıtlar çıktıya girer'
   return (
     <>
       {extra}
-      <Btn small title="PDF olarak dışa aktar">PDF</Btn>
-      <Btn small title="Excel olarak dışa aktar">Excel</Btn>
-      <Btn small title="Word olarak dışa aktar">Word</Btn>
+      <Btn small title={`PDF olarak dışa aktar${note}`}>PDF</Btn>
+      <Btn small title={`Excel olarak dışa aktar${note}`}>Excel</Btn>
+      <Btn small title={`Word olarak dışa aktar${note}`}>Word</Btn>
     </>
+  )
+}
+
+/* ---------------- Simge düğmeleri ---------------- */
+
+type IconKind = 'add' | 'edit' | 'delete' | 'open'
+
+const ICON_PATH: Record<IconKind, ReactNode> = {
+  add: <path d="M12 5v14M5 12h14" />,
+  edit: <><path d="M4 20h4L19 9l-4-4L4 16v4z" /><path d="m13.5 6.5 4 4" /></>,
+  delete: <><path d="M4 7h16" /><path d="M9 7V4h6v3" /><path d="M6 7l1 13h10l1-13" /><path d="M10 11v6M14 11v6" /></>,
+  open: <><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></>,
+}
+
+const ICON_TITLE: Record<IconKind, string> = { add: 'Ekle', edit: 'Düzenle', delete: 'Sil', open: 'Aç' }
+
+/**
+ * Bütün arayüzde aynı üç simge: + ekle, kalem düzenle, çöp kutusu sil (göz: aç).
+ * Yazılı düğmeler yerine kullanılır; üzerine gelince ne yaptığı yazar.
+ */
+export function IconBtn({ icon, title, onClick, disabled, primary }: {
+  icon: IconKind; title?: string; onClick?: () => void; disabled?: boolean; primary?: boolean
+}) {
+  const danger = icon === 'delete'
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onClick?.() }}
+      disabled={disabled}
+      title={title ?? ICON_TITLE[icon]}
+      aria-label={title ?? ICON_TITLE[icon]}
+      className={`group inline-grid h-[26px] w-[26px] flex-shrink-0 place-items-center rounded-md border transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${danger ? 'hover:border-[var(--crit)] hover:text-[var(--crit)]' : 'hover:border-[var(--accent)] hover:text-[var(--accent)]'}`}
+      style={primary
+        ? { background: 'var(--accent)', borderColor: 'var(--accent)', color: '#fff' }
+        : { background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--muted)' }}
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+        {ICON_PATH[icon]}
+      </svg>
+    </button>
+  )
+}
+
+/**
+ * Satır sonundaki işlem grubu: aç · düzenle · sil.
+ * Silme onay ister; onay kutusu satırın hemen altında açılır.
+ */
+export function RowActions({ onOpen, onEdit, onDelete, disabled, name, openDisabled, openTitle }: {
+  onOpen?: () => void; onEdit?: () => void; onDelete?: () => void
+  /** Açılacak içerik yoksa göz simgesi pasif durur (sütun hizası bozulmasın) */
+  openDisabled?: boolean
+  openTitle?: string
+  /** Yazma yetkisi yoksa düzenle ve sil kapalı */
+  disabled?: boolean
+  /** Onay sorusunda görünecek kayıt adı */
+  name?: string
+}) {
+  const [asking, setAsking] = useState(false)
+  return (
+    <span className="relative inline-flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+      {onOpen && <IconBtn icon="open" onClick={onOpen} disabled={openDisabled} title={openTitle} />}
+      {onEdit && <IconBtn icon="edit" onClick={onEdit} disabled={disabled} />}
+      {onDelete && <IconBtn icon="delete" onClick={() => setAsking(true)} disabled={disabled} />}
+      {asking && (
+        <span className="absolute right-0 top-[30px] z-50 flex w-56 flex-col gap-2 rounded-md border border-[var(--border)] bg-[var(--surface)] p-2.5 text-left text-[12px] font-normal normal-case tracking-normal shadow-lg">
+          <span className="whitespace-normal text-[var(--ink)]">
+            {name ? <><b>{name}</b> silinsin mi?</> : 'Bu kayıt silinsin mi?'}
+          </span>
+          <span className="flex justify-end gap-1.5">
+            <Btn small onClick={() => setAsking(false)}>Vazgeç</Btn>
+            <button onClick={() => { setAsking(false); onDelete?.() }}
+              className="rounded-md border px-2 py-1 text-[12px] font-medium text-white"
+              style={{ background: 'var(--crit)', borderColor: 'var(--crit)' }}>Sil</button>
+          </span>
+        </span>
+      )}
+    </span>
+  )
+}
+
+/** Aktif / pasif anahtarı — pasif kayıt ekranda gizlenir ve çıktıya girmez. */
+export function Switch({ on, onChange, disabled, title }: {
+  on: boolean; onChange: (v: boolean) => void; disabled?: boolean; title?: string
+}) {
+  return (
+    <button
+      role="switch" aria-checked={on} disabled={disabled}
+      title={title ?? (on ? 'Aktif — pasife çek' : 'Pasif — aktife al')}
+      onClick={(e) => { e.stopPropagation(); onChange(!on) }}
+      className="relative inline-flex h-[16px] w-[28px] flex-shrink-0 items-center rounded-full transition-colors disabled:opacity-45"
+      style={{ background: on ? 'var(--ok)' : 'var(--border-strong)' }}
+    >
+      <span className="absolute h-[12px] w-[12px] rounded-full bg-white shadow transition-all" style={{ left: on ? 14 : 2 }} />
+    </button>
+  )
+}
+
+/* ---------------- Önizleme araçları ---------------- */
+
+export const ZOOMS = [0.7, 0.85, 1, 1.15, 1.3, 1.5]
+
+/** Önizleme sayfalarındaki sayfa sayacı ve yakınlaştır / uzaklaştır. */
+export function ViewerTools({ page, pages, onPrev, onNext, zoom, onZoom }: {
+  page: number; pages?: number; onPrev?: () => void; onNext?: () => void
+  zoom: number; onZoom: (z: number) => void
+}) {
+  const i = ZOOMS.indexOf(zoom)
+  return (
+    <span className="flex items-center gap-1.5">
+      <Btn small title="Önceki sayfa" onClick={onPrev}>‹</Btn>
+      <span className="min-w-[44px] text-center tnum text-[12px] text-[var(--muted)]">{page}{pages ? ` / ${pages}` : ''}</span>
+      <Btn small title="Sonraki sayfa" onClick={onNext}>›</Btn>
+      <span className="mx-0.5 h-4 w-px bg-[var(--border)]" />
+      <Btn small title="Uzaklaştır" disabled={i <= 0} onClick={() => onZoom(ZOOMS[i - 1])}>−</Btn>
+      <span className="w-9 text-center tnum text-[11.5px] text-[var(--muted)]">%{Math.round(zoom * 100)}</span>
+      <Btn small title="Yakınlaştır" disabled={i >= ZOOMS.length - 1} onClick={() => onZoom(ZOOMS[i + 1])}>+</Btn>
+    </span>
   )
 }
 

@@ -1,14 +1,17 @@
 import { useState } from 'react'
 import { contractSections, contractVariables, project } from '../data/mock'
-import { Badge, Btn, Card, Kpi, PageHead, PreviewPane, ReadOnlyNote, StateBadge, Table, Td, Th } from '../components/ui'
+import type { ContractVariable } from '../data/types'
+import { Badge, Btn, Card, Field, IconBtn, Kpi, Modal, PageHead, PreviewPane, ReadOnlyNote, RowActions, StateBadge, StickyPane, Table, Td, Th } from '../components/ui'
 import { pct } from '../lib/format'
 
 /** Şablon + ihale dokümanı verisinden sözleşme taslağı üretimi. */
 export function KontratHazirlama({ writable, role }: { writable: boolean; role: string }) {
   const [sel, setSel] = useState(contractSections[2])
+  const [vars, setVars] = useState<ContractVariable[]>(contractVariables)
+  const [editVar, setEditVar] = useState<ContractVariable | 'new' | null>(null)
 
   const ready = contractSections.filter((s) => s.state === 'Taslak hazır' || s.state === 'Onaylandı').length
-  const filled = contractVariables.filter((v) => v.filled).length
+  const filled = vars.filter((v) => v.filled).length
   const completion = Math.round((ready / contractSections.length) * 100)
 
   return (
@@ -27,7 +30,7 @@ export function KontratHazirlama({ writable, role }: { writable: boolean; role: 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi label="Tamamlanma" value={pct(completion)} sub={`${ready}/${contractSections.length} bölüm hazır`} tone={completion > 70 ? 'ok' : 'warn'}
           help="Taslağı hazır ve onaylanmış bölümlerin toplam bölüme oranı." />
-        <Kpi label="Değişkenler" value={`${filled}/${contractVariables.length}`} sub="Otomatik dolduruldu" tone="accent"
+        <Kpi label="Değişkenler" value={`${filled}/${vars.length}`} sub="Otomatik dolduruldu" tone="accent"
           help="Sözleşme metnindeki boşlukların (işveren, süre, bedel, ceza…) ihale dokümanından otomatik doldurulan kısmı." />
         <Kpi label="Boş bölüm" value={contractSections.filter((s) => s.state === 'Boş').length} sub="Veri bekliyor" tone="crit"
           help="Gerekli veri gelmediği için henüz üretilemeyen bölümler." />
@@ -54,24 +57,31 @@ export function KontratHazirlama({ writable, role }: { writable: boolean; role: 
             </Table>
           </Card>
 
-          <Card title="Sözleşme değişkenleri" help="Sözleşme metnindeki doldurulacak alanlar. Değer ihale dokümanından çıkarılır ve kaynağı gösterilir; boş olanlar teklif sonrası netleşir." pad={false}>
-            <Table head={<tr><Th w={150}>Alan</Th><Th w={210}>Değer</Th><Th w={150}>Kaynak</Th></tr>}>
-              {contractVariables.map((v) => (
+          <Card title="Sözleşme değişkenleri" help="Sözleşme metnindeki doldurulacak alanlar. Değer ihale dokümanından çıkarılır ve kaynağı gösterilir; boş olanlar teklif sonrası netleşir."
+            right={<IconBtn icon="add" primary title="Değişken ekle" disabled={!writable} onClick={() => setEditVar('new')} />} pad={false}>
+            <Table head={<tr><Th w={100}>Alan</Th><Th w={150}>Değer</Th><Th w={100}>Kaynak</Th><Th w={64} center>İşlem</Th></tr>}>
+              {vars.map((v) => (
                 <tr key={v.key} className="hover:bg-[var(--surface-2)]">
-                  <Td nowrap><span className="font-medium text-[var(--ink)]">{v.label}</span></Td>
+                  <Td><span className="font-medium text-[var(--ink)]">{v.label}</span></Td>
                   <Td>
                     <span className={v.filled ? 'text-[var(--ink)]' : 'text-[var(--crit)]'}>{v.value}</span>
                     {!v.filled && <span className="ml-2"><Badge tone="crit">boş</Badge></span>}
                   </Td>
-                  <Td nowrap><span className="text-[11.5px] text-[var(--faint)]">{v.source}</span></Td>
+                  <Td><span className="text-[11.5px] text-[var(--faint)]">{v.source}</span></Td>
+                  <Td nowrap center>
+                    <RowActions name={v.label} disabled={!writable} onEdit={() => setEditVar(v)}
+                      onDelete={() => setVars((l) => l.filter((x) => x.key !== v.key))} />
+                  </Td>
                 </tr>
               ))}
             </Table>
           </Card>
         </div>
 
-        <div className="flex flex-col gap-4 lg:col-span-7">
+        <div className="lg:col-span-7">
+          <StickyPane>
           <PreviewPane
+            paper
             title={`Önizleme — ${sel.no}. ${sel.title}`}
             editable={writable}
             user="a.koc"
@@ -95,24 +105,64 @@ export function KontratHazirlama({ writable, role }: { writable: boolean; role: 
                   + `${sel.no}.4. Gecikme hâlinde, gecikilen her takvim günü için sözleşme bedelinin on binde beşi oranında ceza uygulanır; `
                   + `toplam ceza sözleşme bedelinin %10’unu geçemez.`,
             }}
-            footer={
+            footer={(logButton) => (
               <div className="flex flex-col gap-2">
                 <div className="rounded border border-dashed px-3 py-2 text-[12px]" style={{ borderColor: 'var(--warn)', background: 'var(--warn-bg)', color: 'var(--warn)' }}>
                   ⚠ Revizyon notu: İhale dokümanında ceza tavanı %15’tir. Bu taslakta %10 olarak yazıldı ve zeyilname talebine bağlandı.
                   Talep kabul edilmezse metin geri alınmalıdır.
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
+                  <Btn small primary disabled={!writable}>Hukuka gönder</Btn>
                   <Badge tone="neutral">Kaynak: {sel.source}</Badge>
                   {sel.filledBy && <Badge tone="accent">Dolduran: {sel.filledBy}</Badge>}
-                  <span className="ml-auto flex gap-1.5">
-                    <Btn small disabled={!writable}>Hukuka gönder</Btn>
-                  </span>
+                  <span className="ml-auto">{logButton}</span>
                 </div>
               </div>
-            }
+            )}
           />
+          </StickyPane>
         </div>
       </div>
+
+      {editVar && (
+        <VarModal v={editVar === 'new' ? null : editVar} onClose={() => setEditVar(null)}
+          onSave={(v) => {
+            setVars((l) => (l.some((x) => x.key === v.key) ? l.map((x) => (x.key === v.key ? v : x)) : [...l, v]))
+            setEditVar(null)
+          }} />
+      )}
     </>
+  )
+}
+
+
+/** Sözleşme değişkeni ekleme / düzenleme. */
+function VarModal({ v, onClose, onSave }: { v: ContractVariable | null; onClose: () => void; onSave: (v: ContractVariable) => void }) {
+  const [label, setLabel] = useState(v?.label ?? '')
+  const [value, setValue] = useState(v?.filled ? v.value : '')
+  const [source, setSource] = useState(v?.source ?? '')
+  const ready = label.trim().length > 1
+
+  return (
+    <Modal
+      title={v ? 'Değişkeni düzenle' : 'Değişken ekle'}
+      note="Sözleşme metnindeki doldurulacak alan. Değer boş bırakılırsa 'boş' işaretlenir ve taslakta vurgulanır."
+      onClose={onClose}
+      footer={<>
+        <span className="ml-auto flex gap-2">
+          <Btn onClick={onClose}>Vazgeç</Btn>
+          <Btn primary disabled={!ready} onClick={() => onSave({
+            key: v?.key ?? `v${Date.now()}`, label: label.trim(),
+            value: value.trim() || '— (doldurulacak)', filled: !!value.trim(), source: source.trim() || 'Elle girildi',
+          })}>Kaydet</Btn>
+        </span>
+      </>}
+    >
+      <div className="flex flex-col gap-3">
+        <Field label="Alan" value={label} onChange={setLabel} placeholder="Ör. Sigorta bedeli" />
+        <Field label="Değer" value={value} onChange={setValue} />
+        <Field label="Kaynak" value={source} onChange={setSource} placeholder="Ör. Özel Şartlar 18.1" />
+      </div>
+    </Modal>
   )
 }

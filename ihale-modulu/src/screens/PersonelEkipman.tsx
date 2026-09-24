@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { equipmentPlan, project, staffPlan } from '../data/mock'
 import type { EquipmentItem, StaffItem } from '../data/types'
 import {
-  AddonBadge, Badge, Btn, Card, ExportButtons, Kpi, Modal, PageHead, ReadOnlyNote, Table, Td, Th,
+  AddonBadge, Badge, Btn, Card, ExportButtons, IconBtn, Kpi, Modal, PageHead, ReadOnlyNote, RowActions, Table, Td, Th,
 } from '../components/ui'
 import { money, moneyShort, num } from '../lib/format'
 
@@ -45,7 +45,6 @@ export function PersonelEkipman({ writable, role }: { writable: boolean; role: s
         right={<>
           <AddonBadge />
           <ExportButtons />
-          <Btn primary disabled={!writable}>+ Satır ekle</Btn>
         </>}
       />
 
@@ -62,12 +61,28 @@ export function PersonelEkipman({ writable, role }: { writable: boolean; role: s
           help="Adet × aylık maliyet × kullanım ayı. Kiralık ekipman fiyat dalgalanması Teklif Riskleri R12 ile bağlantılıdır." />
       </div>
 
+      <Card title="Şantiye genel giderine yansıma" help="Personel ve ekipman toplamı, teklif fiyatındaki şantiye genel gideri kaleminin ana bileşenidir.">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <Total label="Personel" value={staffCost} tone="var(--ink)" />
+          <Total label="Makine ve ekipman" value={equipCost} tone="var(--ink)" />
+          <Total label="Toplam şantiye kadrosu gideri" value={staffCost + equipCost} tone="var(--ink)" />
+        </div>
+        <p className="mt-3 text-[12px] leading-relaxed text-[var(--muted)]">
+          Aylık dağılım iş programındaki sürelere bağlıdır: bir aktivite uzarsa o aylardaki kadro ve ekipman
+          gideri de doğrudan artar. Kiralık deniz ekipmanının fiyat dalgalanması Teklif Riskleri sekmesindeki
+          R12 riskiyle eşleşir.
+        </p>
+      </Card>
+
       {/* Sol: personel · Sağ: makine-ekipman */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <Card
           title={`Personel (${staff.length})`}
           help="Satıra tıklayınca görevin ayrıntısı ve hangi aylarda sahada olacağı açılır. Aylar işaretlendikçe toplam gider güncellenir."
-          right={<Btn small disabled={!writable}>+ Personel</Btn>}
+          right={<IconBtn icon="add" title="Personel ekle" disabled={!writable} onClick={() => {
+            const row: StaffItem = { id: `P${Date.now()}`, title: 'Yeni görev', duty: 'Görev tanımı girilecek', count: 1, monthlyCost: 0, months: [] }
+            setStaff((l) => [...l, row]); setOpenStaff(row)
+          }} />}
           pad={false}
         >
           <Table head={
@@ -93,7 +108,10 @@ export function PersonelEkipman({ writable, role }: { writable: boolean; role: s
                 <Td right><span title={`Net maaş × ${GROSS_FACTOR} — İK tanımlarına göre güncellenecek`}>{num(gross(s.monthlyCost))}</span></Td>
                 <Td right>{s.months.length}</Td>
                 <Td right><span className="font-semibold text-[var(--ink)]">{num(s.count * gross(s.monthlyCost) * s.months.length)}</span></Td>
-                <Td nowrap center><Btn small minW={68} disabled={!writable} onClick={() => setOpenStaff(s)}>Düzenle</Btn></Td>
+                <Td nowrap center>
+                  <RowActions name={s.title} disabled={!writable} onEdit={() => setOpenStaff(s)}
+                    onDelete={() => setStaff((l) => l.filter((x) => x.id !== s.id))} />
+                </Td>
               </tr>
             ))}
             <tr>
@@ -111,7 +129,10 @@ export function PersonelEkipman({ writable, role }: { writable: boolean; role: s
         <Card
           title={`Makine ve ekipman (${equipment.length})`}
           help="Kendi filomuzdaki ekipman amortisman, kiralananlar kira bedeliyle hesaplanır. Satıra tıklayınca kullanım ayları işaretlenir."
-          right={<Btn small disabled={!writable}>+ Ekipman</Btn>}
+          right={<IconBtn icon="add" title="Ekipman ekle" disabled={!writable} onClick={() => {
+            const row: EquipmentItem = { id: `E${Date.now()}`, name: 'Yeni ekipman', group: 'Genel', count: 1, monthlyCost: 0, months: [], ownership: 'Kira' }
+            setEquipment((l) => [...l, row]); setOpenEquip(row)
+          }} />}
           pad={false}
         >
           <Table head={
@@ -138,7 +159,10 @@ export function PersonelEkipman({ writable, role }: { writable: boolean; role: s
                 <Td right>{num(e.monthlyCost)}</Td>
                 <Td right>{e.months.length}</Td>
                 <Td right><span className="font-semibold text-[var(--ink)]">{num(e.count * e.monthlyCost * e.months.length)}</span></Td>
-                <Td nowrap center><Btn small minW={68} disabled={!writable} onClick={() => setOpenEquip(e)}>Düzenle</Btn></Td>
+                <Td nowrap center>
+                  <RowActions name={e.name} disabled={!writable} onEdit={() => setOpenEquip(e)}
+                    onDelete={() => setEquipment((l) => l.filter((x) => x.id !== e.id))} />
+                </Td>
               </tr>
             ))}
             <tr>
@@ -153,18 +177,6 @@ export function PersonelEkipman({ writable, role }: { writable: boolean; role: s
         </Card>
       </div>
 
-      <Card title="Şantiye genel giderine yansıma" help="Personel ve ekipman toplamı, teklif fiyatındaki şantiye genel gideri kaleminin ana bileşenidir.">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Total label="Personel" value={staffCost} tone="var(--ink)" />
-          <Total label="Makine ve ekipman" value={equipCost} tone="var(--ink)" />
-          <Total label="Toplam şantiye kadrosu gideri" value={staffCost + equipCost} tone="var(--ink)" />
-        </div>
-        <p className="mt-3 text-[12px] leading-relaxed text-[var(--muted)]">
-          Aylık dağılım iş programındaki sürelere bağlıdır: bir aktivite uzarsa o aylardaki kadro ve ekipman
-          gideri de doğrudan artar. Kiralık deniz ekipmanının fiyat dalgalanması Teklif Riskleri sekmesindeki
-          R12 riskiyle eşleşir.
-        </p>
-      </Card>
 
       {openStaff && (
         <MonthModal

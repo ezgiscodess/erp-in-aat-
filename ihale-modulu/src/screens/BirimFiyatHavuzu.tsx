@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { boqItems, unitPrices } from '../data/mock'
-import type { UnitPrice } from '../data/types'
-import { Badge, Btn, Card, ExportButtons, Chips, Empty, Kpi, PageHead, ReadOnlyNote, Search, Table, Td, Th } from '../components/ui'
+import type { TabKey, UnitPrice } from '../data/types'
+import { Badge, Btn, Card, ExportButtons, Chips, Empty, Kpi, PageHead, ReadOnlyNote, RowActions, Search, Table, Td, Th } from '../components/ui'
 import { date, num } from '../lib/format'
 
 type Filter = 'Tümü' | 'Analiz' | 'BCBS' | 'Piyasa teklifi' | 'Geçmiş proje'
@@ -10,12 +10,13 @@ type Filter = 'Tümü' | 'Analiz' | 'BCBS' | 'Piyasa teklifi' | 'Geçmiş proje'
  * Firmanın kendi birim fiyat havuzu. Projeye değil firmaya aittir; arka planda çalışır ve
  * metraj kalemleri poz numarası ile buradan fiyatlanır.
  */
-export function BirimFiyatHavuzu({ writable, role }: { writable: boolean; role: string }) {
+export function BirimFiyatHavuzu({ writable, role, onGo }: { writable: boolean; role: string; onGo?: (t: TabKey) => void }) {
+  const [prices, setPrices] = useState<UnitPrice[]>(unitPrices)
   const [filter, setFilter] = useState<Filter>('Tümü')
   const [q, setQ] = useState('')
   const [draft, setDraft] = useState(false)
 
-  const rows = unitPrices.filter((u) => {
+  const rows = prices.filter((u) => {
     if (filter !== 'Tümü' && u.source !== filter) return false
     if (q.trim()) {
       const s = q.toLocaleLowerCase('tr')
@@ -25,14 +26,14 @@ export function BirimFiyatHavuzu({ writable, role }: { writable: boolean; role: 
   })
 
   const counts = useMemo(() => {
-    const c: Record<string, number> = { 'Tümü': unitPrices.length }
-    for (const u of unitPrices) c[u.source] = (c[u.source] ?? 0) + 1
+    const c: Record<string, number> = { 'Tümü': prices.length }
+    for (const u of prices) c[u.source] = (c[u.source] ?? 0) + 1
     return c
-  }, [])
+  }, [prices])
 
   /** Bu projede kullanılan ama havuzda olmayan pozlar */
   const missing = boqItems.filter((b) => b.poolMatch === 'Eşleşmedi')
-  const stale = unitPrices.filter((u) => new Date(u.updatedAt) < new Date('2026-06-01'))
+  const stale = prices.filter((u) => new Date(u.updatedAt) < new Date('2026-06-01'))
 
   return (
     <>
@@ -40,6 +41,7 @@ export function BirimFiyatHavuzu({ writable, role }: { writable: boolean; role: 
         title="Birim Fiyat Havuzu"
         note="Firmanın kendi poz numarası ve iş kalemi bazlı fiyat havuzu. Bu havuz projeye değil firmaya aittir: bir kez girilen fiyat bütün ihalelerde kullanılır. İhale dokümanındaki metraj kalemleri poz numarası ile buradan fiyatlanır."
         right={<>
+          {onGo && <Btn onClick={() => onGo('boq')} title="Havuz arka planda çalışır; buraya Metraj sekmesinden gelinir">← Metraja dön</Btn>}
           <Btn disabled={!writable}>BCBS Excel'i içe aktar</Btn>
           <ExportButtons />
           <Btn primary disabled={!writable} onClick={() => setDraft((v) => !v)}>+ Birim fiyat ekle</Btn>
@@ -49,7 +51,7 @@ export function BirimFiyatHavuzu({ writable, role }: { writable: boolean; role: 
       {!writable && <ReadOnlyNote role={role} />}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi label="Havuzdaki poz" value={unitPrices.length} sub="Tüm projelerde ortak"
+        <Kpi label="Havuzdaki poz" value={prices.length} sub="Tüm projelerde ortak"
           help="Firmanın tanımladığı toplam iş kalemi sayısı. Kaynağı kendi analizimiz, BCBS, piyasa teklifi veya geçmiş proje olabilir." />
         <Kpi label="Bu projede eksik" value={missing.length} sub="Metrajda var, havuzda yok" tone="crit"
           help="Bu ihalenin metraj listesinde olup havuzda karşılığı bulunmayan pozlar. Teklif öncesi fiyatlandırılmalı." />
@@ -119,7 +121,10 @@ export function BirimFiyatHavuzu({ writable, role }: { writable: boolean; role: 
           {rows.length === 0 && (
             <tr><Td className="text-center"><Empty>Bu filtrede kayıt yok.</Empty></Td></tr>
           )}
-          {rows.map((u) => <Row key={u.id} u={u} writable={writable} />)}
+          {rows.map((u) => (
+            <Row key={u.id} u={u} writable={writable} onEdit={() => setDraft(true)}
+              onDelete={() => setPrices((l) => l.filter((x) => x.id !== u.id))} />
+          ))}
         </Table>
       </Card>
 
@@ -136,7 +141,7 @@ export function BirimFiyatHavuzu({ writable, role }: { writable: boolean; role: 
   )
 }
 
-function Row({ u, writable }: { u: UnitPrice; writable: boolean }) {
+function Row({ u, writable, onEdit, onDelete }: { u: UnitPrice; writable: boolean; onEdit: () => void; onDelete: () => void }) {
   const old = new Date(u.updatedAt) < new Date('2026-06-01')
   const tone = u.source === 'BCBS' ? 'neutral' : u.source === 'Analiz' ? 'accent' : u.source === 'Piyasa teklifi' ? 'ok' : 'warn'
   return (
@@ -152,7 +157,7 @@ function Row({ u, writable }: { u: UnitPrice; writable: boolean }) {
         <div className="text-[11px]" style={{ color: old ? 'var(--warn)' : 'var(--faint)' }}>{old ? 'güncellenmeli' : u.updatedBy}</div>
       </Td>
       <Td right><span className="text-[12px] text-[var(--muted)]">{u.usedIn} proje</span></Td>
-      <Td nowrap center><Btn small minW={76} disabled={!writable}>Düzenle</Btn></Td>
+      <Td nowrap center><RowActions name={`Poz ${u.no}`} disabled={!writable} onEdit={onEdit} onDelete={onDelete} /></Td>
     </tr>
   )
 }

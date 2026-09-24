@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { boqItems, criticalTerms, project, scopeSections, timeline } from '../data/mock'
-import { Badge, Btn, Card, ExportButtons, Field, Kpi, Modal, PageHead, ReadOnlyNote, StateBadge, Table, Td, Th } from '../components/ui'
+import { Badge, Btn, Card, ExportButtons, Field, IconBtn, Kpi, Modal, PageHead, ReadOnlyNote, StateBadge, Table, Td, Th } from '../components/ui'
 import { date, daysLabel, money, num } from '../lib/format'
 
 /** İhalenin künyesi: tek bakışta "bu iş nedir, ne zaman, hangi koşullarla". Alanlar elle düzeltilebilir. */
@@ -64,7 +64,9 @@ export function BilgiPaneli({ writable, role }: { writable: boolean; role: strin
             right={writable
               ? <>
                 <Btn small onClick={() => setAddingField(true)} title="Künyeye yeni bilgi alanı ekle">Künyeyi düzenle</Btn>
-                <Btn small minW={76} primary={editKunye} onClick={() => setEditKunye((v) => !v)}>{editKunye ? 'Kaydet' : '✎ Düzenle'}</Btn>
+                {editKunye
+                  ? <Btn small primary onClick={() => setEditKunye(false)}>Kaydet</Btn>
+                  : <IconBtn icon="edit" title="Künye değerlerini düzenle" onClick={() => setEditKunye(true)} />}
               </>
               : undefined}
             pad={false}
@@ -93,7 +95,7 @@ export function BilgiPaneli({ writable, role }: { writable: boolean; role: strin
             <Card
               title="Kapsam bilgisi"
               help="İşin kapsamı, ana imalat kalemleri, işverenin sağlayacakları, kapsam dışı işler ve çalışma kısıtları. Doküman analizinden çıkarılır, kaynağı her bölümün altında yazar."
-              right={writable ? <Btn small>✎ Düzenle</Btn> : undefined}
+              right={writable ? <IconBtn icon="edit" title="Kapsam bilgisini düzenle" /> : undefined}
             >
               <div className="flex flex-col gap-3">
                 {scopeSections.map((s) => (
@@ -116,7 +118,9 @@ export function BilgiPaneli({ writable, role }: { writable: boolean; role: strin
             title="Takvim"
             help="İhale sürecinin kilit tarihleri. Zeyilname ile tarih değişirse buradan güncellenir; değişiklik loga düşer."
             right={writable
-              ? <Btn small primary={editTakvim} onClick={() => setEditTakvim((v) => !v)}>{editTakvim ? 'Kaydet' : '✎ Düzenle'}</Btn>
+              ? (editTakvim
+                ? <Btn small primary onClick={() => setEditTakvim(false)}>Kaydet</Btn>
+                : <IconBtn icon="edit" title="Takvimi düzenle" onClick={() => setEditTakvim(true)} />)
               : undefined}
             pad={false}
           >

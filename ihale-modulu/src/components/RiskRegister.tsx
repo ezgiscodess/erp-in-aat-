@@ -3,8 +3,8 @@ import type { ReactNode } from 'react'
 import { project } from '../data/mock'
 import type { BidRisk } from '../data/types'
 import {
-  Badge, Btn, Card, ColumnFilter, DocViewer, ExportButtons, PageHead, ReadOnlyNote,
-  StateBadge, StickyPane, Table, Td, Th,
+  Badge, Btn, Card, ColumnFilter, DocViewer, ExportButtons, Field, Modal, PageHead, ReadOnlyNote,
+  RowActions, StateBadge, StickyPane, Table, Td, Th,
 } from './ui'
 import { money, moneyShort, num, pct } from '../lib/format'
 
@@ -40,7 +40,7 @@ export interface RiskTotals {
  * Karşılık otomatik hesaplanmaz; her satır için ayrı ayrı karar verilir.
  * Solda kayıtlar ve seçili riskin hesabı, sağda yalnızca kaynak doküman durur.
  */
-export function RiskRegister({ title, note, risks, writable, role, kpis, source }: {
+export function RiskRegister({ title, note, risks: initial, writable, role, kpis, source }: {
   title: string
   note: string
   risks: BidRisk[]
@@ -49,17 +49,26 @@ export function RiskRegister({ title, note, risks, writable, role, kpis, source 
   kpis: (t: RiskTotals) => ReactNode
   source: (r: BidRisk) => RiskSource
 }) {
-  const [sel, setSel] = useState<BidRisk>(risks[0])
+  const [list, setList] = useState<BidRisk[]>(initial)
+  const [sel, setSel] = useState<BidRisk>(initial[0])
+  /**
+   * İki tik: "Aktif" riskin ekranda görünüp çıktıya girmesini,
+   * "Teklifte" karşılığın teklif fiyatına etki etmesini belirler. Standartta hepsi aktiftir.
+   */
+  const [passive, setPassive] = useState<string[]>([])
+  const [showPassive, setShowPassive] = useState(false)
+  const [editing, setEditing] = useState<BidRisk | 'new' | null>(null)
+  const risks = list.filter((r) => !passive.includes(r.id))
   /** Toplu işlem için işaretlenen riskler */
   const [checked, setChecked] = useState<string[]>([])
   const [catFilter, setCatFilter] = useState('Tümü')
   const [stateFilter, setStateFilter] = useState('Tümü')
   /** Karşılık tutarları ve teklife dâhil olup olmadığı — ekranda değiştirilebilir. */
   const [prov, setProv] = useState<Record<string, number>>(
-    Object.fromEntries(risks.map((r) => [r.id, r.provision])),
+    Object.fromEntries(initial.map((r) => [r.id, r.provision])),
   )
   const [inBid, setInBid] = useState<Record<string, boolean>>(
-    Object.fromEntries(risks.map((r) => [r.id, r.inBid])),
+    Object.fromEntries(initial.map((r) => [r.id, r.inBid])),
   )
 
   const totals = useMemo(() => ({
@@ -68,11 +77,25 @@ export function RiskRegister({ title, note, risks, writable, role, kpis, source 
     provision: risks.reduce((a, r) => a + (inBid[r.id] ? prov[r.id] : 0), 0),
   }), [risks, prov, inBid])
 
-  const rows = risks
+  const rows = (showPassive ? list : risks)
     .filter((r) => (catFilter === 'Tümü' || r.category === catFilter) && (stateFilter === 'Tümü' || r.state === stateFilter))
     .sort((a, b) => b.probability * b.impact - a.probability * a.impact)
 
   const src = source(sel)
+
+  function save(r: BidRisk) {
+    setList((l) => (l.some((x) => x.id === r.id) ? l.map((x) => (x.id === r.id ? r : x)) : [...l, r]))
+    setProv((v) => ({ ...v, [r.id]: v[r.id] ?? r.provision }))
+    setInBid((v) => ({ ...v, [r.id]: v[r.id] ?? r.inBid }))
+    setSel(r)
+    setEditing(null)
+  }
+
+  function remove(id: string) {
+    const rest = list.filter((x) => x.id !== id)
+    setList(rest)
+    if (sel.id === id && rest[0]) setSel(rest[0])
+  }
 
   return (
     <>
@@ -80,8 +103,8 @@ export function RiskRegister({ title, note, risks, writable, role, kpis, source 
         title={title}
         note={note}
         right={<>
-          <ExportButtons />
-          <Btn primary disabled={!writable}>+ Risk ekle</Btn>
+          <ExportButtons excluded={passive.length} />
+          <Btn primary disabled={!writable} onClick={() => setEditing('new')}>+ Risk ekle</Btn>
         </>}
       />
 
@@ -106,7 +129,13 @@ export function RiskRegister({ title, note, risks, writable, role, kpis, source 
 
           <Card
             title="Risk kayıtları"
-            help="O = olasılık (1–5), E = etki (1–5), Skor = O × E. “Karşılık” teklife eklenen tutardır; kutucuk işaretliyse teklif fiyatına girer. Satıra tıklayınca hesabı aşağıda, dayandığı doküman sağda açılır."
+            help="O = olasılık (1–5), E = etki (1–5), Skor = O × E. İki tik vardır: “Aktif” işaretliyse risk ekranda görünür ve PDF / Excel / Word çıktısına girer; “Teklifte” işaretliyse karşılığı teklif fiyatına etki eder. Satıra tıklayınca hesabı aşağıda, dayandığı doküman sağda açılır."
+            right={passive.length > 0
+              ? <label className="flex items-center gap-1.5 text-[11.5px] text-[var(--muted)]">
+                <input type="checkbox" checked={showPassive} onChange={() => setShowPassive((v) => !v)} />
+                Pasifleri göster ({passive.length})
+              </label>
+              : undefined}
             pad={false}
           >
             <Table head={
@@ -115,7 +144,7 @@ export function RiskRegister({ title, note, risks, writable, role, kpis, source 
                   <input type="checkbox" checked={checked.length === rows.length && rows.length > 0}
                     onChange={(e) => setChecked(e.target.checked ? rows.map((r) => r.id) : [])} />
                 </Th>
-                <Th w={210}>
+                <Th w={190}>
                   <span className="flex items-center gap-1.5">
                     Risk ve bedelin hesabı
                     <ColumnFilter value={catFilter} onChange={setCatFilter} values={[...new Set(risks.map((r) => r.category))]} />
@@ -124,6 +153,7 @@ export function RiskRegister({ title, note, risks, writable, role, kpis, source 
                 <Th w={48}>O × E</Th>
                 <Th w={86} right>Bedel</Th>
                 <Th w={96} right>Karşılık</Th>
+                <Th w={40} center>Aktif</Th>
                 <Th w={40}>
                   <span className="flex items-center gap-1.5">
                     Teklifte
@@ -136,7 +166,10 @@ export function RiskRegister({ title, note, risks, writable, role, kpis, source 
                 const s = r.probability * r.impact
                 return (
                   <tr key={r.id} onClick={() => setSel(r)} className="cursor-pointer hover:bg-[var(--surface-2)]"
-                    style={sel.id === r.id ? { background: 'var(--accent-soft)' } : undefined}>
+                    style={{
+                      ...(sel.id === r.id ? { background: 'var(--accent-soft)' } : {}),
+                      ...(passive.includes(r.id) ? { opacity: 0.5 } : {}),
+                    }}>
                     <Td nowrap>
                       <input type="checkbox" checked={checked.includes(r.id)}
                         onClick={(e) => e.stopPropagation()}
@@ -156,8 +189,15 @@ export function RiskRegister({ title, note, risks, writable, role, kpis, source 
                         {prov[r.id] ? num(prov[r.id]) : '—'}
                       </span>
                     </Td>
-                    <Td nowrap>
-                      <input type="checkbox" checked={!!inBid[r.id]} disabled={!writable}
+                    <Td nowrap center>
+                      <input type="checkbox" checked={!passive.includes(r.id)} disabled={!writable}
+                        title="Aktif: ekranda görünür ve çıktıya girer"
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={() => setPassive((p) => (p.includes(r.id) ? p.filter((x) => x !== r.id) : [...p, r.id]))} />
+                    </Td>
+                    <Td nowrap center>
+                      <input type="checkbox" checked={!!inBid[r.id]} disabled={!writable || passive.includes(r.id)}
+                        title="Teklifte: karşılık teklif fiyatına etki eder"
                         onClick={(e) => e.stopPropagation()}
                         onChange={() => setInBid((v) => ({ ...v, [r.id]: !v[r.id] }))} />
                     </Td>
@@ -174,6 +214,7 @@ export function RiskRegister({ title, note, risks, writable, role, kpis, source 
                 <Td className="bg-[var(--surface-2)]" right><span className="text-[12px] text-[var(--muted)] tnum">{num(totals.worst)}</span></Td>
                 <Td className="bg-[var(--surface-2)]" right><span className="text-[12.5px] font-bold text-[var(--accent)] tnum">{num(totals.provision)}</span></Td>
                 <Td className="bg-[var(--surface-2)]">{''}</Td>
+                <Td className="bg-[var(--surface-2)]">{''}</Td>
               </tr>
             </Table>
           </Card>
@@ -182,7 +223,10 @@ export function RiskRegister({ title, note, risks, writable, role, kpis, source 
           <Card
             title={sel.title}
             subtitle={`${sel.category} · sorumlu: ${sel.owner}`}
-            right={<StateBadge value={sel.state} />}
+            right={<>
+              <StateBadge value={sel.state} />
+              <RowActions name={sel.title} disabled={!writable} onEdit={() => setEditing(sel)} onDelete={() => remove(sel.id)} />
+            </>}
           >
             <div className="flex flex-col gap-3 text-[12.5px]">
               <p className="leading-relaxed text-[var(--ink)]">{sel.description}</p>
@@ -235,7 +279,6 @@ export function RiskRegister({ title, note, risks, writable, role, kpis, source 
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <Btn small disabled={!writable}>Önlemi güncelle</Btn>
                 <Btn small primary disabled={!writable}>Karşılığı teklife işle</Btn>
               </div>
             </div>
@@ -247,6 +290,11 @@ export function RiskRegister({ title, note, risks, writable, role, kpis, source 
           <DocViewer {...src} />
         </StickyPane>
       </div>
+
+      {editing && (
+        <RiskModal risk={editing === 'new' ? null : editing} categories={[...new Set(list.map((r) => r.category))]}
+          onClose={() => setEditing(null)} onSave={save} />
+      )}
     </>
   )
 }
@@ -257,5 +305,62 @@ function Mini({ label, value }: { label: string; value: string }) {
       <div className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--faint)]">{label}</div>
       <div className="mt-0.5 text-[13px] font-semibold text-[var(--ink)] tnum">{value}</div>
     </div>
+  )
+}
+
+/** Risk ekleme / düzenleme — ekle ve düzenle aynı formu kullanır. */
+function RiskModal({ risk, categories, onClose, onSave }: {
+  risk: BidRisk | null; categories: string[]; onClose: () => void; onSave: (r: BidRisk) => void
+}) {
+  const [title, setTitle] = useState(risk?.title ?? '')
+  const [category, setCategory] = useState(risk?.category ?? categories[0] ?? 'Genel')
+  const [description, setDescription] = useState(risk?.description ?? '')
+  const [probability, setProbability] = useState(String(risk?.probability ?? 3))
+  const [impact, setImpact] = useState(String(risk?.impact ?? 3))
+  const [cost, setCost] = useState(String(risk?.costImpact ?? 0))
+  const [basis, setBasis] = useState(risk?.basis ?? '')
+  const [mitigation, setMitigation] = useState(risk?.mitigation ?? '')
+  const [owner, setOwner] = useState(risk?.owner ?? '')
+  const ready = title.trim().length > 2
+  const clamp = (v: string) => Math.min(5, Math.max(1, Number(v) || 1)) as BidRisk['probability']
+
+  return (
+    <Modal
+      title={risk ? 'Riski düzenle' : 'Risk ekle'}
+      note="Bedelin açık hesabını (metraj × birim fiyat × oran) yazın; sayının nereden geldiği görünür olmalı."
+      onClose={onClose}
+      wide
+      footer={<>
+        <span className="text-[11.5px] text-[var(--faint)]">{ready ? 'Kaydedilmeye hazır' : 'Risk adı zorunlu'}</span>
+        <span className="ml-auto flex gap-2">
+          <Btn onClick={onClose}>Vazgeç</Btn>
+          <Btn primary disabled={!ready} onClick={() => onSave({
+            ...(risk ?? { id: `R${Date.now()}`, timeImpact: 0, state: 'Açık' as const, provision: 0, inBid: false }),
+            title: title.trim(), category, description: description.trim(),
+            probability: clamp(probability), impact: clamp(impact) as BidRisk['impact'],
+            costImpact: Number(cost) || 0, basis: basis.trim(), mitigation: mitigation.trim(), owner: owner.trim() || '—',
+          })}>Kaydet</Btn>
+        </span>
+      </>}
+    >
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Field label="Risk" value={title} onChange={setTitle} placeholder="Ör. Kazık boyu belirsizliği" />
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Kategori</span>
+          <input list="risk-cats" value={category} onChange={(e) => setCategory(e.target.value)}
+            className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-2 text-[13px] text-[var(--ink)] outline-none focus:border-[var(--accent)]" />
+          <datalist id="risk-cats">{categories.map((c) => <option key={c} value={c} />)}</datalist>
+        </label>
+        <div className="sm:col-span-2"><Field label="Açıklama" value={description} onChange={setDescription} /></div>
+        <div className="grid grid-cols-3 gap-3 sm:col-span-2">
+          <Field label="Olasılık (1–5)" value={probability} onChange={setProbability} type="number" />
+          <Field label="Etki (1–5)" value={impact} onChange={setImpact} type="number" />
+          <Field label={`Bedel (${project.currency})`} value={cost} onChange={setCost} type="number" />
+        </div>
+        <div className="sm:col-span-2"><Field label="Bedelin hesabı" value={basis} onChange={setBasis} placeholder="Ör. 9.850 ton × 1.640 EUR/ton × %12" /></div>
+        <div className="sm:col-span-2"><Field label="Önlem" value={mitigation} onChange={setMitigation} /></div>
+        <Field label="Sorumlu" value={owner} onChange={setOwner} />
+      </div>
+    </Modal>
   )
 }

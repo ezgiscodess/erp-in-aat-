@@ -39,6 +39,8 @@ export interface TabDef {
   label: string
   /** Ek pakette satılan sekmeler (gereksinim tablosunda sarı işaretli) */
   addon?: boolean
+  /** Arka planda çalışan sekme — yan panelde görünmez, ilgili ekranlardan açılır */
+  hidden?: boolean
   note: string
 }
 

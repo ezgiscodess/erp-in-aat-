@@ -70,7 +70,7 @@ export default function App() {
 
         {/* Sekmeler */}
         <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-2 py-2">
-          {tabs.map((t) => {
+          {tabs.filter((t) => !t.hidden).map((t) => {
             const on = t.key === tab
             const done = tabProgress(t.key)
             const tone = progressTone(done)
@@ -146,7 +146,7 @@ function Screen({ tab, writable, role, onGo }: { tab: TabKey; writable: boolean;
     case 'go_nogo': return <GoNoGo writable={writable} role={role} />
     case 'kritik_sartlar': return <KritikSartlar writable={writable} role={role} />
     case 'boq': return <Boq writable={writable} role={role} onGo={onGo} />
-    case 'birim_fiyat': return <BirimFiyatHavuzu writable={writable} role={role} />
+    case 'birim_fiyat': return <BirimFiyatHavuzu writable={writable} role={role} onGo={onGo} />
     case 'is_programi': return <IsProgrami writable={writable} role={role} onGo={onGo} />
     case 'personel_ekipman': return <PersonelEkipman writable={writable} role={role} />
     case 'teklif_riskleri': return <TeklifRiskleri writable={writable} role={role} />
