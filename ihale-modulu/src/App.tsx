@@ -19,6 +19,7 @@ import { KontratAnaliz } from './screens/KontratAnaliz'
 import { KontratHazirlama } from './screens/KontratHazirlama'
 import { Sertifikalar } from './screens/Sertifikalar'
 import { Ozet } from './screens/Ozet'
+import { ProjectModule } from './project/ProjectModule'
 
 type View = 'login' | 'hub' | 'module'
 
@@ -45,6 +46,8 @@ export default function App() {
 
   if (view === 'login') return <Login onLogin={() => setView('hub')} />
   if (view === 'hub') return <Hub onOpen={openItem} onLogout={() => setView('login')} />
+  /** Proje (yapım dönemi) işleri Modül 2 ile açılır */
+  if (open.kind === 'proje') return <ProjectModule item={open} onBack={() => setView('hub')} />
 
   /** Prototipte bütün ekranlar örnek ihale dosyasının verisiyle açılır. */
   const sample = open.id === project.id
@@ -115,12 +118,6 @@ export default function App() {
 
         <main className="flex-1 px-6 pb-16 pt-5">
           <div className="mx-auto flex max-w-[1500px] flex-col gap-4">
-            {open.kind === 'proje' && (
-              <div className="rounded-md border px-3 py-2 text-[12.5px]"
-                style={{ background: 'var(--gold-bg)', borderColor: 'var(--gold-border)', color: 'var(--gold)' }}>
-                Proje dönemi ekranları (hakediş, şantiye, talepler) hazırlanıyor. Şimdilik bu işin ihale dosyası açılıyor.
-              </div>
-            )}
             {!sample && (
               <div className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-[12.5px] text-[var(--muted)]">
                 Görsel prototip: ekrandaki veriler örnek ihale dosyasına ({project.code}) aittir.

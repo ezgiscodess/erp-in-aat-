@@ -18,7 +18,7 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
   const [q, setQ] = useState('')
   const [terms, setTerms] = useState<CriticalTerm[]>(criticalTerms)
   const [sel, setSel] = useState<CriticalTerm>(criticalTerms[2])
-  /** Standartta bütün kriterler aktif gelir; pasife çekilen kriter ekranda gizlenir ve çıktıya girmez. */
+  /** Standartta bütün kriterler aktif gelir; pasife çekilen kriter listede kalır ama çıktıya girmez. */
   const [passive, setPassive] = useState<string[]>([])
   /** Düzenlenen kriter — null: kapalı, 'new': yeni kriter */
   const [editing, setEditing] = useState<CriticalTerm | 'new' | null>(null)
@@ -29,7 +29,6 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
 
   const filtered = terms.filter((t) => {
     if (filter === 'Pasif') return passive.includes(t.id)
-    if (passive.includes(t.id)) return false
     if (topicFilter !== 'Tümü' && t.topic !== topicFilter) return false
     if (sevFilter !== 'Tümü' && t.severity !== sevFilter) return false
     if (stateFilter !== 'Tümü' && t.state !== stateFilter) return false
@@ -45,7 +44,7 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
 
   const active = terms.filter((t) => !passive.includes(t.id))
   const counts = {
-    'Tümü': active.length,
+    'Tümü': terms.length,
     'Açık konular': active.filter((t) => OPEN.includes(t.state)).length,
     'Kritik': active.filter((t) => t.severity === 'Kritik').length,
     'Kontrol edilen': active.filter((t) => t.state === 'Kontrol Edildi').length,
@@ -142,10 +141,7 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
             }>
               {filtered.map((t) => (
                 <tr key={t.id} onClick={() => setSel(t)} className="cursor-pointer hover:bg-[var(--surface-2)]"
-                  style={{
-                    ...(t.id === sel.id ? { background: 'var(--accent-soft)' } : {}),
-                    ...(passive.includes(t.id) ? { opacity: 0.55 } : {}),
-                  }}>
+                  style={t.id === sel.id ? { background: 'var(--accent-soft)' } : undefined}>
                   <Td nowrap>
                     <input type="checkbox" checked={checked.includes(t.id)}
                       onClick={(e) => e.stopPropagation()} onChange={() => toggle(t.id)} />

@@ -21,6 +21,8 @@
   --neutral:#475467; --neutral-bg:#EDF0F3;
   /* Ek Paket vurgusu — gereksinim tablosundaki sarı satırlarla aynı his */
   --gold:#8A6100; --gold-bg:#FDF0CE; --gold-border:#F0D48A;
+  /* Grafik serileri — sabit sıra: 1 gerçekleşen, 2 planlanan (doğrulandı: CVD ve kontrast geçer) */
+  --series-1:#2563EB; --series-2:#D97706;
   --mono:ui-monospace,"SF Mono",SFMono-Regular,"Cascadia Mono","Roboto Mono",Menlo,Consolas,monospace;
 }
 

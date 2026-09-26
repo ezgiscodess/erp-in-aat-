@@ -56,7 +56,6 @@ export function RiskRegister({ title, note, risks: initial, writable, role, kpis
    * "Teklifte" karşılığın teklif fiyatına etki etmesini belirler. Standartta hepsi aktiftir.
    */
   const [passive, setPassive] = useState<string[]>([])
-  const [showPassive, setShowPassive] = useState(false)
   const [editing, setEditing] = useState<BidRisk | 'new' | null>(null)
   const risks = list.filter((r) => !passive.includes(r.id))
   /** Toplu işlem için işaretlenen riskler */
@@ -77,7 +76,7 @@ export function RiskRegister({ title, note, risks: initial, writable, role, kpis
     provision: risks.reduce((a, r) => a + (inBid[r.id] ? prov[r.id] : 0), 0),
   }), [risks, prov, inBid])
 
-  const rows = (showPassive ? list : risks)
+  const rows = list
     .filter((r) => (catFilter === 'Tümü' || r.category === catFilter) && (stateFilter === 'Tümü' || r.state === stateFilter))
     .sort((a, b) => b.probability * b.impact - a.probability * a.impact)
 
@@ -129,13 +128,7 @@ export function RiskRegister({ title, note, risks: initial, writable, role, kpis
 
           <Card
             title="Risk kayıtları"
-            help="O = olasılık (1–5), E = etki (1–5), Skor = O × E. İki tik vardır: “Aktif” işaretliyse risk ekranda görünür ve PDF / Excel / Word çıktısına girer; “Teklifte” işaretliyse karşılığı teklif fiyatına etki eder. Satıra tıklayınca hesabı aşağıda, dayandığı doküman sağda açılır."
-            right={passive.length > 0
-              ? <label className="flex items-center gap-1.5 text-[11.5px] text-[var(--muted)]">
-                <input type="checkbox" checked={showPassive} onChange={() => setShowPassive((v) => !v)} />
-                Pasifleri göster ({passive.length})
-              </label>
-              : undefined}
+            help="O = olasılık (1–5), E = etki (1–5), Skor = O × E. İki tik vardır: “Aktif” işaretliyse risk PDF / Excel / Word çıktısına ve toplamlara girer (kapatılsa da listede kalır); “Teklifte” işaretliyse karşılığı teklif fiyatına etki eder. Satıra tıklayınca hesabı aşağıda, dayandığı doküman sağda açılır."
             pad={false}
           >
             <Table head={
@@ -147,7 +140,7 @@ export function RiskRegister({ title, note, risks: initial, writable, role, kpis
                 <Th w={190}>
                   <span className="flex items-center gap-1.5">
                     Risk ve bedelin hesabı
-                    <ColumnFilter value={catFilter} onChange={setCatFilter} values={[...new Set(risks.map((r) => r.category))]} />
+                    <ColumnFilter value={catFilter} onChange={setCatFilter} values={[...new Set(list.map((r) => r.category))]} />
                   </span>
                 </Th>
                 <Th w={48}>O × E</Th>
@@ -166,10 +159,7 @@ export function RiskRegister({ title, note, risks: initial, writable, role, kpis
                 const s = r.probability * r.impact
                 return (
                   <tr key={r.id} onClick={() => setSel(r)} className="cursor-pointer hover:bg-[var(--surface-2)]"
-                    style={{
-                      ...(sel.id === r.id ? { background: 'var(--accent-soft)' } : {}),
-                      ...(passive.includes(r.id) ? { opacity: 0.5 } : {}),
-                    }}>
+                    style={sel.id === r.id ? { background: 'var(--accent-soft)' } : undefined}>
                     <Td nowrap>
                       <input type="checkbox" checked={checked.includes(r.id)}
                         onClick={(e) => e.stopPropagation()}
@@ -191,12 +181,12 @@ export function RiskRegister({ title, note, risks: initial, writable, role, kpis
                     </Td>
                     <Td nowrap center>
                       <input type="checkbox" checked={!passive.includes(r.id)} disabled={!writable}
-                        title="Aktif: ekranda görünür ve çıktıya girer"
+                        title="Aktif: çıktıya ve toplamlara girer"
                         onClick={(e) => e.stopPropagation()}
                         onChange={() => setPassive((p) => (p.includes(r.id) ? p.filter((x) => x !== r.id) : [...p, r.id]))} />
                     </Td>
                     <Td nowrap center>
-                      <input type="checkbox" checked={!!inBid[r.id]} disabled={!writable || passive.includes(r.id)}
+                      <input type="checkbox" checked={!!inBid[r.id]} disabled={!writable}
                         title="Teklifte: karşılık teklif fiyatına etki eder"
                         onClick={(e) => e.stopPropagation()}
                         onChange={() => setInBid((v) => ({ ...v, [r.id]: !v[r.id] }))} />
