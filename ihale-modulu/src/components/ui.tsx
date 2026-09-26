@@ -188,7 +188,7 @@ export function ReadOnlyNote({ role }: { role: string }) {
     <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-[12.5px]"
       style={{ background: 'var(--neutral-bg)', borderColor: 'var(--border)', color: 'var(--neutral)' }}>
       <span>🔒</span>
-      <span><b>{role}</b> rolü bu sekmede yalnızca görüntüleme (R) yetkisine sahip. Düzenleme yapmak için Teklif veya Teknik Kullanıcı rolüne geçin.</span>
+      <span>Bu ekranı yalnızca görüntüleyebilirsiniz (<b>{role}</b>). Veri girişi ve düzenleme ihale ekibi tarafından yapılır.</span>
     </div>
   )
 }

@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import type { LibraryItem, TabKey } from './data/types'
 import { library, project } from './data/mock'
-import { tabs, accessFor, canWrite, defaultRole, roleLabel } from './lib/roles'
+import { tabs, accessFor, canWrite, personaOf, roleLabel } from './lib/roles'
+import type { Persona } from './lib/roles'
 import { progressTone, tabProgress } from './lib/progress'
 import { Badge } from './components/ui'
 import { Login } from './screens/Login'
@@ -28,12 +29,14 @@ export default function App() {
   /** Ara sayfadan açılan iş — modül bu işin verisiyle çalışır. */
   const [open, setOpen] = useState<LibraryItem>(library[0])
   const [tab, setTab] = useState<TabKey>('dokuman_analiz')
+  /** Girişte seçilen kullanıcı tipi: ihale ekibi, patron, proje ekibi */
+  const [persona, setPersona] = useState<Persona>('ihale')
 
   /**
-   * Rol panelde seçilmez; açılan işin dönemine göre arka planda gelir.
-   * Yetki matrisi lib/roles.ts içinde durur, ileride talebe göre burada değiştirilir.
+   * Yetki, girişte seçilen tipten gelir: ihale ekibi veri girer, patron ihale ekranlarını yalnızca görür.
+   * Yetki matrisi lib/roles.ts içinde durur.
    */
-  const role = defaultRole(open.kind)
+  const role = personaOf(persona).role
   const tabDef = tabs.find((t) => t.key === tab)!
   const access = accessFor(tab, role)
   const writable = canWrite(tab, role)
@@ -44,10 +47,10 @@ export default function App() {
     setView('module')
   }
 
-  if (view === 'login') return <Login onLogin={() => setView('hub')} />
-  if (view === 'hub') return <Hub onOpen={openItem} onLogout={() => setView('login')} />
-  /** Proje (yapım dönemi) işleri Modül 2 ile açılır */
-  if (open.kind === 'proje') return <ProjectModule item={open} onBack={() => setView('hub')} />
+  if (view === 'login') return <Login onLogin={(p) => { setPersona(p); setView('hub') }} />
+  if (view === 'hub') return <Hub key={persona} persona={persona} onOpen={openItem} onLogout={() => setView('login')} />
+  /** Proje (yapım dönemi) işleri proje ekranlarıyla açılır */
+  if (open.kind === 'proje') return <ProjectModule item={open} persona={persona} onBack={() => setView('hub')} />
 
   /** Prototipte bütün ekranlar örnek ihale dosyasının verisiyle açılır. */
   const sample = open.id === project.id

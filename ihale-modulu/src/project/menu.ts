@@ -28,10 +28,10 @@ export const menu: MenuGroup[] = [
   {
     key: 'progress', label: 'Progress',
     items: [
-      { key: 'p_dashboard', label: 'Dashboard', note: 'Genel ilerlemeler ve KPI’lar; proje verileriyle oluşan karşılama ekranı.' },
-      { key: 'site_activity', label: 'Site Activity', note: 'Tanımlı kullanıcıların girdiği saha verisi iş akışı olarak, seçilen periyotta. Her kayıt 3’lü onaya tabidir (veri mühendisi → kısım şefi → şantiye şefi); şantiye şefi onayı olmadan işleme girmez. Kolonları proje özelinde aktif/pasif olan ortak veritabanı formatı.' },
-      { key: 'p_disruptions', label: 'Disruptions', note: 'Sahada oluşan aksaklıkların detaylı takibi.' },
-      { key: 'site_photos', label: 'Site Photos', note: 'Mobilden eklenen saha fotoğrafları; aktiviteye ve tarihe bağlı.' },
+      { key: 'p_dashboard', label: 'Dashboard', ready: true, note: 'Genel ilerlemeler ve KPI’lar; proje verileriyle oluşan karşılama ekranı.' },
+      { key: 'site_activity', label: 'Site Activity', ready: true, note: 'Tanımlı kullanıcıların girdiği saha verisi iş akışı olarak, seçilen periyotta. Her kayıt 3’lü onaya tabidir (veri mühendisi → kısım şefi → şantiye şefi); şantiye şefi onayı olmadan işleme girmez. Kolonları proje özelinde aktif/pasif olan ortak veritabanı formatı.' },
+      { key: 'p_disruptions', label: 'Disruptions', ready: true, note: 'Sahada oluşan aksaklıkların detaylı takibi.' },
+      { key: 'site_photos', label: 'Site Photos', ready: true, note: 'Mobilden eklenen saha fotoğrafları; aktiviteye ve tarihe bağlı.' },
     ],
   },
   {
@@ -89,6 +89,11 @@ export const menu: MenuGroup[] = [
   { key: 'quality', label: 'Quality', items: [], note: 'Kurgusu üzerinde çalışılıyor.' },
   { key: 'communication', label: 'Communication', items: [], note: 'Uygulama içi sohbet, görev atama ve akıllı not defteri: kişiye özel notlar, başkasına görev ve soru, birebir ve grup sohbeti.' },
 ]
+
+/** Giriş tipine göre görünen menü: Admin Konsolu yalnızca patrona açıktır. */
+export function menuFor(persona: 'ihale' | 'patron' | 'proje'): MenuGroup[] {
+  return persona === 'patron' ? menu : menu.filter((g) => g.key !== 'admin')
+}
 
 export function findItem(key: string): { group?: MenuGroup; item?: MenuItem } {
   for (const g of menu) {

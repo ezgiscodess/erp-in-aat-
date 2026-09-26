@@ -3,6 +3,8 @@ import { library, project } from '../data/mock'
 import type { LibraryItem, Period } from '../data/types'
 import { Badge, Bar, Btn, Chips, ColumnFilter, Field, Modal, RowActions, Search, StateBadge, Table, Td, Th } from '../components/ui'
 import { date, daysLabel, moneyShort } from '../lib/format'
+import { personaOf } from '../lib/roles'
+import type { Persona } from '../lib/roles'
 
 type Filter = 'Tümü' | 'İhaleler' | 'Projeler'
 
@@ -28,11 +30,14 @@ const NO_FILTER: Record<ColKey, string> = {
  * Giriş sonrası ara sayfa: şirkete yüklenmiş ihale ve projeler.
  * Buradan bir iş açılır ya da "Yükle" ile yeni bir ihale/proje dosyası eklenir.
  */
-export function Hub({ onOpen, onLogout }: { onOpen: (item: LibraryItem) => void; onLogout: () => void }) {
+export function Hub({ persona, onOpen, onLogout }: { persona: Persona; onOpen: (item: LibraryItem) => void; onLogout: () => void }) {
   const [filter, setFilter] = useState<Filter>('Tümü')
   const [view, setView] = useState<'kare' | 'sirali'>('kare')
   const [q, setQ] = useState('')
-  const [items, setItems] = useState<LibraryItem[]>(library)
+  /** Her giriş tipi yalnızca kendi işlerini görür; patron hepsini görür */
+  const [items, setItems] = useState<LibraryItem[]>(
+    library.filter((i) => persona === 'patron' || (persona === 'ihale' ? i.kind === 'ihale' : i.kind === 'proje')),
+  )
   const [uploading, setUploading] = useState(false)
   const [justAdded, setJustAdded] = useState<string | null>(null)
   const [cols, setCols] = useState<Record<ColKey, string>>(NO_FILTER)
@@ -84,6 +89,7 @@ export function Hub({ onOpen, onLogout }: { onOpen: (item: LibraryItem) => void;
         <span className="text-[11.5px] text-[var(--muted)]">{project.company}</span>
         <div className="ml-auto flex items-center gap-3">
           <span className="text-[12px] text-[var(--muted)]">e.yilmaz</span>
+          <Badge tone="accent">{personaOf(persona).label}</Badge>
           <Btn small onClick={onLogout}>Çıkış</Btn>
         </div>
       </header>
@@ -91,10 +97,14 @@ export function Hub({ onOpen, onLogout }: { onOpen: (item: LibraryItem) => void;
       <main className="mx-auto flex max-w-[1400px] flex-col gap-5 px-6 pb-16 pt-6">
         <div className="flex flex-wrap items-end gap-3">
           <div>
-            <h1 className="text-[19px] font-bold tracking-tight text-[var(--ink)]">Yüklü proje ve ihaleler</h1>
+            <h1 className="text-[19px] font-bold tracking-tight text-[var(--ink)]">
+              {persona === 'ihale' ? 'İhaleler' : persona === 'proje' ? 'Projeler' : 'Portföy'}
+            </h1>
             <p className="mt-1 text-[12.5px] text-[var(--muted)]">
-              Çalışmak istediğiniz işi açın ya da yeni bir ihale / proje dosyası yükleyin.
-              Her işin verisi kendi alanında durur; diğer işlerden yalıtılmıştır.
+              {persona === 'ihale' && 'Teklif hazırlanan ihaleler. Çalışmak istediğiniz ihaleyi açın ya da yeni ihale dosyası yükleyin.'}
+              {persona === 'proje' && 'Yürüyen projeler. Çalışmak istediğiniz projeyi açın; saha verisi, planlama ve raporlar proje içinde.'}
+              {persona === 'patron' && 'Bütün ihale ve projeler tek ekranda. Dikkat isteyen konular en üstte; işe tıklayınca ayrıntısı açılır.'}
+              {' '}Her işin verisi kendi alanında durur; diğer işlerden yalıtılmıştır.
             </p>
           </div>
           <div className="ml-auto flex flex-wrap items-center gap-2">
@@ -103,21 +113,38 @@ export function Hub({ onOpen, onLogout }: { onOpen: (item: LibraryItem) => void;
           </div>
         </div>
 
-        {/* Özet şerit */}
+        {/* Özet şerit — giriş tipine göre */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Summary label="Çalışma" value={items.length}
-            sub={`${tenders.length} ihale + ${projects.length} proje yüklü`} tone="neutral" />
-          <Summary label="Devam eden ihaleler" value={tenders.filter((t) => t.daysLeft >= 0).length}
-            sub={nearest ? `En yakını ${nearest.code} · ${daysLabel(nearest.daysLeft)}` : 'Devam eden ihale yok'} tone="accent" />
-          <Summary label="Devam eden projeler" value={projects.length} sub="Sözleşmesi imzalanmış işler" tone="ok" />
+          {persona !== 'proje' && (
+            <Summary label="Devam eden ihaleler" value={tenders.filter((t) => t.daysLeft >= 0).length}
+              sub={nearest ? `En yakını ${nearest.code} · ${daysLabel(nearest.daysLeft)}` : 'Devam eden ihale yok'} tone="accent" />
+          )}
+          {persona === 'ihale' && <>
+            <Summary label="Hazırlanan teklif bedeli" value={moneyShort(tenders.filter((t) => t.daysLeft >= 0).reduce((a, t) => a + t.value, 0))} sub="Devam eden ihalelerin yaklaşık bedeli" tone="neutral" />
+            <Summary label="Kazanılan / kaybedilen" value={`${tenders.filter((t) => t.status === 'Kazanıldı').length} / ${tenders.filter((t) => t.status === 'Kaybedildi').length}`} sub="Sonuçlanan ihaleler" tone="neutral" />
+          </>}
+          {persona !== 'ihale' && (
+            <Summary label="Devam eden projeler" value={projects.length} sub={`Toplam sözleşme ${moneyShort(projects.reduce((a, p) => a + p.value, 0))}`} tone="ok" />
+          )}
+          {persona === 'proje' && <>
+            <Summary label="Ortalama ilerleme" value={`%${Math.round(projects.reduce((a, p) => a + p.progress, 0) / (projects.length || 1))}`} sub="Fiziksel ilerleme" tone="accent" />
+            <Summary label="En yakın bitiş" value={projects.length ? date([...projects].sort((a, b) => a.daysLeft - b.daysLeft)[0].dueAt) : '—'} sub={projects.length ? [...projects].sort((a, b) => a.daysLeft - b.daysLeft)[0].name : ''} tone="neutral" />
+          </>}
+          {persona === 'patron' && (
+            <Summary label="Portföy" value={moneyShort(items.reduce((a, i) => a + i.value, 0))} sub={`${tenders.length} ihale + ${projects.length} proje`} tone="neutral" />
+          )}
         </div>
 
+        {persona === 'patron' && <Attention items={items} onOpen={onOpen} />}
+
         <div className="flex flex-wrap items-center gap-2">
-          <Chips<Filter> value={filter} onChange={setFilter} items={[
-            { key: 'Tümü', label: 'Tümü', count: items.length },
-            { key: 'İhaleler', label: 'İhaleler · Modül 1', count: tenders.length },
-            { key: 'Projeler', label: 'Projeler · Modül 2', count: projects.length },
-          ]} />
+          {persona === 'patron' && (
+            <Chips<Filter> value={filter} onChange={setFilter} items={[
+              { key: 'Tümü', label: 'Tümü', count: items.length },
+              { key: 'İhaleler', label: 'İhaleler', count: tenders.length },
+              { key: 'Projeler', label: 'Projeler', count: projects.length },
+            ]} />
+          )}
 
           {/* Görünüm seçici: kare ızgara / sıralı liste */}
           <div className="ml-auto flex overflow-hidden rounded-md border border-[var(--border)]">
@@ -141,7 +168,7 @@ export function Hub({ onOpen, onLogout }: { onOpen: (item: LibraryItem) => void;
             <button onClick={() => setUploading(true)}
               className="flex min-h-[188px] flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-[var(--border-strong)] bg-[var(--surface)] text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]">
               <span className="text-[22px]">＋</span>
-              <span className="text-[13px] font-semibold">Yeni ihale / proje ekle</span>
+              <span className="text-[13px] font-semibold">{persona === 'ihale' ? 'Yeni ihale ekle' : persona === 'proje' ? 'Yeni proje ekle' : 'Yeni ihale / proje ekle'}</span>
               <span className="text-[11.5px] text-[var(--faint)]">Şartname, sözleşme, cetvel ve çizimler</span>
             </button>
           </div>
@@ -156,7 +183,7 @@ export function Hub({ onOpen, onLogout }: { onOpen: (item: LibraryItem) => void;
               <Th w={60}>{head('dosya', 'Dosya')}</Th>
               <Th w={130}>{head('ilerleme', 'İlerleme')}</Th>
               <Th w={110}>{head('durum', 'Durum')}</Th>
-              <Th w={150} center>İşlem</Th>
+              <Th w={96} center>İşlem</Th>
             </tr>
           }>
             {list.map((i) => (
@@ -183,7 +210,7 @@ export function Hub({ onOpen, onLogout }: { onOpen: (item: LibraryItem) => void;
                 <Td nowrap><StateBadge value={i.status} /></Td>
                 <Td nowrap center>
                   <span className="inline-flex items-center gap-1.5">
-                    <Btn small primary onClick={() => onOpen(i)}>{i.kind === 'proje' ? 'Modül 2’de aç' : 'Aç'}</Btn>
+                    <Btn small primary onClick={() => onOpen(i)}>Aç</Btn>
                     <RowActions name={i.name} onDelete={() => removeItem(i.id)} />
                   </span>
                 </Td>
@@ -193,12 +220,46 @@ export function Hub({ onOpen, onLogout }: { onOpen: (item: LibraryItem) => void;
         )}
       </main>
 
-      {uploading && <UploadModal onClose={() => setUploading(false)} onDone={addItem} />}
+      {uploading && <UploadModal fixedKind={persona === 'patron' ? undefined : persona === 'ihale' ? 'ihale' : 'proje'} onClose={() => setUploading(false)} onDone={addItem} />}
     </div>
   )
 }
 
-function Summary({ label, value, sub, tone }: { label: string; value: number; sub: string; tone: 'accent' | 'ok' | 'neutral' }) {
+/**
+ * Patronun ekranında en üstte duran, bütün işlerden toplanan dikkat listesi.
+ * Gerçek sistemde her işin uyarıları (bildirim süreleri, kontrat farkları, kararlar) buraya düşer.
+ */
+function Attention({ items, onOpen }: { items: LibraryItem[]; onOpen: (i: LibraryItem) => void }) {
+  const find = (code: string) => items.find((i) => i.code === code)
+  type Row = { code: string; tone: 'crit' | 'warn' | 'accent'; title: string; body: string }
+  const all: Row[] = [
+    { code: 'TND-2026-014', tone: 'accent', title: 'Go / No-Go kararı 2 Ekim’de', body: 'Skor 59,9 · Şartlı GO önerisi · teklife 24 gün' },
+    { code: 'PRJ-2024-008', tone: 'crit', title: 'Hak talebi bildirim süresi 10 gün', body: 'CL-03 elektrik bağlantı izni · son gün 06 Eki 2026' },
+    { code: 'PRJ-2024-008', tone: 'warn', title: 'Bitiş öngörüsü 35 gün geride', body: 'SPI 0,92 · kritik yol: Depo C çatı çelik montajı' },
+    { code: 'PRJ-2024-008', tone: 'warn', title: 'Taşeron kontratında 3 kalem fark', body: 'Ana kontrata göre +205 B EUR (tuğla duvar, çelik, panel)' },
+  ]
+  const rows = all.filter((r) => find(r.code))
+  if (!rows.length) return null
+  return (
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)]">
+      <div className="border-b border-[var(--border)] px-4 py-2.5 text-[13.5px] font-semibold text-[var(--ink)]">Dikkat isteyen konular ({rows.length})</div>
+      <div className="grid grid-cols-1 md:grid-cols-2">
+        {rows.map((r, i) => (
+          <button key={i} onClick={() => onOpen(find(r.code)!)}
+            className="flex gap-2.5 border-b border-[var(--border)] px-4 py-2.5 text-left hover:bg-[var(--surface-2)] md:[&:nth-child(odd)]:border-r">
+            <span className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full" style={{ background: `var(--${r.tone})` }} />
+            <span className="min-w-0">
+              <span className="block text-[12.5px] font-semibold text-[var(--ink)]">{r.title}</span>
+              <span className="block text-[11.5px] text-[var(--muted)]"><span className="mono">{r.code}</span> · {r.body}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function Summary({ label, value, sub, tone }: { label: string; value: number | string; sub: string; tone: 'accent' | 'ok' | 'neutral' }) {
   const fg = tone === 'accent' ? 'var(--accent)' : tone === 'ok' ? 'var(--ok)' : 'var(--ink)'
   return (
     <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
@@ -218,7 +279,6 @@ function ItemCard({ item, fresh, onOpen, onDelete }: { item: LibraryItem; fresh:
     >
       <div className="flex items-center gap-2">
         <Badge tone={item.kind === 'ihale' ? 'accent' : 'ok'}>{item.kind === 'ihale' ? 'İhale' : 'Proje'}</Badge>
-        {item.kind === 'proje' && <Badge tone="gold">Modül 2</Badge>}
         <span className="mono text-[11.5px] text-[var(--muted)]">{item.code}</span>
         {fresh && <Badge tone="warn" dot>yeni yüklendi</Badge>}
         <span className="ml-auto"><StateBadge value={item.status} /></span>
@@ -247,7 +307,7 @@ function ItemCard({ item, fresh, onOpen, onDelete }: { item: LibraryItem; fresh:
       <div className="flex items-center gap-2 border-t border-[var(--border)] pt-3">
         <span className="text-[11px] text-[var(--faint)]">Son işlem {item.updatedAt} · {item.updatedBy}</span>
         <span className="ml-auto flex items-center gap-1.5">
-          <Btn small primary onClick={onOpen}>{item.kind === 'proje' ? 'Modül 2’de aç' : 'Aç'}</Btn>
+          <Btn small primary onClick={onOpen}>Aç</Btn>
           <RowActions name={item.name} onDelete={onDelete} />
         </span>
       </div>
@@ -271,8 +331,8 @@ function Cell({ label, value, sub, tone }: { label: string; value: string; sub?:
  * Yeni ihale / proje kaydı. Dosya burada yüklenmez:
  * kayıt oluşturulup açıldıktan sonra Doküman Analiz sekmesinde yükleme ve analiz yapılır.
  */
-function UploadModal({ onClose, onDone }: { onClose: () => void; onDone: (item: LibraryItem) => void }) {
-  const [kind, setKind] = useState<Period>('ihale')
+function UploadModal({ fixedKind, onClose, onDone }: { fixedKind?: Period; onClose: () => void; onDone: (item: LibraryItem) => void }) {
+  const [kind, setKind] = useState<Period>(fixedKind ?? 'ihale')
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
   const [due, setDue] = useState('')
@@ -320,7 +380,8 @@ function UploadModal({ onClose, onDone }: { onClose: () => void; onDone: (item: 
       </>}
     >
       <div className="flex flex-col gap-4">
-        {/* Tür seçimi */}
+        {/* Tür seçimi — yalnızca patron ikisini de ekleyebilir */}
+        {!fixedKind && (<>
         <div>
           <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Ne ekliyorsunuz?</div>
           <div className="grid grid-cols-2 gap-2">
@@ -342,6 +403,8 @@ function UploadModal({ onClose, onDone }: { onClose: () => void; onDone: (item: 
             })}
           </div>
         </div>
+
+        </>)}
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="İşin adı" value={name} onChange={setName} placeholder="Ör. Mersin Konteyner Limanı Genişleme" />

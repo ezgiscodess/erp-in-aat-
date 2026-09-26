@@ -1,4 +1,4 @@
-import type { Access, Period, Role, RoleKey, TabDef, TabKey } from '../data/types'
+import type { Access, Role, RoleKey, TabDef, TabKey } from '../data/types'
 
 /**
  * Roller ve yetki matrisi — gereksinim tablosundaki kurguyla birebir:
@@ -55,11 +55,22 @@ export function canWrite(tab: TabKey, role: RoleKey): boolean {
 }
 
 /**
- * Rol panelden seçilmez: talep üzerine arka planda tanımlanır.
- * Modül, açılan işin dönemine göre veri girişi yapan rolle çalışır.
+ * Girişte seçilen kullanıcı tipi. Her tip yalnızca kendi ekranlarını görür:
+ *  • İhale ekibi — ihaleler ve ihale modülü (veri girişi)
+ *  • Patron — bütün ihale ve projeler, projelerde Admin Konsolu; ihale ekranlarında yalnızca görüntüleme
+ *  • Proje ekibi — projeler (Home, Progress, Planning…), Admin Konsolu hariç
+ * İnce yetkiler (PMO, kısım şefi, şantiye şefi…) yine arka planda tanımlanır.
  */
-export function defaultRole(period: Period): RoleKey {
-  return period === 'ihale' ? 'teklif' : 'teknik'
+export type Persona = 'ihale' | 'patron' | 'proje'
+
+export const personas: { key: Persona; label: string; note: string; role: RoleKey }[] = [
+  { key: 'ihale', label: 'İhale ekibi', note: 'İhale dosyaları, analiz, teklif hazırlığı', role: 'teklif' },
+  { key: 'patron', label: 'Patron / Yönetim', note: 'Bütün ihale ve projeler, Admin Konsolu', role: 'c_suite' },
+  { key: 'proje', label: 'Proje ekibi', note: 'Yürüyen projeler, saha ve planlama', role: 'teknik' },
+]
+
+export function personaOf(key: Persona) {
+  return personas.find((p) => p.key === key)!
 }
 
 export function roleLabel(key: RoleKey): string {

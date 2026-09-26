@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import type { LibraryItem } from '../data/types'
 import { Badge } from '../components/ui'
-import { menu, findItem } from './menu'
+import { findItem, menuFor } from './menu'
+import type { Persona } from '../lib/roles'
 import { prj } from './data'
 import { Home } from './screens/Home'
 import { Placeholder } from './screens/Placeholder'
+import { ProgressDashboard, ProgressDisruptions, SiteActivity, SitePhotos } from './screens/Progress'
 import {
   AdminBudget, AdminChangeOrder, AdminClaim, AdminContract, AdminDisruptions, AdminIpc, AdminMachinery,
   AdminPersonel, AdminPhrs, AdminPlanning, AdminReport,
@@ -14,9 +16,11 @@ import {
  * Modül 2 — proje (yapım) dönemi.
  * Yüklü işler sayfasından bir proje açılınca bu kabuk gelir: solda menü ağacı, ilk ekran Home.
  */
-export function ProjectModule({ item, onBack }: { item: LibraryItem; onBack: () => void }) {
+export function ProjectModule({ item, persona, onBack }: { item: LibraryItem; persona: Persona; onBack: () => void }) {
+  const menu = menuFor(persona)
   const [page, setPage] = useState('home')
-  const [open, setOpen] = useState<string[]>(['admin'])
+  /** Patron Admin Konsolu ile, proje ekibi Progress ile açılır */
+  const [open, setOpen] = useState<string[]>([persona === 'patron' ? 'admin' : 'progress'])
 
   const sample = item.code === prj.code
 
@@ -33,7 +37,7 @@ export function ProjectModule({ item, onBack }: { item: LibraryItem; onBack: () 
         <div className="flex items-center gap-2.5 border-b border-[var(--border)] px-4 py-3">
           <span className="grid h-6 w-6 place-items-center rounded-md text-[12px] font-extrabold text-white" style={{ background: 'var(--accent)' }}>İK</span>
           <span className="text-[13.5px] font-bold tracking-tight text-[var(--ink)]">İnşaat ERP</span>
-          <span className="text-[11px] text-[var(--muted)]">Proje</span>
+          <span className="text-[11px] text-[var(--muted)]">{persona === 'patron' ? 'Patron' : 'Proje ekibi'}</span>
         </div>
         <button onClick={onBack}
           className="border-b border-[var(--border)] px-4 py-2 text-left text-[11.5px] font-semibold text-[var(--muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--accent)]">
@@ -76,7 +80,7 @@ export function ProjectModule({ item, onBack }: { item: LibraryItem; onBack: () 
         <header className="sticky top-0 z-40 flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-[var(--border)] bg-[var(--surface)] px-6 py-2.5">
           <div className="min-w-0">
             <div className="truncate text-[13.5px] font-bold text-[var(--ink)]">{item.name}</div>
-            <div className="truncate text-[11.5px] text-[var(--muted)]">{item.code} · {item.employer} · {item.location} · Modül 2 · Proje dönemi</div>
+            <div className="truncate text-[11.5px] text-[var(--muted)]">{item.code} · {item.employer} · {item.location} · Proje dönemi</div>
           </div>
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <Badge tone="ok" dot>Yapım · %{item.progress}</Badge>
@@ -91,12 +95,12 @@ export function ProjectModule({ item, onBack }: { item: LibraryItem; onBack: () 
                 Görsel prototip: ekrandaki veriler örnek projeye ({prj.code} · {prj.name}) aittir.
               </div>
             )}
-            <Screen page={page} onGo={go} />
+            <Screen page={page} onGo={go} persona={persona} />
           </div>
         </main>
 
         <footer className="border-t border-[var(--border)] bg-[var(--surface)] px-6 py-2 text-[11.5px] text-[var(--faint)]">
-          Görsel prototip — veriler örnektir · Admin Konsolu yalnızca yetkilendirilmiş yöneticilere açılır · Proje verileri diğer işlerden yalıtılmıştır.
+          Görsel prototip — veriler örnektir · Admin Konsolu yalnızca patron girişinde görünür · Proje verileri diğer işlerden yalıtılmıştır.
         </footer>
       </div>
     </div>
@@ -114,9 +118,11 @@ function NavLink({ label, on, onClick, strong, dim }: { label: string; on: boole
   )
 }
 
-function Screen({ page, onGo }: { page: string; onGo: (k: string) => void }) {
+function Screen({ page, onGo, persona }: { page: string; onGo: (k: string) => void; persona: Persona }) {
+  /** Admin Konsolu ekranları patron dışındaki girişlerde açılmaz */
+  if (persona !== 'patron' && findItem(page).group?.key === 'admin') page = 'home'
   switch (page) {
-    case 'home': return <Home onGo={onGo} />
+    case 'home': return <Home onGo={onGo} persona={persona} />
     case 'budget': return <AdminBudget />
     case 'ipc': return <AdminIpc />
     case 'contract': return <AdminContract />
@@ -128,6 +134,10 @@ function Screen({ page, onGo }: { page: string; onGo: (k: string) => void }) {
     case 'a_disruptions': return <AdminDisruptions />
     case 'change_order': return <AdminChangeOrder />
     case 'claim': return <AdminClaim />
+    case 'p_dashboard': return <ProgressDashboard onGo={onGo} />
+    case 'site_activity': return <SiteActivity />
+    case 'p_disruptions': return <ProgressDisruptions />
+    case 'site_photos': return <SitePhotos />
     default: return <Placeholder page={page} />
   }
 }

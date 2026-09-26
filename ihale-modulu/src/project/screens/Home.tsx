@@ -4,7 +4,8 @@ import { Gauge, Legend, SCurve } from '../charts'
 import {
   actualCum, claims, contractMatches, criticalPath, docSets, ipcs, monthName, plannedCum, prj, productivity,
 } from '../data'
-import { menu } from '../menu'
+import { menuFor } from '../menu'
+import type { Persona } from '../../lib/roles'
 
 const TODAY = new Date('2026-09-26')
 const daysTo = (iso: string) => Math.round((new Date(iso).getTime() - TODAY.getTime()) / 86_400_000)
@@ -12,7 +13,11 @@ const daysTo = (iso: string) => Math.round((new Date(iso).getTime() - TODAY.getT
 /**
  * Proje açılınca gelen karşılama ekranı: genel bilgi, ilerleme, dikkat isteyen konular ve doküman setleri.
  */
-export function Home({ onGo }: { onGo: (k: string) => void }) {
+/** Proje ekibi Admin Konsolu'nu görmez; uyarıları kendi ekranlarına yönlenir */
+const TEAM_LINK: Record<string, string | null> = { claim: 'p_disruptions', contract: null, a_planning: 'critical_path', phrs: 'site_activity' }
+
+export function Home({ onGo, persona }: { onGo: (k: string) => void; persona: Persona }) {
+  const menu = menuFor(persona)
   const actual = actualCum[prj.today - 1]
   const planned = plannedCum[prj.today - 1]
   const spi = actual / planned
@@ -21,7 +26,7 @@ export function Home({ onGo }: { onGo: (k: string) => void }) {
   const slip = Math.round((new Date(prj.forecastFinish).getTime() - new Date(prj.plannedFinish).getTime()) / 86_400_000)
 
   /** Dikkat isteyen konular — alt modüllerden otomatik düşer */
-  const alerts: { tone: 'crit' | 'warn'; title: string; body: string; go: string }[] = [
+  const allAlerts: { tone: 'crit' | 'warn'; title: string; body: string; go: string }[] = [
     ...claims.filter((c) => !c.noticed).map((c) => ({
       tone: 'crit' as const, title: `${c.no} bildirim süresi: ${daysTo(c.noticeDue)} gün kaldı`,
       body: `${c.title}. Son gün ${date(c.noticeDue)}; kaçırılırsa hak talebi düşer.`, go: 'claim',
@@ -38,6 +43,10 @@ export function Home({ onGo }: { onGo: (k: string) => void }) {
       go: 'phrs',
     })),
   ]
+
+  const alerts = persona === 'patron'
+    ? allAlerts
+    : allAlerts.filter((a) => TEAM_LINK[a.go] !== null).map((a) => ({ ...a, go: TEAM_LINK[a.go] ?? a.go }))
 
   return (
     <>

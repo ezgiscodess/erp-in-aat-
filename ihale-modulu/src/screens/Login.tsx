@@ -1,14 +1,17 @@
 import { useState } from 'react'
 import { project } from '../data/mock'
 import { Btn, Field } from '../components/ui'
+import { personas } from '../lib/roles'
+import type { Persona } from '../lib/roles'
 
 /**
- * Giriş ekranı. Kullanıcının rolü panelde seçilmez; talep üzerine arka planda tanımlanır
- * ve giriş yapan kişiye bağlı olarak gelir.
+ * Giriş ekranı. Kullanıcı tipi (ihale ekibi, patron, proje ekibi) girişte seçilir ve
+ * yalnızca o tipin ekranları açılır. İnce yetkiler arka planda tanımlanır.
  */
-export function Login({ onLogin }: { onLogin: () => void }) {
+export function Login({ onLogin }: { onLogin: (p: Persona) => void }) {
   const [mail, setMail] = useState('e.yilmaz@anadoluinsaat.com.tr')
   const [pass, setPass] = useState('••••••••')
+  const [persona, setPersona] = useState<Persona>('ihale')
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[var(--surface-2)] p-6">
@@ -19,7 +22,7 @@ export function Login({ onLogin }: { onLogin: () => void }) {
             <span className="grid h-8 w-8 place-items-center rounded-lg text-[14px] font-extrabold text-white" style={{ background: 'var(--accent)' }}>İK</span>
             <div>
               <div className="text-[15px] font-bold tracking-tight text-[var(--ink)]">İnşaat ERP</div>
-              <div className="text-[11.5px] text-[var(--muted)]">İhale & Kontrat Yönetimi</div>
+              <div className="text-[11.5px] text-[var(--muted)]">İhale, kontrat ve proje yönetimi</div>
             </div>
           </div>
 
@@ -46,13 +49,32 @@ export function Login({ onLogin }: { onLogin: () => void }) {
           <Field label="E-posta" value={mail} onChange={setMail} placeholder="ad.soyad@firma.com" />
           <Field label="Parola" value={pass} onChange={setPass} type="password" />
 
+          <div>
+            <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Giriş tipi</div>
+            <div className="grid grid-cols-3 gap-2">
+              {personas.map((p) => {
+                const on = persona === p.key
+                return (
+                  <button key={p.key} onClick={() => setPersona(p.key)}
+                    className="rounded-lg border px-2.5 py-2 text-left transition-colors"
+                    style={on
+                      ? { borderColor: 'var(--accent)', background: 'var(--accent-soft)' }
+                      : { borderColor: 'var(--border)', background: 'var(--surface)' }}>
+                    <span className="block text-[12.5px] font-semibold" style={{ color: on ? 'var(--accent)' : 'var(--ink)' }}>{p.label}</span>
+                    <span className="mt-0.5 block text-[10.5px] leading-snug text-[var(--muted)]">{p.note}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
           <div className="flex items-center gap-2 text-[12px] text-[var(--muted)]">
             <input type="checkbox" defaultChecked /> Beni hatırla
             <span className="ml-auto cursor-pointer text-[var(--accent)]">Parolamı unuttum</span>
           </div>
 
           <button
-            onClick={onLogin}
+            onClick={() => onLogin(persona)}
             className="rounded-md px-3 py-2.5 text-[13.5px] font-semibold text-white"
             style={{ background: 'var(--accent)' }}
           >
@@ -64,11 +86,11 @@ export function Login({ onLogin }: { onLogin: () => void }) {
             <span className="text-[11px] text-[var(--faint)]">veya</span>
             <span className="h-px flex-1 bg-[var(--border)]" />
           </div>
-          <Btn onClick={onLogin}>Kurumsal hesapla (SSO) giriş</Btn>
+          <Btn onClick={() => onLogin(persona)}>Kurumsal hesapla (SSO) giriş</Btn>
 
           <p className="mt-1 text-[11px] leading-relaxed text-[var(--faint)]">
-            Görsel prototip — herhangi bir bilgiyle giriş yapabilirsiniz. Kullanıcı yetkileri panelde
-            seçilmez; talep üzerine arka planda tanımlanır.
+            Görsel prototip — herhangi bir bilgiyle giriş yapabilirsiniz. Gerçek sistemde giriş tipi
+            hesaba bağlı gelir; ince yetkiler (PMO, kısım şefi, şantiye şefi…) arka planda tanımlanır.
           </p>
         </div>
       </div>
