@@ -115,8 +115,8 @@ export function Hub({ onOpen, onLogout }: { onOpen: (item: LibraryItem) => void;
         <div className="flex flex-wrap items-center gap-2">
           <Chips<Filter> value={filter} onChange={setFilter} items={[
             { key: 'Tümü', label: 'Tümü', count: items.length },
-            { key: 'İhaleler', label: 'İhaleler', count: tenders.length },
-            { key: 'Projeler', label: 'Projeler', count: projects.length },
+            { key: 'İhaleler', label: 'İhaleler · Modül 1', count: tenders.length },
+            { key: 'Projeler', label: 'Projeler · Modül 2', count: projects.length },
           ]} />
 
           {/* Görünüm seçici: kare ızgara / sıralı liste */}
@@ -156,7 +156,7 @@ export function Hub({ onOpen, onLogout }: { onOpen: (item: LibraryItem) => void;
               <Th w={60}>{head('dosya', 'Dosya')}</Th>
               <Th w={130}>{head('ilerleme', 'İlerleme')}</Th>
               <Th w={110}>{head('durum', 'Durum')}</Th>
-              <Th w={96} center>İşlem</Th>
+              <Th w={150} center>İşlem</Th>
             </tr>
           }>
             {list.map((i) => (
@@ -183,7 +183,7 @@ export function Hub({ onOpen, onLogout }: { onOpen: (item: LibraryItem) => void;
                 <Td nowrap><StateBadge value={i.status} /></Td>
                 <Td nowrap center>
                   <span className="inline-flex items-center gap-1.5">
-                    <Btn small primary onClick={() => onOpen(i)}>Aç</Btn>
+                    <Btn small primary onClick={() => onOpen(i)}>{i.kind === 'proje' ? 'Modül 2’de aç' : 'Aç'}</Btn>
                     <RowActions name={i.name} onDelete={() => removeItem(i.id)} />
                   </span>
                 </Td>
@@ -218,6 +218,7 @@ function ItemCard({ item, fresh, onOpen, onDelete }: { item: LibraryItem; fresh:
     >
       <div className="flex items-center gap-2">
         <Badge tone={item.kind === 'ihale' ? 'accent' : 'ok'}>{item.kind === 'ihale' ? 'İhale' : 'Proje'}</Badge>
+        {item.kind === 'proje' && <Badge tone="gold">Modül 2</Badge>}
         <span className="mono text-[11.5px] text-[var(--muted)]">{item.code}</span>
         {fresh && <Badge tone="warn" dot>yeni yüklendi</Badge>}
         <span className="ml-auto"><StateBadge value={item.status} /></span>
@@ -246,7 +247,7 @@ function ItemCard({ item, fresh, onOpen, onDelete }: { item: LibraryItem; fresh:
       <div className="flex items-center gap-2 border-t border-[var(--border)] pt-3">
         <span className="text-[11px] text-[var(--faint)]">Son işlem {item.updatedAt} · {item.updatedBy}</span>
         <span className="ml-auto flex items-center gap-1.5">
-          <Btn small primary onClick={onOpen}>Aç</Btn>
+          <Btn small primary onClick={onOpen}>{item.kind === 'proje' ? 'Modül 2’de aç' : 'Aç'}</Btn>
           <RowActions name={item.name} onDelete={onDelete} />
         </span>
       </div>
