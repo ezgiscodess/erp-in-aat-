@@ -1,12 +1,16 @@
 import { useState } from 'react'
 import type { LibraryItem } from '../data/types'
-import { Badge } from '../components/ui'
+import { date } from '../lib/format'
 import { findItem, menuFor } from './menu'
 import type { Persona } from '../lib/roles'
 import { prj } from './data'
 import { Home } from './screens/Home'
 import { Placeholder } from './screens/Placeholder'
-import { ProgressDashboard, ProgressDisruptions, SiteActivity, SitePhotos } from './screens/Progress'
+import { BudgetDetail } from './screens/Budget'
+import { ReportViewer } from './screens/Reports'
+import { Sas, Stock } from './screens/Procurement'
+import { CriticalPath, LookaheadSch, MicroSchedules, MitigationPlan, PlanningRisks, WorkSchedule } from './screens/Planning'
+import { DailyEquipment, DailyManpower, ProgressDashboard, ProgressDisruptions, SiteActivity, SitePhotos } from './screens/Progress'
 import {
   AdminBudget, AdminChangeOrder, AdminClaim, AdminContract, AdminDisruptions, AdminIpc, AdminMachinery,
   AdminPersonel, AdminPhrs, AdminPlanning, AdminReport,
@@ -23,6 +27,8 @@ export function ProjectModule({ item, persona, onBack }: { item: LibraryItem; pe
   const [open, setOpen] = useState<string[]>([persona === 'patron' ? 'admin' : 'progress'])
 
   const sample = item.code === prj.code
+  /** Bitişe kalan gün — bütün ekranlarla aynı "bugün" tarihinden hesaplanır */
+  const daysLeft = Math.round((new Date(item.dueAt).getTime() - new Date('2026-09-27').getTime()) / 86_400_000)
 
   function go(key: string) {
     const { group } = findItem(key)
@@ -35,8 +41,8 @@ export function ProjectModule({ item, persona, onBack }: { item: LibraryItem; pe
       {/* ---------- Sol menü ---------- */}
       <aside className="sticky top-0 flex h-screen w-[238px] flex-shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface)]">
         <div className="flex items-center gap-2.5 border-b border-[var(--border)] px-4 py-3">
-          <span className="grid h-6 w-6 place-items-center rounded-md text-[12px] font-extrabold text-white" style={{ background: 'var(--accent)' }}>İK</span>
-          <span className="text-[13.5px] font-bold tracking-tight text-[var(--ink)]">İnşaat ERP</span>
+          <span className="grid h-6 w-6 place-items-center rounded-md text-[12px] font-extrabold text-white" style={{ background: 'var(--accent)' }}>IC</span>
+          <span className="text-[13.5px] font-bold tracking-tight text-[var(--ink)]">ICCM Ecosystem</span>
           <span className="text-[11px] text-[var(--muted)]">{persona === 'patron' ? 'Patron' : 'Proje ekibi'}</span>
         </div>
         <button onClick={onBack}
@@ -71,7 +77,7 @@ export function ProjectModule({ item, persona, onBack }: { item: LibraryItem; pe
         </nav>
 
         <div className="border-t border-[var(--border)] px-3 py-2.5">
-          <div className="truncate text-[11.5px] text-[var(--muted)]">Anadolu İnşaat A.Ş.</div>
+          <div className="truncate text-[11.5px] text-[var(--muted)]">ICCM Construction LTD</div>
         </div>
       </aside>
 
@@ -82,9 +88,22 @@ export function ProjectModule({ item, persona, onBack }: { item: LibraryItem; pe
             <div className="truncate text-[13.5px] font-bold text-[var(--ink)]">{item.name}</div>
             <div className="truncate text-[11.5px] text-[var(--muted)]">{item.code} · {item.employer} · {item.location} · Proje dönemi</div>
           </div>
-          <div className="ml-auto flex flex-wrap items-center gap-2">
-            <Badge tone="ok" dot>Yapım · %{item.progress}</Badge>
-            <Badge tone={item.daysLeft < 120 ? 'warn' : 'neutral'}>Bitişe {item.daysLeft} gün</Badge>
+          {/* Sözleşme tarihleri ve bitişe kalan gün sayacı */}
+          <div className="ml-auto flex items-center gap-3">
+            <div className="grid grid-cols-[auto_auto] gap-x-3 text-[11px] leading-[1.45]">
+              <span className="text-[var(--faint)]">Contract Date</span>
+              <span className="text-right font-medium text-[var(--ink)] tnum">{sample ? date(prj.contractDate) : '—'}</span>
+              <span className="text-[var(--faint)]">Commencement Date</span>
+              <span className="text-right font-medium text-[var(--ink)] tnum">{sample ? date(prj.start) : '—'}</span>
+              <span className="text-[var(--faint)]">Project Completion Date</span>
+              <span className="text-right font-medium text-[var(--ink)] tnum">{date(item.dueAt)}</span>
+            </div>
+            <div className="flex flex-col items-center justify-center rounded-lg px-3 py-1"
+              style={{ background: daysLeft < 120 ? 'var(--warn-bg)' : 'var(--accent-soft)', color: daysLeft < 120 ? 'var(--warn)' : 'var(--accent)' }}
+              title="Sözleşme bitiş tarihine kalan takvim günü">
+              <span className="text-[22px] font-extrabold leading-none tnum">{daysLeft}</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wide">gün kaldı</span>
+            </div>
           </div>
         </header>
 
@@ -138,6 +157,19 @@ function Screen({ page, onGo, persona }: { page: string; onGo: (k: string) => vo
     case 'site_activity': return <SiteActivity />
     case 'p_disruptions': return <ProgressDisruptions />
     case 'site_photos': return <SitePhotos />
+    case 'daily_manpower': return <DailyManpower />
+    case 'daily_equipment': return <DailyEquipment />
+    case 'budget_detail': return <BudgetDetail />
+    case 'work_schedule': return <WorkSchedule />
+    case 'micro': return <MicroSchedules />
+    case 'lookahead': return <LookaheadSch />
+    case 'critical_path': return <CriticalPath />
+    case 'mitigation': return <MitigationPlan />
+    case 'pl_risks': return <PlanningRisks />
+    case 'r_daily': case 'r_weekly': case 'r_monthly': case 'r_employer': case 'r_hq': case 'r_presentations':
+      return <ReportViewer type={page} />
+    case 'sas': return <Sas />
+    case 'stock': return <Stock />
     default: return <Placeholder page={page} />
   }
 }

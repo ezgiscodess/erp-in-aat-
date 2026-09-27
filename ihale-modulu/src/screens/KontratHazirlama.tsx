@@ -96,7 +96,7 @@ export function KontratHazirlama({ writable, role }: { writable: boolean; role: 
               body: sel.state === 'Boş'
                 ? 'Bu bölüm henüz doldurulmadı. Gerekli veri geldiğinde taslak otomatik üretilecek.'
                 : `${sel.no}. ${sel.title.toLocaleUpperCase('tr')}\n\n`
-                  + `${sel.no}.1. İşbu sözleşme, ${project.employer} (bundan sonra “İdare” olarak anılacaktır) ile Anadolu İnşaat A.Ş. `
+                  + `${sel.no}.1. İşbu sözleşme, ${project.employer} (bundan sonra “İdare” olarak anılacaktır) ile ICCM Construction LTD `
                   + `(bundan sonra “Yüklenici” olarak anılacaktır) arasında, ${project.name} işinin yapılması amacıyla düzenlenmiştir.\n\n`
                   + `${sel.no}.2. İşin süresi ${project.durationDays} takvim günü olup, yer tesliminden itibaren başlar. `
                   + `Yüklenici, ayrıntılı iş programını sözleşmenin imzalanmasını izleyen 28 gün içinde İdare’ye sunar.\n\n`

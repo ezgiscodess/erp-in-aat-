@@ -30,7 +30,20 @@ const NO_FILTER: Record<ColKey, string> = {
  * Giriş sonrası ara sayfa: şirkete yüklenmiş ihale ve projeler.
  * Buradan bir iş açılır ya da "Yükle" ile yeni bir ihale/proje dosyası eklenir.
  */
-export function Hub({ persona, onOpen, onLogout }: { persona: Persona; onOpen: (item: LibraryItem) => void; onLogout: () => void }) {
+/**
+ * Proje yönetim ekranları ek paket olarak satılır. Paket alınmışsa proje kartlarında "Yönet" görünür:
+ * "Aç" projenin ihale dosyasını, "Yönet" proje yönetim ekranlarını (Home, Progress, Planning…) açar.
+ */
+const PROJECT_PACKAGE = true
+
+/** Projelerin toplam ve gerçekleşen insan-saati (örnek veri) */
+const PHRS: Record<string, { plan: number; actual: number }> = {
+  'PRJ-2026-003': { plan: 2_400_000, actual: 260_000 },
+  'PRJ-2024-008': { plan: 1_100_000, actual: 860_000 },
+  'PRJ-2024-002': { plan: 700_000, actual: 690_000 },
+}
+
+export function Hub({ persona, onOpen, onLogout }: { persona: Persona; onOpen: (item: LibraryItem, manage?: boolean) => void; onLogout: () => void }) {
   const [filter, setFilter] = useState<Filter>('Tümü')
   const [view, setView] = useState<'kare' | 'sirali'>('kare')
   const [q, setQ] = useState('')
@@ -84,8 +97,8 @@ export function Hub({ persona, onOpen, onLogout }: { persona: Persona; onOpen: (
     <div className="min-h-screen bg-[var(--surface-2)]">
       {/* Üst şerit */}
       <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-6 py-2.5">
-        <span className="grid h-6 w-6 place-items-center rounded-md text-[12px] font-extrabold text-white" style={{ background: 'var(--accent)' }}>İK</span>
-        <span className="text-[13.5px] font-bold tracking-tight text-[var(--ink)]">İnşaat ERP</span>
+        <span className="grid h-6 w-6 place-items-center rounded-md text-[12px] font-extrabold text-white" style={{ background: 'var(--accent)' }}>IC</span>
+        <span className="text-[13.5px] font-bold tracking-tight text-[var(--ink)]">ICCM Ecosystem</span>
         <span className="text-[11.5px] text-[var(--muted)]">{project.company}</span>
         <div className="ml-auto flex items-center gap-3">
           <span className="text-[12px] text-[var(--muted)]">e.yilmaz</span>
@@ -114,7 +127,7 @@ export function Hub({ persona, onOpen, onLogout }: { persona: Persona; onOpen: (
         </div>
 
         {/* Özet şerit — giriş tipine göre */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className={`grid grid-cols-1 gap-3 ${persona === 'proje' ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-3'}`}>
           {persona !== 'proje' && (
             <Summary label="Devam eden ihaleler" value={tenders.filter((t) => t.daysLeft >= 0).length}
               sub={nearest ? `En yakını ${nearest.code} · ${daysLabel(nearest.daysLeft)}` : 'Devam eden ihale yok'} tone="accent" />
@@ -124,10 +137,14 @@ export function Hub({ persona, onOpen, onLogout }: { persona: Persona; onOpen: (
             <Summary label="Kazanılan / kaybedilen" value={`${tenders.filter((t) => t.status === 'Kazanıldı').length} / ${tenders.filter((t) => t.status === 'Kaybedildi').length}`} sub="Sonuçlanan ihaleler" tone="neutral" />
           </>}
           {persona !== 'ihale' && (
-            <Summary label="Devam eden projeler" value={projects.length} sub={`Toplam sözleşme ${moneyShort(projects.reduce((a, p) => a + p.value, 0))}`} tone="ok" />
+            <Summary label="Devam eden projeler" value={projects.length} sub={persona === 'proje' ? 'Sözleşmesi imzalanmış işler' : `Toplam sözleşme ${moneyShort(projects.reduce((a, p) => a + p.value, 0))}`} tone="ok" />
           )}
           {persona === 'proje' && <>
-            <Summary label="Ortalama ilerleme" value={`%${Math.round(projects.reduce((a, p) => a + p.progress, 0) / (projects.length || 1))}`} sub="Fiziksel ilerleme" tone="accent" />
+            <Summary label="Proje bedeli" value={moneyShort(projects.reduce((a, p) => a + p.value, 0))}
+              sub={`Tamamlanan ${moneyShort(projects.reduce((a, p) => a + (p.value * p.progress) / 100, 0))} · %${Math.round((projects.reduce((a, p) => a + (p.value * p.progress) / 100, 0) / (projects.reduce((a, p) => a + p.value, 0) || 1)) * 100)}`} tone="accent" />
+            <Summary label="İnsan-saat (inxsa)"
+              value={`${(projects.reduce((a, p) => a + (PHRS[p.code]?.actual ?? 0), 0) / 1e6).toLocaleString('tr-TR', { maximumFractionDigits: 2 })} M`}
+              sub={`Planlanan ${(projects.reduce((a, p) => a + (PHRS[p.code]?.plan ?? 0), 0) / 1e6).toLocaleString('tr-TR', { maximumFractionDigits: 1 })} M saat · gerçekleşme %${Math.round((projects.reduce((a, p) => a + (PHRS[p.code]?.actual ?? 0), 0) / (projects.reduce((a, p) => a + (PHRS[p.code]?.plan ?? 0), 0) || 1)) * 100)}`} tone="neutral" />
             <Summary label="En yakın bitiş" value={projects.length ? date([...projects].sort((a, b) => a.daysLeft - b.daysLeft)[0].dueAt) : '—'} sub={projects.length ? [...projects].sort((a, b) => a.daysLeft - b.daysLeft)[0].name : ''} tone="neutral" />
           </>}
           {persona === 'patron' && (
@@ -135,7 +152,7 @@ export function Hub({ persona, onOpen, onLogout }: { persona: Persona; onOpen: (
           )}
         </div>
 
-        {persona === 'patron' && <Attention items={items} onOpen={onOpen} />}
+        {persona === 'patron' && <Attention items={items} onOpen={(i) => onOpen(i, i.kind === 'proje')} />}
 
         <div className="flex flex-wrap items-center gap-2">
           {persona === 'patron' && (
@@ -163,7 +180,7 @@ export function Hub({ persona, onOpen, onLogout }: { persona: Persona; onOpen: (
         {view === 'kare' ? (
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-3">
             {list.map((i) => (
-              <ItemCard key={i.id} item={i} fresh={i.id === justAdded} onOpen={() => onOpen(i)} onDelete={() => removeItem(i.id)} />
+              <ItemCard key={i.id} item={i} fresh={i.id === justAdded} onOpen={() => onOpen(i)} onManage={() => onOpen(i, true)} onDelete={() => removeItem(i.id)} />
             ))}
             <button onClick={() => setUploading(true)}
               className="flex min-h-[188px] flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-[var(--border-strong)] bg-[var(--surface)] text-[var(--muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]">
@@ -183,11 +200,11 @@ export function Hub({ persona, onOpen, onLogout }: { persona: Persona; onOpen: (
               <Th w={60}>{head('dosya', 'Dosya')}</Th>
               <Th w={130}>{head('ilerleme', 'İlerleme')}</Th>
               <Th w={110}>{head('durum', 'Durum')}</Th>
-              <Th w={96} center>İşlem</Th>
+              <Th w={150} center>İşlem</Th>
             </tr>
           }>
             {list.map((i) => (
-              <tr key={i.id} className="cursor-pointer hover:bg-[var(--surface-2)]" onClick={() => onOpen(i)}
+              <tr key={i.id} className="cursor-pointer hover:bg-[var(--surface-2)]" onClick={() => onOpen(i, i.kind === 'proje' && PROJECT_PACKAGE)}
                 style={i.id === justAdded ? { background: 'var(--accent-soft)' } : undefined}>
                 <Td nowrap><Badge tone={i.kind === 'ihale' ? 'accent' : 'ok'}>{i.kind === 'ihale' ? 'İhale' : 'Proje'}</Badge></Td>
                 <Td mono nowrap>{i.code}</Td>
@@ -210,7 +227,8 @@ export function Hub({ persona, onOpen, onLogout }: { persona: Persona; onOpen: (
                 <Td nowrap><StateBadge value={i.status} /></Td>
                 <Td nowrap center>
                   <span className="inline-flex items-center gap-1.5">
-                    <Btn small primary onClick={() => onOpen(i)}>Aç</Btn>
+                    <Btn small primary={i.kind === 'ihale'} onClick={() => onOpen(i)}>Aç</Btn>
+                    {i.kind === 'proje' && PROJECT_PACKAGE && <Btn small primary onClick={() => onOpen(i, true)}>Yönet</Btn>}
                     <RowActions name={i.name} onDelete={() => removeItem(i.id)} />
                   </span>
                 </Td>
@@ -235,7 +253,7 @@ function Attention({ items, onOpen }: { items: LibraryItem[]; onOpen: (i: Librar
   const all: Row[] = [
     { code: 'TND-2026-014', tone: 'accent', title: 'Go / No-Go kararı 2 Ekim’de', body: 'Skor 59,9 · Şartlı GO önerisi · teklife 24 gün' },
     { code: 'PRJ-2024-008', tone: 'crit', title: 'Hak talebi bildirim süresi 10 gün', body: 'CL-03 elektrik bağlantı izni · son gün 06 Eki 2026' },
-    { code: 'PRJ-2024-008', tone: 'warn', title: 'Bitiş öngörüsü 35 gün geride', body: 'SPI 0,92 · kritik yol: Depo C çatı çelik montajı' },
+    { code: 'PRJ-2024-008', tone: 'warn', title: 'Bitiş öngörüsü 35 gün geride', body: 'SPI 0,93 · kritik yol: Depo C çatı çelik montajı' },
     { code: 'PRJ-2024-008', tone: 'warn', title: 'Taşeron kontratında 3 kalem fark', body: 'Ana kontrata göre +205 B EUR (tuğla duvar, çelik, panel)' },
   ]
   const rows = all.filter((r) => find(r.code))
@@ -270,7 +288,7 @@ function Summary({ label, value, sub, tone }: { label: string; value: number | s
   )
 }
 
-function ItemCard({ item, fresh, onOpen, onDelete }: { item: LibraryItem; fresh: boolean; onOpen: () => void; onDelete: () => void }) {
+function ItemCard({ item, fresh, onOpen, onManage, onDelete }: { item: LibraryItem; fresh: boolean; onOpen: () => void; onManage: () => void; onDelete: () => void }) {
   const urgent = item.kind === 'ihale' && item.daysLeft >= 0 && item.daysLeft <= 30
   return (
     <article
@@ -307,7 +325,10 @@ function ItemCard({ item, fresh, onOpen, onDelete }: { item: LibraryItem; fresh:
       <div className="flex items-center gap-2 border-t border-[var(--border)] pt-3">
         <span className="text-[11px] text-[var(--faint)]">Son işlem {item.updatedAt} · {item.updatedBy}</span>
         <span className="ml-auto flex items-center gap-1.5">
-          <Btn small primary onClick={onOpen}>Aç</Btn>
+          <Btn small primary={item.kind === 'ihale'} onClick={onOpen} title={item.kind === 'proje' ? 'Projenin ihale dosyasını açar' : undefined}>Aç</Btn>
+          {item.kind === 'proje' && PROJECT_PACKAGE && (
+            <Btn small primary onClick={onManage} title="Proje yönetim ekranları: Home, Progress, Planning, Reports…">Yönet</Btn>
+          )}
           <RowActions name={item.name} onDelete={onDelete} />
         </span>
       </div>

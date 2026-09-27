@@ -1,52 +1,106 @@
 import { useState } from 'react'
+import type { ReactNode } from 'react'
 import {
   Badge, Btn, Card, Chips, ColumnFilter, ExportButtons, Field, IconBtn, Kpi, Modal, PageHead, RowActions,
-  Search, Switch, Table, Td, Th,
+  Search, Table, Td, Th,
 } from '../../components/ui'
 import type { Tone } from '../../components/ui'
 import { date, moneyShort, num, pct } from '../../lib/format'
 import { Legend, MonthColumns, PairBars } from '../charts'
-import { actualCum, plannedCum, prj } from '../data'
+import { evm, prj } from '../data'
 import {
-  entryColumns, groupProgress, siteDisruptions, siteEntries, sitePhotos, stageOf, team, weeklyOutput,
+  equipmentRows, groupProgress, manpowerRows, phrsTotals, scheduleActivities, siteDisruptions, siteEntries,
+  sitePhotos, stageOf, team, weeklyOutput,
 } from '../progressData'
-import type { EntryColumn, SiteDisruption, SiteEntry, SitePhoto, Stage } from '../progressData'
+import type { EquipmentRow, ManpowerRow, SiteDisruption, SiteEntry, SitePhoto, Stage } from '../progressData'
 
 /**
- * Progress alt modülü: sahadan veri girişi, 3'lü onay, aksaklıklar ve saha fotoğrafları.
+ * Progress alt modülü: sahadan veri girişi, 3'lü onay, günlük personel ve ekipman, aksaklıklar ve saha fotoğrafları.
  * Veri mühendisi girer → kısım şefi onaylar → şantiye şefi onaylar; şantiye şefi onayı olmadan kayıt işlenmez.
+ * Tablolarda tarih her zaman son sütundadır; kolonlar olabildiğince ayrık tutulur (kolay adreslemek için).
  */
 
 const STAGE_TONE: Record<Stage, Tone> = {
-  'Kısım şefi onayında': 'warn', 'Şantiye şefi onayında': 'accent', 'İşlendi': 'ok', 'Reddedildi': 'crit',
+  'Onaylandı': 'ok', 'Reddedildi': 'crit', 'Şantiye şefi onayında': 'accent', 'Kısım şefi onayında': 'warn',
 }
 const now = () => new Date().toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+const TODAY = '2026-09-27'
 
-/* ---------------- Onay akışı şeridi ---------------- */
+/* ---------------- Ortak yardımcılar ---------------- */
 
-function Pipeline({ entries, value, onPick }: { entries: SiteEntry[]; value?: Stage | 'Tümü'; onPick?: (s: Stage | 'Tümü') => void }) {
-  const steps: { stage: Stage; who: string }[] = [
-    { stage: 'Kısım şefi onayında', who: 'Veri mühendisi girdi' },
-    { stage: 'Şantiye şefi onayında', who: 'Kısım şefi onayladı' },
-    { stage: 'İşlendi', who: 'Şantiye şefi onayladı' },
-    { stage: 'Reddedildi', who: 'Geri gönderildi' },
-  ]
+/** Her sütunda filtre: sütunun değerlerinden seçim yapılır */
+function useColumnFilters<T>(rows: T[], getters: Record<string, (r: T) => string>) {
+  const [f, setF] = useState<Record<string, string>>({})
+  const filtered = rows.filter((r) => Object.entries(f).every(([k, v]) => !v || v === 'Tümü' || getters[k](r) === v))
+  const head = (k: string, label: ReactNode) => (
+    <span className="flex items-center gap-1.5">
+      {label}
+      <ColumnFilter value={f[k] ?? 'Tümü'} onChange={(v) => setF((o) => ({ ...o, [k]: v }))}
+        values={[...new Set(rows.map(getters[k]))].sort((a, b) => a.localeCompare(b, 'tr'))} />
+    </span>
+  )
+  return { filtered, head }
+}
+
+type Preset = 'Dün' | 'Geçen hafta' | 'Geçen ay'
+const PRESETS: Record<Preset, [string, string]> = {
+  'Dün': ['2026-09-26', '2026-09-26'],
+  'Geçen hafta': ['2026-09-20', '2026-09-26'],
+  'Geçen ay': ['2026-08-27', '2026-09-26'],
+}
+
+/** Takvim: başlangıç ve bitiş seçilir, "Getir" ile kayıtlar yüklenir; hazır aralıklar tek tıkla gelir */
+function DateRange({ range, onApply }: { range: [string, string]; onApply: (r: [string, string]) => void }) {
+  const [from, setFrom] = useState(range[0])
+  const [to, setTo] = useState(range[1])
+  const input = 'rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-[12.5px] text-[var(--ink)] outline-none focus:border-[var(--accent)]'
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+      <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Başlangıç</span>
+      <input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} className={input} />
+      <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Bitiş</span>
+      <input type="date" value={to} min={from} max={TODAY} onChange={(e) => setTo(e.target.value)} className={input} />
+      <Btn small primary onClick={() => onApply([from, to])}>Getir</Btn>
+      <span className="mx-1 h-5 w-px bg-[var(--border)]" />
+      {(Object.keys(PRESETS) as Preset[]).map((p) => {
+        const on = range[0] === PRESETS[p][0] && range[1] === PRESETS[p][1]
+        return (
+          <button key={p} onClick={() => { setFrom(PRESETS[p][0]); setTo(PRESETS[p][1]); onApply(PRESETS[p]) }}
+            className="rounded-full border px-2.5 py-0.5 text-[12px] transition-colors"
+            style={on
+              ? { background: 'var(--accent-soft)', borderColor: 'var(--accent)', color: 'var(--accent)' }
+              : { background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--muted)' }}>{p}</button>
+        )
+      })}
+      <span className="ml-auto text-[11.5px] text-[var(--muted)]">{date(range[0])} – {date(range[1])}</span>
+    </div>
+  )
+}
+
+/* ---------------- Onay akışı şeridi (yalnızca onay mekanizmasındaki kullanıcılar görür) ---------------- */
+
+const PIPE: { stage: Stage; label: string; note: string }[] = [
+  { stage: 'Onaylandı', label: 'Onaylanan', note: 'Şantiye şefi onayladı · işlendi' },
+  { stage: 'Reddedildi', label: 'Reddedilen', note: 'Geri gönderildi' },
+  { stage: 'Şantiye şefi onayında', label: 'Şantiye şefi onayında', note: 'Kısım şefi onayladı' },
+  { stage: 'Kısım şefi onayında', label: 'Kısım şefi onayında', note: 'Veri mühendisi girdi' },
+]
+
+function Pipeline({ entries, onPick }: { entries: SiteEntry[]; onPick?: (s: Stage) => void }) {
   return (
     <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-      {steps.map((s, i) => {
+      {PIPE.map((s) => {
         const n = entries.filter((e) => stageOf(e) === s.stage).length
-        const on = value === s.stage
+        const t = STAGE_TONE[s.stage]
         return (
-          <button key={s.stage} onClick={() => onPick?.(on ? 'Tümü' : s.stage)}
-            className="relative flex items-center gap-3 rounded-lg border bg-[var(--surface)] px-3.5 py-2.5 text-left transition-colors"
-            style={{ borderColor: on ? `var(--${STAGE_TONE[s.stage] === 'accent' ? 'accent' : STAGE_TONE[s.stage]})` : 'var(--border)' }}>
+          <button key={s.stage} onClick={() => onPick?.(s.stage)}
+            className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3.5 py-2.5 text-left transition-colors hover:border-[var(--accent)]">
             <span className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-full text-[13px] font-bold tnum"
-              style={{ background: STAGE_TONE[s.stage] === 'accent' ? 'var(--accent-soft)' : `var(--${STAGE_TONE[s.stage]}-bg)`, color: STAGE_TONE[s.stage] === 'accent' ? 'var(--accent)' : `var(--${STAGE_TONE[s.stage]})` }}>{n}</span>
+              style={{ background: t === 'accent' ? 'var(--accent-soft)' : `var(--${t}-bg)`, color: t === 'accent' ? 'var(--accent)' : `var(--${t})` }}>{n}</span>
             <span className="min-w-0">
-              <span className="block text-[12.5px] font-semibold text-[var(--ink)]">{s.stage}</span>
-              <span className="block text-[11px] text-[var(--muted)]">{i < 3 ? `${i + 1}. adım · ` : ''}{s.who}</span>
+              <span className="block text-[12.5px] font-semibold text-[var(--ink)]">{s.label}</span>
+              <span className="block text-[11px] text-[var(--muted)]">{s.note}</span>
             </span>
-            {i < 2 && <span className="absolute -right-2 top-1/2 z-10 hidden -translate-y-1/2 text-[var(--faint)] lg:block">›</span>}
           </button>
         )
       })}
@@ -76,25 +130,27 @@ function ApprovalDots({ e }: { e: SiteEntry }) {
 /* ---------------- Dashboard ---------------- */
 
 export function ProgressDashboard({ onGo }: { onGo: (k: string) => void }) {
-  const actual = actualCum[prj.today - 1]
-  const planned = plannedCum[prj.today - 1]
+  const { actual, planned } = evm()
   const yesterday = siteEntries.filter((e) => e.date === '2026-09-25')
   const pending = siteEntries.filter((e) => ['Kısım şefi onayında', 'Şantiye şefi onayında'].includes(stageOf(e)))
   const openDis = siteDisruptions.filter((d) => d.state === 'Açık' || d.state === 'Çözümde')
 
   return (
     <>
-      <PageHead title="Progress · Dashboard" note="Genel ilerlemeler ve KPI’lar. Sayılar sahadan girilip şantiye şefi onayından geçmiş kayıtlardan hesaplanır; onay bekleyen kayıtlar henüz ilerlemeye yansımaz." right={<ExportButtons />} />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Kpi label="Fiziksel ilerleme" value={pct(actual)} sub={`Planlanan ${pct(planned)}`} tone="accent" />
+      <PageHead title="Progress · Dashboard" note="Genel ilerlemeler ve KPI’lar. Sayılar sahadan girilip şantiye şefi onayından geçmiş kayıtlardan hesaplanır; onay bekleyen kayıtlar henüz ilerlemeye yansımaz. Bu ekranda fiyat gösterilmez; maliyet analizleri Budget modülündedir." right={<ExportButtons />} />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+        <Kpi label="Fiziksel ilerleme" value={pct(actual)} sub={`Planlanan ${pct(planned, 1)}`} tone="accent" />
         <Kpi label="Dünkü kayıt" value={yesterday.length} sub={`${yesterday.reduce((a, e) => a + e.people, 0)} kişi · ${num(yesterday.reduce((a, e) => a + e.people * e.hours, 0))} inxsa`} />
+        <Kpi label="İnsan-saat" value={`${num(phrsTotals.actual / 1000)} bin`}
+          sub={`Planlanan ${num(phrsTotals.plan / 1000)} bin · %${Math.round((phrsTotals.actual / phrsTotals.plan) * 100)} gerçekleşti`} tone="accent"
+          help={`İşin tamamı için planlanan insan-saat (inxsa) ve bugüne kadar onaylanmış kayıtlardan gerçekleşen. Bugün olması gereken: ${num(phrsTotals.planToDate)}.`} />
         <Kpi label="Onay bekleyen" value={pending.length} sub="İlerlemeye henüz yansımadı" tone="warn"
           help="Kısım şefi veya şantiye şefi onayı bekleyen kayıtlar. Şantiye şefi onaylamadan kayıt işlenmez." />
         <Kpi label="Reddedilen" value={siteEntries.filter((e) => e.rejected).length} sub="Düzeltilip yeniden girilecek" tone="crit" />
-        <Kpi label="Açık aksaklık" value={openDis.length} sub={`${openDis.reduce((a, d) => a + d.lostHours, 0).toLocaleString('tr-TR')} saat kayıp`} tone="warn" />
+        <Kpi label="Açık aksaklık" value={openDis.length} sub={`${num(openDis.reduce((a, d) => a + d.lostHours, 0))} saat kayıp`} tone="warn" />
       </div>
 
-      <Card title="Onay akışı" help="Veri mühendisi girer → kısım şefi onaylar → şantiye şefi onaylar. Kutuya tıklayınca o aşamadaki kayıtlar Site Activity’de açılır.">
+      <Card title="Onay akışı" help="Yalnızca onay mekanizmasındaki kullanıcılar (veri mühendisi, kısım şefi, şantiye şefi) görür. Kutuya tıklayınca kayıtlar Site Activity’de açılır.">
         <Pipeline entries={siteEntries} onPick={() => onGo('site_activity')} />
       </Card>
 
@@ -103,9 +159,9 @@ export function ProgressDashboard({ onGo }: { onGo: (k: string) => void }) {
           right={<Legend items={[{ label: 'Gerçekleşen', color: 'var(--series-1)' }, { label: 'Planlanan', color: 'var(--series-2)' }]} />}>
           <PairBars rows={groupProgress.map((g) => ({ label: g.group, plan: g.plan, actual: g.actual }))} format={(v) => `%${v}`} worseWhen="lower" />
         </Card>
-        <Card title="Haftalık üretim (bin EUR)" help="Onaylanmış kayıtların iş değeri: miktar × sözleşme birim fiyatı."
+        <Card title="Haftalık ilerleme (puan)" help="Her hafta eklenen fiziksel ilerleme puanı: planlanan ve onaylanmış kayıtlardan gerçekleşen. Fiyat içermez."
           right={<Legend items={[{ label: 'Gerçekleşen', color: 'var(--series-1)' }, { label: 'Planlanan', color: 'var(--series-2)' }]} />}>
-          <MonthColumns data={weeklyOutput.map((w) => ({ label: w.w, plan: w.plan, actual: w.actual }))} format={(v) => `${num(v)} bin EUR`} height={170} />
+          <MonthColumns data={weeklyOutput.map((w) => ({ label: w.w, plan: w.plan, actual: w.actual }))} format={(v) => `%${v.toLocaleString('tr-TR')} ilerleme`} height={170} />
         </Card>
       </div>
 
@@ -120,30 +176,23 @@ export function ProgressDashboard({ onGo }: { onGo: (k: string) => void }) {
 
 /* ---------------- Site Activity ---------------- */
 
-type Period = 'Dün' | 'Son 3 gün' | 'Tümü'
-
 export function SiteActivity() {
   const [entries, setEntries] = useState<SiteEntry[]>(siteEntries)
-  const [columns, setColumns] = useState<EntryColumn[]>(entryColumns)
-  const [period, setPeriod] = useState<Period>('Son 3 gün')
-  const [stage, setStage] = useState<Stage | 'Tümü'>('Tümü')
-  const [sectionFilter, setSectionFilter] = useState('Tümü')
+  const [range, setRange] = useState<[string, string]>(PRESETS['Geçen hafta'])
   const [q, setQ] = useState('')
   const [open, setOpen] = useState<SiteEntry | null>(null)
   const [editing, setEditing] = useState<SiteEntry | 'new' | null>(null)
-  const [showColumns, setShowColumns] = useState(false)
-  const [showMobile, setShowMobile] = useState(false)
 
-  const inPeriod = (e: SiteEntry) => period === 'Tümü' || (period === 'Dün' ? e.date === '2026-09-25' : e.date >= '2026-09-23')
-  const rows = entries.filter((e) => {
-    if (!inPeriod(e)) return false
-    if (stage !== 'Tümü' && stageOf(e) !== stage) return false
-    if (sectionFilter !== 'Tümü' && e.section !== sectionFilter) return false
-    if (q.trim()) {
-      const s = q.toLocaleLowerCase('tr')
-      return [e.id, e.activity, e.area, e.crew, e.poz].some((v) => v.toLocaleLowerCase('tr').includes(s))
-    }
-    return true
+  const inRange = entries.filter((e) => e.date >= range[0] && e.date <= range[1])
+  const searched = inRange.filter((e) => {
+    if (!q.trim()) return true
+    const s = q.toLocaleLowerCase('tr')
+    return [e.id, e.code, e.activity, e.loc1, e.loc2, e.loc3, e.company].some((v) => v.toLocaleLowerCase('tr').includes(s))
+  })
+  const { filtered: rows, head } = useColumnFilters(searched, {
+    code: (e) => e.code, activity: (e) => e.activity, loc1: (e) => e.loc1, loc2: (e) => e.loc2, loc3: (e) => e.loc3,
+    unit: (e) => e.unit, qty: (e) => num(e.qty), company: (e) => e.company, people: (e) => String(e.people),
+    inxsa: (e) => num(e.people * e.hours), by: (e) => e.entered.by, stage: (e) => stageOf(e), date: (e) => date(e.date),
   })
 
   function update(e: SiteEntry) {
@@ -155,99 +204,90 @@ export function SiteActivity() {
     <>
       <PageHead
         title="Progress · Site Activity"
-        note="Tanımlı veri girişi kullanıcılarının sahadan eklediği kayıtlar, iş akışı olarak ve seçilen periyotta. Her kayıt 3’lü onaya tabidir: veri mühendisi → kısım şefi → şantiye şefi. Şantiye şefi onayı olmadan kayıt işleme (ilerleme, inxsa, hakediş) aktarılmaz. Giriş formu bütün projelerde ortak veri formatını kullanır; kolonlar proje özelinde aktif veya pasif yapılır."
+        note="Tanımlı veri girişi kullanıcılarının sahadan eklediği imalat kayıtları. Her kayıt 3’lü onaya tabidir: veri mühendisi → kısım şefi → şantiye şefi; şantiye şefi onayı olmadan kayıt işleme (ilerleme, inxsa, hakediş) aktarılmaz. Kolonlar sistemde tanımlıdır ve ilgili modüllere bağlanır. Mobilde aynı ekran görünür."
         right={<>
           <ExportButtons />
-          <Btn onClick={() => setShowColumns(true)} title="Bu projede formda hangi kolonların kullanılacağı">Kolonlar</Btn>
-          <Btn onClick={() => setShowMobile(true)} title="Sahadan telefonla giriş ekranı">📱 Mobil giriş</Btn>
           <Btn primary onClick={() => setEditing('new')}>+ Veri girişi</Btn>
         </>}
       />
 
-      <Pipeline entries={entries.filter(inPeriod)} value={stage} onPick={setStage} />
+      <DateRange range={range} onApply={setRange} />
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Chips<Period> value={period} onChange={setPeriod} items={(['Dün', 'Son 3 gün', 'Tümü'] as Period[]).map((p) => ({ key: p, label: p }))} />
-        {stage !== 'Tümü' && <Badge tone={STAGE_TONE[stage]}>Aşama: {stage} · <button onClick={() => setStage('Tümü')}>×</button></Badge>}
-        <div className="ml-auto"><Search value={q} onChange={setQ} placeholder="Kayıt, aktivite, bölge…" /></div>
-      </div>
-
-      <Card title={`Kayıtlar (${rows.length})`} help="Nokta sırası: girildi · kısım şefi · şantiye şefi. Göz simgesiyle kayıt açılır ve onay verilir; kalem ve çöp kutusu yalnızca henüz işlenmemiş kayıtlarda çalışır." pad={false}>
-        <Table head={
+      <Card title={`Kayıtlar (${rows.length})`}
+        help="Her sütun başlığındaki ▼ ile filtrelenir. Onay sütunundaki noktalar: girildi · kısım şefi · şantiye şefi. Göz simgesiyle kayıt açılır ve onay verilir; onaylanmış kayıt düzenlenemez ve silinemez."
+        right={<Search value={q} onChange={setQ} placeholder="Kod, açıklama, lokasyon…" />} pad={false}>
+        <Table dense head={
           <tr>
-            <Th w={96}>Kayıt</Th>
-            <Th w={250}>
-              <span className="flex items-center gap-1.5">
-                Aktivite ve bölge
-                <ColumnFilter value={sectionFilter} onChange={setSectionFilter} values={[...new Set(entries.map((e) => e.section))]} />
-              </span>
-            </Th>
-            <Th right>Miktar</Th>
-            <Th w={150}>Ekip · inxsa</Th>
-            <Th center>Onay</Th>
-            <Th>Durum</Th>
+            <Th>{head('code', 'Aktivite kodu')}</Th>
+            <Th w={160}>{head('activity', 'Açıklama')}</Th>
+            <Th>{head('loc1', 'Lokasyon 1')}</Th>
+            <Th>{head('loc2', 'Lokasyon 2')}</Th>
+            <Th>{head('loc3', 'Lokasyon 3')}</Th>
+            <Th>{head('unit', 'Birim')}</Th>
+            <Th right>{head('qty', 'Miktar')}</Th>
+            <Th>{head('company', 'Sorumlu firma')}</Th>
+            <Th right>{head('people', 'Personel')}</Th>
+            <Th right>{head('inxsa', 'inxsa')}</Th>
+            <Th>{head('by', 'Veri giren')}</Th>
+            <Th>{head('stage', 'Onay')}</Th>
+            <Th>{head('date', 'Tarih')}</Th>
             <Th w={100} center>İşlem</Th>
           </tr>
         }>
           {rows.map((e) => {
             const st = stageOf(e)
-            const locked = st === 'İşlendi'
             return (
               <tr key={e.id} onClick={() => setOpen(e)} className="cursor-pointer hover:bg-[var(--surface-2)]">
-                <Td nowrap>
-                  <div className="mono text-[11.5px] font-semibold text-[var(--accent)]">{e.id}</div>
-                  <div className="text-[11px] text-[var(--faint)]">{date(e.date)} · {e.shift}</div>
-                </Td>
+                <Td mono nowrap><span className="font-semibold text-[var(--accent)]">{e.code}</span></Td>
                 <Td>
-                  <div className="text-[12.5px] font-medium text-[var(--ink)]">{e.activity}</div>
-                  <div className="text-[11px] text-[var(--muted)]">{e.area} · poz {e.poz}</div>
-                  {e.note && <div className="mt-0.5 text-[11px] text-[var(--warn)]">⚠ {e.note}</div>}
-                  {e.rejected && <div className="mt-0.5 text-[11px] text-[var(--crit)]">✕ {e.rejected.by}: {e.rejected.note}</div>}
+                  <div className="text-[12.5px] text-[var(--ink)]">{e.activity}</div>
+                  {e.rejected && <div className="mt-0.5 text-[11px] text-[var(--crit)]">✕ {e.rejected.note}</div>}
+                  {e.note && !e.rejected && <div className="mt-0.5 text-[11px] text-[var(--warn)]">⚠ {e.note}</div>}
                 </Td>
-                <Td right nowrap><b>{num(e.qty)}</b> <span className="text-[var(--muted)]">{e.unit}</span></Td>
+                <Td>{e.loc1}</Td>
+                <Td>{e.loc2}</Td>
+                <Td>{e.loc3}</Td>
+                <Td nowrap>{e.unit}</Td>
+                <Td right>{num(e.qty)}</Td>
+                <Td>{e.company}</Td>
+                <Td right>{e.people}</Td>
+                <Td right>{num(e.people * e.hours)}</Td>
+                <Td nowrap mono>{e.entered.by}</Td>
                 <Td>
-                  <div className="text-[12px] text-[var(--ink)]">{e.crew}</div>
-                  <div className="text-[11px] text-[var(--muted)] tnum">{e.people} kişi × {e.hours} sa = {e.people * e.hours} inxsa</div>
+                  <div className="flex flex-col items-start gap-1"><ApprovalDots e={e} /><span className="text-[11px] font-semibold" style={{ color: `var(--${STAGE_TONE[st] === 'accent' ? 'accent' : STAGE_TONE[st]})` }}>{st}</span></div>
                 </Td>
-                <Td nowrap center><ApprovalDots e={e} /></Td>
-                <Td nowrap><Badge tone={STAGE_TONE[st]} dot>{st}</Badge></Td>
+                <Td nowrap><span className="tnum">{date(e.date)}</span></Td>
                 <Td nowrap center>
-                  <RowActions name={e.id} onOpen={() => setOpen(e)} onEdit={() => setEditing(e)}
-                    disabled={locked} onDelete={() => setEntries((l) => l.filter((x) => x.id !== e.id))} />
+                  <RowActions name={e.code} onOpen={() => setOpen(e)} onEdit={() => setEditing(e)}
+                    disabled={st === 'Onaylandı'} onDelete={() => setEntries((l) => l.filter((x) => x.id !== e.id))} />
                 </Td>
               </tr>
             )
           })}
         </Table>
+        {rows.length === 0 && <div className="px-4 py-8 text-center text-[12.5px] text-[var(--faint)]">Bu tarih aralığında kayıt yok.</div>}
       </Card>
 
-      {open && <EntryModal entry={open} columns={columns} onClose={() => setOpen(null)} onChange={update} onEdit={() => { setEditing(open); setOpen(null) }} />}
-      {editing && <EntryForm entry={editing === 'new' ? null : editing} columns={columns} onClose={() => setEditing(null)}
-        onSave={(e) => { update(e); setEditing(null) }} />}
-      {showColumns && <ColumnsModal columns={columns} onClose={() => setShowColumns(false)} onChange={setColumns} />}
-      {showMobile && <MobileModal columns={columns} onClose={() => setShowMobile(false)} />}
+      {open && <EntryModal entry={open} onClose={() => setOpen(null)} onChange={update} onEdit={() => { setEditing(open); setOpen(null) }} />}
+      {editing && <EntryForm entry={editing === 'new' ? null : editing} onClose={() => setEditing(null)} onSave={(e) => { update(e); setEditing(null) }} />}
     </>
   )
 }
 
 /** Kaydın ayrıntısı ve onay adımları */
-function EntryModal({ entry: e, columns, onClose, onChange, onEdit }: {
-  entry: SiteEntry; columns: EntryColumn[]; onClose: () => void; onChange: (e: SiteEntry) => void; onEdit: () => void
+function EntryModal({ entry: e, onClose, onChange, onEdit }: {
+  entry: SiteEntry; onClose: () => void; onChange: (e: SiteEntry) => void; onEdit: () => void
 }) {
   const [rejecting, setRejecting] = useState(false)
   const [note, setNote] = useState('')
   const st = stageOf(e)
-  const active = (k: string) => columns.find((c) => c.key === k)?.active
   const chief = team.sectionChiefs[e.section] ?? 'b.yildiz'
 
-  const fields: [string, string, string][] = [
-    ['date', 'Tarih', date(e.date)], ['shift', 'Vardiya', e.shift], ['activity', 'Aktivite', e.activity], ['poz', 'Poz no', e.poz],
-    ['area', 'Bölge / aks', e.area], ['level', 'Kat / kot', e.level ?? '—'], ['qty', 'Miktar', `${num(e.qty)} ${e.unit}`],
-    ['crew', 'Ekip / taşeron', e.crew], ['people', 'Kişi sayısı', String(e.people)], ['hours', 'Çalışılan saat', `${e.hours} sa · ${e.people * e.hours} inxsa`],
-    ['machine', 'Makine', e.machine ?? '—'], ['machineHours', 'Makine saati', e.machineHours ? `${e.machineHours} sa` : '—'],
-    ['weather', 'Hava durumu', e.weather], ['waste', 'Fire', e.waste ? `%${e.waste}` : '—'], ['note', 'Not', e.note ?? '—'],
+  const fields: [string, string][] = [
+    ['Aktivite kodu', e.code], ['Açıklama', e.activity], ['Lokasyon 1', e.loc1], ['Lokasyon 2', e.loc2], ['Lokasyon 3', e.loc3],
+    ['Miktar', `${num(e.qty)} ${e.unit}`], ['Sorumlu firma', e.company], ['Personel', `${e.people} kişi × ${e.hours} saat`],
+    ['inxsa', num(e.people * e.hours)], ['Not', e.note ?? '—'], ['Tarih', `${date(e.date)} · ${e.shift}`],
   ]
-
   const steps = [
     { title: 'Veri mühendisi girdi', a: e.entered },
     { title: `Kısım şefi onayı · ${e.section}`, a: e.sectionChief, wait: chief },
@@ -255,21 +295,21 @@ function EntryModal({ entry: e, columns, onClose, onChange, onEdit }: {
   ]
 
   return (
-    <Modal title={`${e.id} · ${e.activity}`} note={`${e.area} · ${date(e.date)} · ${e.shift} vardiyası`} onClose={onClose} wide
+    <Modal title={`${e.code} · ${e.activity}`} note={`${e.loc1} / ${e.loc2} / ${e.loc3} · ${date(e.date)}`} onClose={onClose} wide
       footer={<>
-        {st !== 'İşlendi' && st !== 'Reddedildi' && !rejecting && <Btn onClick={() => setRejecting(true)}>Reddet / geri gönder</Btn>}
-        {st !== 'İşlendi' && <IconBtn icon="edit" title="Kaydı düzenle" onClick={onEdit} />}
+        {st !== 'Onaylandı' && st !== 'Reddedildi' && !rejecting && <Btn onClick={() => setRejecting(true)}>Reddet / geri gönder</Btn>}
+        {st !== 'Onaylandı' && <IconBtn icon="edit" title="Kaydı düzenle" onClick={onEdit} />}
         <span className="ml-auto flex gap-2">
           {st === 'Kısım şefi onayında' && <Btn primary onClick={() => onChange({ ...e, sectionChief: { by: chief, at: now() } })}>Kısım şefi olarak onayla</Btn>}
           {st === 'Şantiye şefi onayında' && <Btn primary onClick={() => onChange({ ...e, siteChief: { by: team.siteChief, at: now() } })}>Şantiye şefi olarak onayla</Btn>}
           {st === 'Reddedildi' && <Btn primary onClick={() => onChange({ ...e, rejected: undefined, sectionChief: undefined, entered: { by: e.entered.by, at: now() } })}>Düzeltildi, yeniden gönder</Btn>}
-          {st === 'İşlendi' && <Badge tone="ok" dot>İşlendi — ilerleme, inxsa ve hakedişe aktarıldı</Badge>}
+          {st === 'Onaylandı' && <Badge tone="ok" dot>Onaylandı — ilerleme, inxsa ve hakedişe aktarıldı</Badge>}
         </span>
       </>}>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
         <div className="grid grid-cols-2 gap-x-4 gap-y-2 md:col-span-3">
-          {fields.filter(([k]) => active(k)).map(([k, l, v]) => (
-            <div key={k} className={k === 'note' || k === 'activity' ? 'col-span-2' : ''}>
+          {fields.map(([l, v]) => (
+            <div key={l} className={l === 'Açıklama' || l === 'Not' ? 'col-span-2' : ''}>
               <div className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--faint)]">{l}</div>
               <div className="text-[12.5px] text-[var(--ink)]">{v}</div>
             </div>
@@ -296,17 +336,13 @@ function EntryModal({ entry: e, columns, onClose, onChange, onEdit }: {
               ✕ {e.rejected.by} geri gönderdi · {e.rejected.at}<br /><span className="text-[var(--ink)]">{e.rejected.note}</span>
             </div>
           )}
-          {active('photos') && (
-            <div className="mt-3">
-              <div className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--faint)]">Saha fotoğrafı ({e.photos})</div>
-              <div className="mt-1.5 grid grid-cols-4 gap-1.5">
-                {Array.from({ length: Math.min(4, e.photos) }, (_, i) => (
-                  <span key={i} className="grid aspect-square place-items-center rounded-md text-[14px]"
-                    style={{ background: `hsl(${(e.id.charCodeAt(5) * 37 + i * 25) % 360} 35% 86%)` }}>📷</span>
-                ))}
-              </div>
-            </div>
-          )}
+          <div className="mt-3 text-[10.5px] font-semibold uppercase tracking-wide text-[var(--faint)]">Saha fotoğrafı ({e.photos})</div>
+          <div className="mt-1.5 grid grid-cols-4 gap-1.5">
+            {Array.from({ length: Math.min(4, e.photos) }, (_, i) => (
+              <span key={i} className="grid aspect-square place-items-center rounded-md text-[14px]"
+                style={{ background: `hsl(${(e.id.charCodeAt(5) * 37 + i * 25) % 360} 35% 86%)` }}>📷</span>
+            ))}
+          </div>
         </div>
       </div>
       {rejecting && (
@@ -324,120 +360,227 @@ function EntryModal({ entry: e, columns, onClose, onChange, onEdit }: {
   )
 }
 
-/** Veri giriş formu — yalnızca projede aktif olan kolonlar görünür */
-function EntryForm({ entry, columns, onClose, onSave }: {
-  entry: SiteEntry | null; columns: EntryColumn[]; onClose: () => void; onSave: (e: SiteEntry) => void
-}) {
-  const [v, setV] = useState<Record<string, string>>({
-    date: entry?.date ?? '2026-09-26', shift: entry?.shift ?? 'Gündüz', activity: entry?.activity ?? '', poz: entry?.poz ?? '',
-    area: entry?.area ?? '', level: entry?.level ?? '', qty: entry ? String(entry.qty) : '', unit: entry?.unit ?? 'm²',
-    crew: entry?.crew ?? '', people: entry ? String(entry.people) : '', hours: entry ? String(entry.hours) : '10',
-    machine: entry?.machine ?? '', machineHours: entry?.machineHours ? String(entry.machineHours) : '',
-    weather: entry?.weather ?? 'Açık', waste: entry?.waste ? String(entry.waste) : '', material: '', note: entry?.note ?? '',
+/**
+ * Veri giriş formu. Kolonlar sistemde tanımlıdır. Açıklama yazılırken iş programındaki
+ * tanımlı aktiviteler önerilir; seçilince aktivite kodu, birim ve sorumlu firma kendiliğinden dolar.
+ */
+function EntryForm({ entry, onClose, onSave }: { entry: SiteEntry | null; onClose: () => void; onSave: (e: SiteEntry) => void }) {
+  const [v, setV] = useState({
+    date: entry?.date ?? '2026-09-26', activity: entry?.activity ?? '', code: entry?.code ?? '',
+    loc1: entry?.loc1 ?? '', loc2: entry?.loc2 ?? '', loc3: entry?.loc3 ?? '', unit: entry?.unit ?? '',
+    qty: entry ? String(entry.qty) : '', company: entry?.company ?? '', people: entry ? String(entry.people) : '',
+    hours: entry ? String(entry.hours) : '10', note: entry?.note ?? '',
   })
-  const set = (k: string) => (x: string) => setV((o) => ({ ...o, [k]: x }))
-  const active = columns.filter((c) => c.active && c.key !== 'photos')
-  const missing = active.filter((c) => c.required && !v[c.key]?.trim())
+  const [suggest, setSuggest] = useState(false)
+  const set = (k: keyof typeof v) => (x: string) => setV((o) => ({ ...o, [k]: x }))
+  const matches = scheduleActivities.filter((a) => {
+    const s = v.activity.toLocaleLowerCase('tr')
+    return !s || a.name.toLocaleLowerCase('tr').includes(s) || a.code.toLocaleLowerCase('tr').includes(s)
+  }).slice(0, 6)
+  const required: (keyof typeof v)[] = ['date', 'code', 'loc1', 'qty', 'company', 'people', 'hours']
+  const missing = required.filter((k) => !v[k].trim())
   const inxsa = (Number(v.people) || 0) * (Number(v.hours) || 0)
 
   return (
-    <Modal title={entry ? `${entry.id} düzenle` : 'Veri girişi'} wide onClose={onClose}
-      note="Kayıt kaydedilince kısım şefinin onayına düşer. Kişi × saat otomatik insan-saate (inxsa) çevrilir."
+    <Modal title={entry ? `${entry.code} düzenle` : 'Veri girişi'} wide onClose={onClose}
+      note="Açıklamayı yazmaya başlayın; iş programındaki tanımlı aktiviteler önerilir. Kayıt kaydedilince kısım şefinin onayına düşer."
       footer={<>
-        <span className="text-[11.5px] text-[var(--faint)]">{missing.length ? `Zorunlu: ${missing.map((m) => m.label).join(', ')}` : `${inxsa} inxsa · kısım şefi onayına gidecek`}</span>
+        <span className="text-[11.5px] text-[var(--faint)]">{missing.length ? 'Aktivite, lokasyon 1, miktar, firma, personel ve saat zorunlu' : `${inxsa} inxsa · kısım şefi onayına gidecek`}</span>
         <span className="ml-auto flex gap-2">
           <Btn onClick={onClose}>Vazgeç</Btn>
           <Btn primary disabled={missing.length > 0} onClick={() => onSave({
-            ...(entry ?? { id: `SA-${1047 + Math.floor(Math.random() * 50)}`, section: 'Kaba ve çelik', photos: 0, entered: { by: 'k.aslan', at: now() } }),
-            date: v.date, shift: v.shift as SiteEntry['shift'], activity: v.activity, poz: v.poz, area: v.area, level: v.level || undefined,
-            qty: Number(v.qty) || 0, unit: v.unit, crew: v.crew, people: Number(v.people) || 0, hours: Number(v.hours) || 0,
-            machine: v.machine || undefined, machineHours: Number(v.machineHours) || undefined, weather: v.weather,
-            waste: Number(v.waste) || undefined, note: v.note || undefined,
+            ...(entry ?? {
+              id: `SA-${1047 + Math.floor(Math.random() * 50)}`, section: 'Kaba ve çelik', shift: 'Gündüz' as const, poz: '—',
+              crew: v.company, weather: 'Açık', photos: 0, entered: { by: 'k.aslan', at: now() },
+            }),
+            date: v.date, activity: v.activity, code: v.code, loc1: v.loc1, loc2: v.loc2 || '—', loc3: v.loc3 || '—',
+            area: [v.loc1, v.loc2].filter(Boolean).join(' · '), unit: v.unit, qty: Number(v.qty) || 0, company: v.company,
+            people: Number(v.people) || 0, hours: Number(v.hours) || 0, note: v.note || undefined,
             ...(entry ? { sectionChief: undefined, siteChief: undefined, rejected: undefined } : {}),
           })}>Kaydet ve onaya gönder</Btn>
         </span>
       </>}>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {active.map((c) => {
-          if (c.key === 'shift') return (
-            <label key={c.key} className="flex flex-col gap-1">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">{c.label}</span>
-              <select value={v.shift} onChange={(e) => set('shift')(e.target.value)} className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-2 text-[13px] text-[var(--ink)] outline-none">
-                <option>Gündüz</option><option>Gece</option>
-              </select>
-            </label>
-          )
-          if (c.key === 'qty') return (
-            <div key={c.key} className="grid grid-cols-[1fr_72px] gap-1.5">
-              <Field label={`${c.label}${c.required ? ' *' : ''}`} value={v.qty} onChange={set('qty')} type="number" />
-              <Field label="Birim" value={v.unit} onChange={set('unit')} />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+        <div className="relative sm:col-span-3">
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Açıklama (aktivite) *</span>
+            <input value={v.activity} placeholder="Ör. panel, epoksi, A-2140…"
+              onFocus={() => setSuggest(true)} onBlur={() => setTimeout(() => setSuggest(false), 150)}
+              onChange={(e) => { set('activity')(e.target.value); set('code')(''); setSuggest(true) }}
+              className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-2 text-[13px] text-[var(--ink)] outline-none focus:border-[var(--accent)]" />
+          </label>
+          {suggest && matches.length > 0 && (
+            <div className="absolute left-0 right-0 top-[62px] z-50 overflow-hidden rounded-md border border-[var(--border)] bg-[var(--surface)] shadow-lg">
+              {matches.map((a) => (
+                <button key={a.code} onMouseDown={() => setV((o) => ({ ...o, activity: a.name, code: a.code, unit: a.unit, company: o.company || a.company }))}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12.5px] hover:bg-[var(--surface-2)]">
+                  <span className="mono text-[11.5px] font-semibold text-[var(--accent)]">{a.code}</span>
+                  <span className="text-[var(--ink)]">{a.name}</span>
+                  <span className="ml-auto text-[11px] text-[var(--faint)]">{a.unit} · {a.company}</span>
+                </button>
+              ))}
             </div>
-          )
-          return (
-            <div key={c.key} className={c.key === 'note' || c.key === 'activity' ? 'sm:col-span-2' : ''}>
-              <Field label={`${c.label}${c.required ? ' *' : ''}`} value={v[c.key] ?? ''} onChange={set(c.key)} hint={c.hint}
-                type={['date'].includes(c.key) ? 'date' : ['people', 'hours', 'machineHours', 'waste'].includes(c.key) ? 'number' : 'text'} />
-            </div>
-          )
-        })}
-        {columns.find((c) => c.key === 'photos')?.active && (
-          <div className="flex items-center gap-2 rounded-md border-2 border-dashed border-[var(--border-strong)] px-3 py-2 text-[12px] text-[var(--muted)] sm:col-span-3">
-            📷 Saha fotoğrafı ekle — telefondan çekilen fotoğraflar kayda ve konuma bağlanır
-          </div>
-        )}
-      </div>
-    </Modal>
-  )
-}
-
-/** Proje özelinde kolonların aktif / pasif yapılması */
-function ColumnsModal({ columns, onClose, onChange }: { columns: EntryColumn[]; onClose: () => void; onChange: (c: EntryColumn[]) => void }) {
-  return (
-    <Modal title="Veri giriş kolonları" wide onClose={onClose}
-      note="Kolonlar bütün projelerde ortak veri formatından gelir. Bu projede kullanılmayanları pasife çekin: formda görünmezler ama format bozulmaz, girilen her veri arka planda aynı yapıda birikir (know-how). Zorunlu kolonlar kapatılamaz."
-      footer={<span className="ml-auto"><Btn primary onClick={onClose}>Tamam</Btn></span>}>
-      <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-        {columns.map((c) => (
-          <div key={c.key} className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
-            <span className="text-[12.5px] text-[var(--ink)]">{c.label}</span>
-            {c.required && <Badge tone="neutral">zorunlu</Badge>}
-            <span className="ml-auto">
-              <Switch on={c.active} disabled={c.required}
-                onChange={(on) => onChange(columns.map((x) => (x.key === c.key ? { ...x, active: on } : x)))} />
-            </span>
-          </div>
-        ))}
-      </div>
-    </Modal>
-  )
-}
-
-/** Sahadan telefonla giriş — veri sorumlusunun göreceği ekranın önizlemesi */
-function MobileModal({ columns, onClose }: { columns: EntryColumn[]; onClose: () => void }) {
-  const shown = columns.filter((c) => c.active && ['activity', 'area', 'qty', 'crew', 'people', 'hours', 'note'].includes(c.key))
-  return (
-    <Modal title="Mobil veri girişi" onClose={onClose}
-      note="Veri sorumlusu sahadan telefonla kayıt girer, fotoğraf ekler ve kaydının onay durumunu takip eder. Form, bu projede aktif olan kolonlarla oluşur."
-      footer={<span className="ml-auto"><Btn onClick={onClose}>Kapat</Btn></span>}>
-      <div className="mx-auto w-[280px] rounded-[34px] border-[9px] border-[#1f2733] bg-[var(--surface-2)] shadow-xl">
-        <div className="flex items-center justify-between rounded-t-[24px] bg-[var(--accent)] px-4 pb-2.5 pt-3 text-white">
-          <span className="text-[12px] font-semibold">Yeni kayıt</span>
-          <span className="text-[10.5px] opacity-80">{prj.code}</span>
+          )}
         </div>
-        <div className="flex flex-col gap-2 p-3">
-          {shown.map((c) => (
-            <div key={c.key} className="rounded-lg bg-[var(--surface)] px-3 py-1.5 shadow-sm">
-              <div className="text-[9.5px] font-semibold uppercase tracking-wide text-[var(--faint)]">{c.label}</div>
-              <div className="text-[12px] text-[var(--muted)]">{c.key === 'activity' ? 'Sandviç panel montajı ▾' : c.key === 'area' ? 'Depo B · kuzey cephe ▾' : '…'}</div>
-            </div>
+        <Field label="Aktivite kodu *" value={v.code} onChange={set('code')} hint="Öneriden seçince dolar" />
+        <Field label="Lokasyon 1 *" value={v.loc1} onChange={set('loc1')} placeholder="Bina" />
+        <Field label="Lokasyon 2" value={v.loc2} onChange={set('loc2')} placeholder="Bölge / kat" />
+        <Field label="Lokasyon 3" value={v.loc3} onChange={set('loc3')} placeholder="Aks" />
+        <Field label="Tarih *" value={v.date} onChange={set('date')} type="date" />
+        <Field label="Birim" value={v.unit} onChange={set('unit')} />
+        <Field label="Miktar *" value={v.qty} onChange={set('qty')} type="number" />
+        <Field label="Sorumlu firma *" value={v.company} onChange={set('company')} />
+        <Field label="Personel sayısı *" value={v.people} onChange={set('people')} type="number" />
+        <Field label="Çalışılan saat *" value={v.hours} onChange={set('hours')} type="number" hint={`= ${inxsa} inxsa`} />
+        <div className="sm:col-span-3"><Field label="Not" value={v.note} onChange={set('note')} /></div>
+        <div className="flex items-center gap-2 rounded-md border-2 border-dashed border-[var(--border-strong)] px-3 py-2 text-[12px] text-[var(--muted)] sm:col-span-4">
+          📷 Saha fotoğrafı ekle — fotoğraflar kayda ve lokasyona bağlanır
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
+/* ---------------- Günlük personel ---------------- */
+
+export function DailyManpower() {
+  const [rows, setRows] = useState<ManpowerRow[]>(manpowerRows)
+  const [range, setRange] = useState<[string, string]>(PRESETS['Dün'])
+  const [editing, setEditing] = useState<ManpowerRow | 'new' | null>(null)
+  const inRange = rows.filter((r) => r.date >= range[0] && r.date <= range[1])
+  const { filtered, head } = useColumnFilters(inRange, {
+    company: (r) => r.company, trade: (r) => r.trade, loc1: (r) => r.loc1, people: (r) => String(r.people),
+    hours: (r) => String(r.hours), inxsa: (r) => num(r.people * r.hours), by: (r) => r.by, date: (r) => date(r.date),
+  })
+  const people = filtered.reduce((a, r) => a + r.people, 0)
+  const hours = filtered.reduce((a, r) => a + r.people * r.hours, 0)
+
+  return (
+    <>
+      <PageHead title="Progress · Daily Manpower"
+        note="Saha veri mühendisinin her gün girdiği personel kaydı: firma, meslek, kişi sayısı ve çalışılan saat. İnsan-saat (inxsa) analizleri ve raporlar bu kayıtlardan beslenir."
+        right={<><ExportButtons /><Btn primary onClick={() => setEditing('new')}>+ Personel girişi</Btn></>} />
+      <DateRange range={range} onApply={setRange} />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Kpi label="Sahadaki personel" value={people} sub={`${new Set(filtered.map((r) => r.company)).size} firma`} tone="accent" />
+        <Kpi label="İnsan-saat" value={num(hours)} sub="Kişi × saat" />
+        <Kpi label="Kendi personelimiz" value={filtered.filter((r) => r.company === 'ICCM Construction').reduce((a, r) => a + r.people, 0)} sub="ICCM Construction" />
+        <Kpi label="Alt yüklenici personeli" value={filtered.filter((r) => r.company !== 'ICCM Construction').reduce((a, r) => a + r.people, 0)} sub="Taşeron ekipler" />
+      </div>
+      <Card title={`Personel kayıtları (${filtered.length})`} pad={false}>
+        <Table dense head={<tr>
+          <Th>{head('company', 'Firma')}</Th><Th>{head('trade', 'Meslek')}</Th><Th>{head('loc1', 'Lokasyon')}</Th>
+          <Th right>{head('people', 'Kişi')}</Th><Th right>{head('hours', 'Saat')}</Th><Th right>{head('inxsa', 'inxsa')}</Th>
+          <Th>Not</Th><Th>{head('by', 'Veri giren')}</Th><Th>{head('date', 'Tarih')}</Th><Th w={80} center>İşlem</Th>
+        </tr>}>
+          {filtered.map((r) => (
+            <tr key={r.id} className="hover:bg-[var(--surface-2)]">
+              <Td nowrap><span className="font-medium text-[var(--ink)]">{r.company}</span></Td>
+              <Td nowrap>{r.trade}</Td><Td nowrap>{r.loc1}</Td>
+              <Td right>{r.people}</Td><Td right>{r.hours}</Td><Td right>{num(r.people * r.hours)}</Td>
+              <Td><span className="text-[12px] text-[var(--muted)]">{r.note ?? '—'}</span></Td>
+              <Td nowrap mono>{r.by}</Td><Td nowrap><span className="tnum">{date(r.date)}</span></Td>
+              <Td nowrap center><RowActions name={`${r.company} · ${r.trade}`} onEdit={() => setEditing(r)} onDelete={() => setRows((l) => l.filter((x) => x.id !== r.id))} /></Td>
+            </tr>
           ))}
-          <div className="grid grid-cols-3 gap-1.5">
-            {[0, 1].map((i) => <span key={i} className="grid aspect-square place-items-center rounded-lg text-[16px]" style={{ background: `hsl(${200 + i * 20} 35% 85%)` }}>📷</span>)}
-            <span className="grid aspect-square place-items-center rounded-lg border-2 border-dashed border-[var(--border-strong)] text-[18px] text-[var(--muted)]">＋</span>
-          </div>
-          <div className="mt-1 rounded-lg bg-[var(--accent)] py-2 text-center text-[12.5px] font-semibold text-white">Onaya gönder</div>
-          <div className="pb-1 text-center text-[10px] text-[var(--faint)]">Konum ve saat otomatik eklenir</div>
-        </div>
+        </Table>
+      </Card>
+      {editing && (
+        <SimpleForm title={editing === 'new' ? 'Personel girişi' : 'Personel kaydını düzenle'} onClose={() => setEditing(null)}
+          fields={[['company', 'Firma'], ['trade', 'Meslek'], ['loc1', 'Lokasyon'], ['people', 'Kişi sayısı', 'number'], ['hours', 'Çalışılan saat', 'number'], ['date', 'Tarih', 'date'], ['note', 'Not']]}
+          initial={editing === 'new' ? { date: '2026-09-26', hours: '10' } : { ...editing, people: String(editing.people), hours: String(editing.hours) }}
+          onSave={(v) => {
+            const row: ManpowerRow = { id: editing === 'new' ? `MP-${Date.now()}` : editing.id, by: 'k.aslan', company: v.company, trade: v.trade, loc1: v.loc1, people: Number(v.people) || 0, hours: Number(v.hours) || 0, date: v.date, note: v.note || undefined }
+            setRows((l) => (l.some((x) => x.id === row.id) ? l.map((x) => (x.id === row.id ? row : x)) : [row, ...l]))
+            setEditing(null)
+          }} />
+      )}
+    </>
+  )
+}
+
+/* ---------------- Günlük makine-ekipman ---------------- */
+
+const EQ_TONE: Record<EquipmentRow['state'], Tone> = { 'Çalıştı': 'ok', 'Beklemede': 'warn', 'Arızalı': 'crit' }
+
+export function DailyEquipment() {
+  const [rows, setRows] = useState<EquipmentRow[]>(equipmentRows)
+  const [range, setRange] = useState<[string, string]>(PRESETS['Dün'])
+  const [editing, setEditing] = useState<EquipmentRow | 'new' | null>(null)
+  const inRange = rows.filter((r) => r.date >= range[0] && r.date <= range[1])
+  const { filtered, head } = useColumnFilters(inRange, {
+    machine: (r) => r.machine, plate: (r) => r.plate, ownership: (r) => r.ownership, operator: (r) => r.operator,
+    work: (r) => String(r.workHours), idle: (r) => String(r.idleHours), fuel: (r) => num(r.fuel), loc1: (r) => r.loc1,
+    state: (r) => r.state, by: (r) => r.by, date: (r) => date(r.date),
+  })
+  const work = filtered.reduce((a, r) => a + r.workHours, 0)
+  const idle = filtered.reduce((a, r) => a + r.idleHours, 0)
+
+  return (
+    <>
+      <PageHead title="Progress · Daily Equipment"
+        note="Saha veri mühendisinin her gün girdiği makine-ekipman kaydı: çalışma ve bekleme saati, yakıt, operatör ve durum. Makine verimliliği ve raporlar bu kayıtlardan beslenir."
+        right={<><ExportButtons /><Btn primary onClick={() => setEditing('new')}>+ Ekipman girişi</Btn></>} />
+      <DateRange range={range} onApply={setRange} />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <Kpi label="Sahadaki makine" value={filtered.length} sub={`${filtered.filter((r) => r.ownership === 'Kira').length} kiralık`} tone="accent" />
+        <Kpi label="Çalışma saati" value={num(work)} />
+        <Kpi label="Bekleme saati" value={num(idle)} sub={`Toplamın %${Math.round((idle / ((work + idle) || 1)) * 100)}’i`} tone="warn" />
+        <Kpi label="Yakıt" value={`${num(filtered.reduce((a, r) => a + r.fuel, 0))} lt`} />
+        <Kpi label="Arızalı" value={filtered.filter((r) => r.state === 'Arızalı').length} tone="crit" />
+      </div>
+      <Card title={`Ekipman kayıtları (${filtered.length})`} pad={false}>
+        <Table dense head={<tr>
+          <Th>{head('machine', 'Makine')}</Th><Th>{head('plate', 'Plaka / no')}</Th><Th>{head('ownership', 'Mülkiyet')}</Th>
+          <Th>{head('operator', 'Operatör')}</Th><Th right>{head('work', 'Çalışma sa.')}</Th><Th right>{head('idle', 'Bekleme sa.')}</Th>
+          <Th right>{head('fuel', 'Yakıt (lt)')}</Th><Th>{head('loc1', 'Lokasyon')}</Th><Th>{head('state', 'Durum')}</Th>
+          <Th>{head('by', 'Veri giren')}</Th><Th>{head('date', 'Tarih')}</Th><Th w={80} center>İşlem</Th>
+        </tr>}>
+          {filtered.map((r) => (
+            <tr key={r.id} className="hover:bg-[var(--surface-2)]">
+              <Td nowrap><span className="font-medium text-[var(--ink)]">{r.machine}</span></Td>
+              <Td nowrap mono>{r.plate}</Td>
+              <Td nowrap><Badge tone={r.ownership === 'Kira' ? 'warn' : 'ok'}>{r.ownership}</Badge></Td>
+              <Td nowrap>{r.operator}</Td>
+              <Td right>{r.workHours}</Td><Td right>{r.idleHours}</Td><Td right>{num(r.fuel)}</Td>
+              <Td nowrap>{r.loc1}</Td>
+              <Td nowrap><Badge tone={EQ_TONE[r.state]} dot>{r.state}</Badge></Td>
+              <Td nowrap mono>{r.by}</Td><Td nowrap><span className="tnum">{date(r.date)}</span></Td>
+              <Td nowrap center><RowActions name={`${r.machine} · ${r.plate}`} onEdit={() => setEditing(r)} onDelete={() => setRows((l) => l.filter((x) => x.id !== r.id))} /></Td>
+            </tr>
+          ))}
+        </Table>
+      </Card>
+      {editing && (
+        <SimpleForm title={editing === 'new' ? 'Ekipman girişi' : 'Ekipman kaydını düzenle'} onClose={() => setEditing(null)}
+          fields={[['machine', 'Makine'], ['plate', 'Plaka / no'], ['operator', 'Operatör'], ['workHours', 'Çalışma saati', 'number'], ['idleHours', 'Bekleme saati', 'number'], ['fuel', 'Yakıt (lt)', 'number'], ['loc1', 'Lokasyon'], ['date', 'Tarih', 'date']]}
+          initial={editing === 'new' ? { date: '2026-09-26' } : { ...editing, workHours: String(editing.workHours), idleHours: String(editing.idleHours), fuel: String(editing.fuel) }}
+          onSave={(v) => {
+            const row: EquipmentRow = {
+              id: editing === 'new' ? `EQ-${Date.now()}` : editing.id, by: 'k.aslan', machine: v.machine, plate: v.plate, operator: v.operator,
+              ownership: editing === 'new' ? 'Kira' : editing.ownership, workHours: Number(v.workHours) || 0, idleHours: Number(v.idleHours) || 0,
+              fuel: Number(v.fuel) || 0, loc1: v.loc1, date: v.date, state: (Number(v.workHours) || 0) > 0 ? 'Çalıştı' : 'Beklemede',
+            }
+            setRows((l) => (l.some((x) => x.id === row.id) ? l.map((x) => (x.id === row.id ? row : x)) : [row, ...l]))
+            setEditing(null)
+          }} />
+      )}
+    </>
+  )
+}
+
+/** Basit ekle / düzenle formu — alan listesiyle kurulur */
+function SimpleForm({ title, fields, initial, onClose, onSave }: {
+  title: string; fields: [string, string, string?][]; initial: Record<string, unknown>
+  onClose: () => void; onSave: (v: Record<string, string>) => void
+}) {
+  const [v, setV] = useState<Record<string, string>>(Object.fromEntries(fields.map(([k]) => [k, String(initial[k] ?? '')])))
+  const ready = fields.slice(0, 2).every(([k]) => v[k]?.trim())
+  return (
+    <Modal title={title} wide onClose={onClose}
+      footer={<span className="ml-auto flex gap-2"><Btn onClick={onClose}>Vazgeç</Btn><Btn primary disabled={!ready} onClick={() => onSave(v)}>Kaydet</Btn></span>}>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {fields.map(([k, l, t]) => <Field key={k} label={l} value={v[k] ?? ''} type={t ?? 'text'} onChange={(x) => setV((o) => ({ ...o, [k]: x }))} />)}
       </div>
     </Modal>
   )
@@ -452,10 +595,13 @@ const DIS_TONE: Record<SiteDisruption['state'], Tone> = { 'Açık': 'crit', 'Ç�
 
 export function ProgressDisruptions() {
   const [list, setList] = useState<SiteDisruption[]>(siteDisruptions)
-  const [catFilter, setCatFilter] = useState('Tümü')
   const [open, setOpen] = useState<SiteDisruption | null>(null)
   const [editing, setEditing] = useState<SiteDisruption | 'new' | null>(null)
-  const rows = list.filter((d) => catFilter === 'Tümü' || d.category === catFilter)
+  const { filtered: rows, head } = useColumnFilters(list, {
+    title: (d) => d.title, activity: (d) => d.activity, category: (d) => d.category, days: (d) => String(d.effectDays),
+    critical: (d) => (d.critical ? 'Evet' : 'Hayır'), hours: (d) => num(d.lostHours), cost: (d) => moneyShort(d.cost, prj.currency),
+    owner: (d) => d.owner, state: (d) => d.state, date: (d) => date(d.date),
+  })
 
   function save(d: SiteDisruption) {
     setList((l) => (l.some((x) => x.id === d.id) ? l.map((x) => (x.id === d.id ? d : x)) : [d, ...l]))
@@ -467,46 +613,47 @@ export function ProgressDisruptions() {
       <PageHead title="Progress · Disruptions"
         note="Sahada verimsizlik oluşturan her olay sebep – etki – çözüm mantığıyla kaydedilir: ne oldu, programa ve maliyete etkisi ne, ne yapıldı. İşveren veya kurum kaynaklı olanlar kanıtlarıyla (kayıt, fotoğraf) hak talebine dönüştürülür."
         right={<><ExportButtons /><Btn primary onClick={() => setEditing('new')}>+ Aksaklık ekle</Btn></>} />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi label="Aksaklık" value={list.length} sub={`${list.filter((d) => d.state === 'Açık' || d.state === 'Çözümde').length} açık`} />
         <Kpi label="Kayıp insan-saat" value={num(list.reduce((a, d) => a + d.lostHours, 0))} tone="warn" />
         <Kpi label="Maliyet etkisi" value={moneyShort(list.reduce((a, d) => a + d.cost, 0), prj.currency)} tone="crit" />
         <Kpi label="Kritik yola etki" value={`${list.filter((d) => d.critical).reduce((a, d) => a + d.effectDays, 0)} gün`} tone="crit" />
-        <Kpi label="Hak talebine dönüşen" value={list.filter((d) => d.claim).length} tone="accent" />
       </div>
-      <Card title={`Aksaklıklar (${rows.length})`} pad={false}>
-        <Table head={
+      <Card title={`Aksaklıklar (${rows.length})`} help="Kolonlar ayrık tutulur; her sütun başlığından filtrelenir. Tarih son sütundadır." pad={false}>
+        <Table dense head={
           <tr>
-            <Th w={210}>Aksaklık</Th>
-            <Th w={100}>
-              <span className="flex items-center gap-1.5">Sebep
-                <ColumnFilter value={catFilter} onChange={setCatFilter} values={[...new Set(list.map((d) => d.category))]} />
-              </span>
-            </Th>
-            <Th w={210}>Sebep → etki</Th>
-            <Th w={220}>Çözüm</Th>
-            <Th>Durum</Th>
+            <Th w={120}>{head('title', 'Aksaklık')}</Th>
+            <Th w={100}>{head('activity', 'Etkilenen aktivite')}</Th>
+            <Th>{head('category', 'Sebep')}</Th>
+            <Th w={130}>Sebep açıklaması</Th>
+            <Th right>{head('days', 'Gün')}</Th>
+            <Th>{head('critical', 'Kritik yol')}</Th>
+            <Th right>{head('hours', 'Kayıp inxsa')}</Th>
+            <Th right>{head('cost', 'Maliyet')}</Th>
+            <Th w={130}>Çözüm</Th>
+            <Th>{head('owner', 'Sorumlu')}</Th>
+            <Th>{head('state', 'Durum')}</Th>
+            <Th>{head('date', 'Tarih')}</Th>
             <Th w={100} center>İşlem</Th>
           </tr>
         }>
           {rows.map((d) => (
             <tr key={d.id} onClick={() => setOpen(d)} className="cursor-pointer hover:bg-[var(--surface-2)]">
-              <Td>
-                <div className="text-[12.5px] font-medium text-[var(--ink)]">{d.title}</div>
-                <div className="text-[11px] text-[var(--faint)]">{d.id} · {date(d.date)} · {d.activity}</div>
-              </Td>
+              <Td><span className="text-[12.5px] font-medium text-[var(--ink)]">{d.title}</span></Td>
+              <Td><span className="text-[12px] text-[var(--ink)]">{d.activity}</span></Td>
               <Td nowrap><Badge tone={CAT_TONE[d.category]}>{d.category}</Badge></Td>
-              <Td>
-                <div className="text-[12px] text-[var(--muted)]">{d.cause}</div>
-                <div className="mt-0.5 text-[11.5px] tnum text-[var(--ink)]">
-                  → {d.effectDays ? <b style={{ color: d.critical ? 'var(--crit)' : undefined }}>{d.effectDays} gün{d.critical ? ' (kritik yol)' : ''}</b> : 'süre etkisi yok'} · {num(d.lostHours)} saat · {moneyShort(d.cost, prj.currency)}
-                </div>
-              </Td>
+              <Td><span className="text-[12px] text-[var(--muted)]">{d.cause}</span></Td>
+              <Td right>{d.effectDays || '—'}</Td>
+              <Td nowrap>{d.critical ? <Badge tone="crit">Evet</Badge> : <span className="text-[var(--faint)]">Hayır</span>}</Td>
+              <Td right>{num(d.lostHours)}</Td>
+              <Td right><span className="whitespace-nowrap">{moneyShort(d.cost, prj.currency)}</span></Td>
               <Td><span className="text-[12px] text-[var(--ink)]">{d.solution}</span></Td>
+              <Td nowrap mono>{d.owner}</Td>
               <Td nowrap>
                 <Badge tone={DIS_TONE[d.state]} dot>{d.state}</Badge>
                 {d.claim && <div className="mono mt-0.5 text-[11px] text-[var(--accent)]">{d.claim}</div>}
               </Td>
+              <Td nowrap><span className="tnum">{date(d.date)}</span></Td>
               <Td nowrap center>
                 <RowActions name={d.title} onOpen={() => setOpen(d)} onEdit={() => setEditing(d)}
                   onDelete={() => setList((l) => l.filter((x) => x.id !== d.id))} />
@@ -522,7 +669,7 @@ export function ProgressDisruptions() {
             <IconBtn icon="edit" onClick={() => { setEditing(open); setOpen(null) }} />
             <span className="ml-auto flex gap-2">
               {!open.claim && ['İşveren', 'Tasarım', 'Kamu kurumu'].includes(open.category) && (
-                <Btn primary onClick={() => save({ ...open, state: 'Hak talebine dönüştü', claim: 'CL-04' })}>Hak talebine dönüştür</Btn>
+                <Btn primary onClick={() => save({ ...open, state: 'Hak talebine dönüştü', claim: `CL-${String(list.filter((x) => x.claim).length + 2).padStart(2, '0')}` })}>Hak talebine dönüştür</Btn>
               )}
               {open.state !== 'Kapandı' && !open.claim && <Btn onClick={() => save({ ...open, state: 'Kapandı' })}>Kapat</Btn>}
             </span>
@@ -542,9 +689,6 @@ export function ProgressDisruptions() {
           <div className="mt-3 text-[10.5px] font-semibold uppercase tracking-wide text-[var(--faint)]">Kanıt fotoğrafları ({open.photos})</div>
           <div className="mt-1.5 grid grid-cols-4 gap-2 md:grid-cols-6">
             {sitePhotos.filter((p) => p.disruption === open.id).map((p) => <PhotoThumb key={p.id} p={p} />)}
-            {Array.from({ length: Math.max(0, Math.min(5, open.photos) - sitePhotos.filter((p) => p.disruption === open.id).length) }, (_, i) => (
-              <span key={i} className="grid aspect-[4/3] place-items-center rounded-md text-[16px]" style={{ background: `hsl(${(i * 47 + 20) % 360} 30% 87%)` }}>📷</span>
-            ))}
           </div>
         </Modal>
       )}
@@ -568,7 +712,7 @@ function DisruptionForm({ d, onClose, onSave }: { d: SiteDisruption | null; onCl
       footer={<span className="ml-auto flex gap-2">
         <Btn onClick={onClose}>Vazgeç</Btn>
         <Btn primary disabled={!ready} onClick={() => onSave({
-          ...(d ?? { id: `DS-${String(Math.floor(Math.random() * 90) + 10)}`, date: '2026-09-26', state: 'Açık' as const, photos: 0 }),
+          ...(d ?? { id: `DS-${String(Math.floor(Math.random() * 90) + 10)}`, date: '2026-09-27', state: 'Açık' as const, photos: 0 }),
           title: v.title.trim(), activity: v.activity.trim(), category: v.category as SiteDisruption['category'], cause: v.cause.trim(),
           effectDays: Number(v.effectDays) || 0, lostHours: Number(v.lostHours) || 0, cost: Number(v.cost) || 0,
           solution: v.solution.trim(), owner: v.owner.trim(), critical: v.critical,
@@ -634,7 +778,7 @@ export function SitePhotos() {
     <>
       <PageHead title="Progress · Site Photos"
         note="Veri sorumlusunun mobilden eklediği saha fotoğrafları. Her fotoğraf tarih, konum ve aktiviteyle birlikte bir saha kaydına ya da aksaklığa bağlanır; hak taleplerinde kanıt olarak kullanılır."
-        right={<Btn primary onClick={() => setPhotos((l) => [{ id: `P-${312 + l.length}`, date: '2026-09-26', activity: 'Genel', area: 'Saha', by: 'k.aslan', caption: 'Yeni yüklenen fotoğraf', hue: 160 }, ...l])}>+ Fotoğraf yükle</Btn>} />
+        right={<Btn primary onClick={() => setPhotos((l) => [{ id: `P-${312 + l.length}`, date: '2026-09-27', activity: 'Genel', area: 'Saha', by: 'k.aslan', caption: 'Yeni yüklenen fotoğraf', hue: 160 }, ...l])}>+ Fotoğraf yükle</Btn>} />
       <div className="flex flex-wrap items-center gap-2">
         <Chips<PhotoFilter> value={filter} onChange={setFilter} items={(['Tümü', 'Kayıtlara bağlı', 'Aksaklıklara bağlı'] as PhotoFilter[]).map((k) => ({
           key: k, label: k, count: k === 'Tümü' ? photos.length : photos.filter((p) => (k === 'Kayıtlara bağlı' ? p.entry : p.disruption)).length,

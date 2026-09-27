@@ -125,10 +125,10 @@ export function Bar({ value, tone = 'accent', height = 6 }: { value: number; ton
 
 /* ---------------- Tablo yardımcıları ---------------- */
 
-export function Table({ children, head }: { children: ReactNode; head: ReactNode }) {
+export function Table({ children, head, dense }: { children: ReactNode; head: ReactNode; dense?: boolean }) {
   return (
     <div className="overflow-x-auto rounded-lg border border-[var(--border)] bg-[var(--surface)]">
-      <table className="w-full border-collapse text-[13px]">
+      <table className={`w-full border-collapse text-[13px] ${dense ? 'dense-table' : ''}`}>
         <thead>{head}</thead>
         <tbody>{children}</tbody>
       </table>

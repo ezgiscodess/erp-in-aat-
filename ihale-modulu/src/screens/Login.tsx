@@ -9,7 +9,7 @@ import type { Persona } from '../lib/roles'
  * yalnızca o tipin ekranları açılır. İnce yetkiler arka planda tanımlanır.
  */
 export function Login({ onLogin }: { onLogin: (p: Persona) => void }) {
-  const [mail, setMail] = useState('e.yilmaz@anadoluinsaat.com.tr')
+  const [mail, setMail] = useState('iccm@iccm.com')
   const [pass, setPass] = useState('••••••••')
   const [persona, setPersona] = useState<Persona>('ihale')
 
@@ -19,9 +19,9 @@ export function Login({ onLogin }: { onLogin: (p: Persona) => void }) {
         {/* Sol: marka tarafı */}
         <div className="flex flex-col justify-between gap-8 p-8" style={{ background: 'var(--accent-soft)' }}>
           <div className="flex items-center gap-2.5">
-            <span className="grid h-8 w-8 place-items-center rounded-lg text-[14px] font-extrabold text-white" style={{ background: 'var(--accent)' }}>İK</span>
+            <span className="grid h-8 w-8 place-items-center rounded-lg text-[14px] font-extrabold text-white" style={{ background: 'var(--accent)' }}>IC</span>
             <div>
-              <div className="text-[15px] font-bold tracking-tight text-[var(--ink)]">İnşaat ERP</div>
+              <div className="text-[15px] font-bold tracking-tight text-[var(--ink)]">ICCM Ecosystem</div>
               <div className="text-[11.5px] text-[var(--muted)]">İhale, kontrat ve proje yönetimi</div>
             </div>
           </div>

@@ -11,7 +11,7 @@ import type {
 
 export const project: TenderProject = {
   id: 'TND-2026-014',
-  company: 'Anadolu İnşaat A.Ş.',
+  company: 'ICCM Construction LTD',
   code: 'TND-2026-014',
   name: 'Mersin Konteyner Limanı Genişleme — Faz 2 (Rıhtım ve Saha İşleri)',
   employer: 'Medport Liman İşletmeleri A.Ş.',
@@ -556,7 +556,7 @@ export const contractSections: ContractSection[] = [
 
 export const contractVariables: ContractVariable[] = [
   { key: 'isveren', label: 'İşveren', value: 'Medport Liman İşletmeleri A.Ş.', source: 'İdari Şartname s.3', filled: true },
-  { key: 'yuklenici', label: 'Yüklenici', value: 'Anadolu İnşaat A.Ş. (Pilot ortak)', source: 'Şirket kaydı', filled: true },
+  { key: 'yuklenici', label: 'Yüklenici', value: 'ICCM Construction LTD (Pilot ortak)', source: 'Şirket kaydı', filled: true },
   { key: 'is_adi', label: 'İşin adı', value: 'Mersin Konteyner Limanı Genişleme — Faz 2', source: 'İdari Şartname s.1', filled: true },
   { key: 'bedel', label: 'Sözleşme bedeli', value: '— (teklif sonrası)', source: 'Teklif cetveli', filled: false },
   { key: 'sure', label: 'İşin süresi', value: '720 takvim günü', source: 'İdari Şartname 19.1', filled: true },
@@ -674,7 +674,7 @@ export const previewBodies: Record<string, string> = {
  * Şirkete yüklenmiş ihale ve projeler. Modül bu listeden seçilen işle açılır;
  * her işin verisi kendi alanında durur, diğer işlerden yalıtılmıştır.
  */
-export const library: LibraryItem[] = [
+export const library: LibraryItem[] = ([
   {
     id: 'TND-2026-014', kind: 'ihale', code: 'TND-2026-014',
     name: 'Mersin Konteyner Limanı Genişleme — Faz 2 (Rıhtım ve Saha İşleri)',
@@ -722,7 +722,7 @@ export const library: LibraryItem[] = [
     name: 'Gebze Lojistik Merkezi Depo Yapıları',
     employer: 'Anadolu Lojistik A.Ş.', location: 'Kocaeli / Gebze',
     dueAt: '2026-12-20', daysLeft: 90, value: 29_200_000, currency: 'EUR',
-    status: 'Yapım sürüyor', warrantyDays: 365, docCount: 31, progress: 72, updatedAt: '2026-09-18 18:05', updatedBy: 'a.koc',
+    status: 'Yapım sürüyor', warrantyDays: 365, docCount: 31, progress: 85, updatedAt: '2026-09-18 18:05', updatedBy: 'a.koc',
   },
   {
     id: 'PRJ-2024-002', kind: 'proje', code: 'PRJ-2024-002',
@@ -731,7 +731,10 @@ export const library: LibraryItem[] = [
     dueAt: '2026-10-30', daysLeft: 39, value: 17_800_000, currency: 'EUR',
     status: 'Kabul aşaması', warrantyDays: 365, docCount: 28, progress: 96, updatedAt: '2026-09-15 12:10', updatedBy: 'm.aydin',
   },
-]
+] as LibraryItem[]).map((i) => (i.kind === 'proje'
+  // Projelerde kalan gün, bütün proje ekranlarıyla aynı "bugün" (27 Eyl 2026) tarihinden hesaplanır
+  ? { ...i, daysLeft: Math.round((new Date(i.dueAt).getTime() - new Date('2026-09-27').getTime()) / 86_400_000) }
+  : i))
 
 /* ---------------- İş programı ---------------- */
 

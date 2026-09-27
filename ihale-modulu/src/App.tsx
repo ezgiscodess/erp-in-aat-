@@ -41,8 +41,12 @@ export default function App() {
   const access = accessFor(tab, role)
   const writable = canWrite(tab, role)
 
-  function openItem(item: LibraryItem) {
+  /** Proje kartında "Yönet" proje yönetim ekranlarını, "Aç" projenin ihale dosyasını açar */
+  const [manage, setManage] = useState(false)
+
+  function openItem(item: LibraryItem, asProject = false) {
     setOpen(item)
+    setManage(asProject)
     setTab('dokuman_analiz')
     setView('module')
   }
@@ -50,7 +54,7 @@ export default function App() {
   if (view === 'login') return <Login onLogin={(p) => { setPersona(p); setView('hub') }} />
   if (view === 'hub') return <Hub key={persona} persona={persona} onOpen={openItem} onLogout={() => setView('login')} />
   /** Proje (yapım dönemi) işleri proje ekranlarıyla açılır */
-  if (open.kind === 'proje') return <ProjectModule item={open} persona={persona} onBack={() => setView('hub')} />
+  if (open.kind === 'proje' && manage) return <ProjectModule item={open} persona={persona} onBack={() => setView('hub')} />
 
   /** Prototipte bütün ekranlar örnek ihale dosyasının verisiyle açılır. */
   const sample = open.id === project.id
@@ -60,8 +64,8 @@ export default function App() {
       {/* ---------- Sol yan panel ---------- */}
       <aside className="sticky top-0 flex h-screen w-[238px] flex-shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface)]">
         <div className="flex items-center gap-2.5 border-b border-[var(--border)] px-4 py-3">
-          <span className="grid h-6 w-6 place-items-center rounded-md text-[12px] font-extrabold text-white" style={{ background: 'var(--accent)' }}>İK</span>
-          <span className="text-[13.5px] font-bold tracking-tight text-[var(--ink)]">İnşaat ERP</span>
+          <span className="grid h-6 w-6 place-items-center rounded-md text-[12px] font-extrabold text-white" style={{ background: 'var(--accent)' }}>IC</span>
+          <span className="text-[13.5px] font-bold tracking-tight text-[var(--ink)]">ICCM Ecosystem</span>
           <span className="text-[11px] text-[var(--muted)]">{open.kind === 'ihale' ? 'İhale' : 'Proje'}</span>
         </div>
 

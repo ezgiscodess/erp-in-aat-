@@ -13,6 +13,7 @@ export const prj = {
   contractValue: 29_200_000,
   /** Onaylanan değişiklik emirleriyle eklenen bedel */
   approvedChange: 1_140_000,
+  contractDate: '2024-11-28',
   start: '2025-01-06',
   plannedFinish: '2026-12-20',
   /** Mevcut hızla (SPI) öngörülen bitiş */
@@ -30,8 +31,8 @@ export function monthName(m: number): string {
 }
 
 /** Kümülatif fiziksel ilerleme (%) — işverenle mutabık program ve sahadan gelen gerçekleşen */
-export const plannedCum = [1, 2, 4, 6, 9, 12, 16, 20, 25, 30, 35, 40, 45, 50, 55, 60, 64.5, 68.5, 72, 75, 78, 85, 93, 100]
-export const actualCum = [0.5, 1.5, 3, 5, 7.5, 10.5, 14, 18, 22.5, 27, 31.5, 36, 40.5, 45, 49.5, 54, 58, 62, 65.5, 69, 72]
+export const plannedCum = [0.6, 1.5, 2.6, 4.0, 5.7, 7.9, 10.7, 14.1, 18.2, 23.0, 28.6, 35.0, 41.9, 49.1, 56.6, 63.8, 70.7, 77.1, 82.7, 87.5, 91.6, 95.0, 97.8, 100.0]
+export const actualCum = [0.3, 0.3, 1.0, 1.9, 3.1, 4.7, 6.6, 9.1, 12.1, 15.8, 20.3, 25.5, 31.4, 38.0, 45.1, 52.5, 59.9, 67.0, 73.7, 79.7, 85.0]
 
 /* ---------------- Bütçe ---------------- */
 
@@ -48,13 +49,27 @@ export interface CostLine {
 }
 
 export const costLines: CostLine[] = [
-  { name: 'Alt yüklenici', budget: 10_600_000, committed: 11_150_000, actual: 7_900_000, forecast: 11_400_000 },
-  { name: 'Malzeme', budget: 7_400_000, committed: 7_100_000, actual: 5_900_000, forecast: 7_800_000 },
-  { name: 'Kendi işçiliğimiz', budget: 3_100_000, committed: 3_100_000, actual: 2_600_000, forecast: 3_500_000 },
-  { name: 'Şantiye genel gideri', budget: 2_400_000, committed: 2_400_000, actual: 1_950_000, forecast: 2_600_000 },
-  { name: 'Makine-ekipman', budget: 2_200_000, committed: 2_000_000, actual: 1_800_000, forecast: 2_500_000 },
-  { name: 'Tasarım ve danışmanlık', budget: 700_000, committed: 700_000, actual: 650_000, forecast: 720_000 },
+  { name: 'Alt yüklenici', budget: 10_600_000, committed: 11_150_000, actual: 9_100_000, forecast: 11_400_000 },
+  { name: 'Malzeme', budget: 7_400_000, committed: 7_100_000, actual: 6_800_000, forecast: 7_800_000 },
+  { name: 'Kendi işçiliğimiz', budget: 3_100_000, committed: 3_100_000, actual: 3_000_000, forecast: 3_500_000 },
+  { name: 'Şantiye genel gideri', budget: 2_400_000, committed: 2_400_000, actual: 2_250_000, forecast: 2_600_000 },
+  { name: 'Makine-ekipman', budget: 2_200_000, committed: 2_200_000, actual: 2_070_000, forecast: 2_500_000 },
+  { name: 'Tasarım ve danışmanlık', budget: 700_000, committed: 720_000, actual: 720_000, forecast: 740_000 },
 ]
+
+/**
+ * Kazanılmış değer göstergeleri — hepsi veriden hesaplanır.
+ * EV = gerçekleşen ilerleme × bütçe, PV = planlanan ilerleme × bütçe, AC = harcanan maliyet.
+ */
+export function evm() {
+  const bac = costLines.reduce((a, c) => a + c.budget, 0)
+  const ac = costLines.reduce((a, c) => a + c.actual, 0)
+  const actual = actualCum[prj.today - 1]
+  const planned = plannedCum[prj.today - 1]
+  const ev = (actual / 100) * bac
+  const pv = (planned / 100) * bac
+  return { bac, ac, ev, pv, spi: ev / pv, cpi: ev / ac, actual, planned }
+}
 
 /* ---------------- Hakedişler (IPC) ---------------- */
 

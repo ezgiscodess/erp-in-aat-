@@ -2,7 +2,7 @@ import { Badge, Bar, Card, ExportButtons, Kpi, PageHead, StateBadge, Table, Td, 
 import { date, money, moneyShort, num, pct } from '../../lib/format'
 import { Gauge, Legend, MonthColumns, PairBars, SCurve, StackBar } from '../charts'
 import {
-  actualCum, changeOrders, claims, contractMatches, costLines, criticalPath, dailyReport, disruptions, ipcs, machines,
+  actualCum, changeOrders, evm, claims, contractMatches, costLines, criticalPath, dailyReport, disruptions, ipcs, machines,
   monthName, monthlyPhrs, plannedCum, prj, productivity, subcontracts, trades,
 } from '../data'
 
@@ -13,7 +13,7 @@ import {
 
 const C = prj.currency
 const m = (v: number) => moneyShort(v, C)
-const TODAY = new Date('2026-09-26')
+const TODAY = new Date('2026-09-27')
 const daysTo = (iso: string) => Math.round((new Date(iso).getTime() - TODAY.getTime()) / 86_400_000)
 const PLAN_ACTUAL = [{ label: 'Gerçekleşen', color: 'var(--series-1)' }, { label: 'Planlanan', color: 'var(--series-2)', dashed: true }]
 
@@ -235,15 +235,14 @@ export function AdminContract() {
 /* ---------------- Planning ---------------- */
 
 export function AdminPlanning() {
-  const actual = actualCum[prj.today - 1]
-  const planned = plannedCum[prj.today - 1]
+  const { actual, planned, spi, cpi } = evm()
   return (
     <>
       <Head title="Planning" note="İşverenle mutabık kalınan program üzerinden ilerleme: girilen verilere göre işin olması gereken ilerlemesi, kritik hat ve önümüzdeki dönemin iş planı." />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Kpi label="Gerçekleşen" value={pct(actual)} sub={`Planlanan ${pct(planned)}`} tone="accent" />
-        <Gauge label="SPI" value={actual / planned} />
-        <Gauge label="CPI" value={0.94} />
+        <Gauge label="SPI" value={spi} />
+        <Gauge label="CPI" value={cpi} />
         <Kpi label="Öngörülen bitiş" value={date(prj.forecastFinish)} sub={`Sözleşme ${date(prj.plannedFinish)}`} tone="warn" />
         <Kpi label="4 haftalık plan" value="14 aktivite" sub="3’ü riskte" tone="warn" help="Lookahead: önümüzdeki 4 haftada başlaması veya bitmesi gereken aktiviteler." />
       </div>

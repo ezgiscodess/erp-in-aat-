@@ -22,7 +22,7 @@
   /* Ek Paket vurgusu — gereksinim tablosundaki sarı satırlarla aynı his */
   --gold:#8A6100; --gold-bg:#FDF0CE; --gold-border:#F0D48A;
   /* Grafik serileri — sabit sıra: 1 gerçekleşen, 2 planlanan (doğrulandı: CVD ve kontrast geçer) */
-  --series-1:#2563EB; --series-2:#D97706;
+  --series-1:#2563EB; --series-2:#D97706; --series-3:#0E9F6E; --series-4:#9333EA; --series-5:#DB2777;
   --mono:ui-monospace,"SF Mono",SFMono-Regular,"Cascadia Mono","Roboto Mono",Menlo,Consolas,monospace;
 }
 
@@ -39,6 +39,11 @@ body{margin:0;background:var(--bg);color:var(--ink);
 :focus-visible{outline:2px solid var(--accent);outline-offset:-1px}
 
 /* Kanıt vurgusu — doküman metninde AI'ın dayandığı satır */
+/* Çok kolonlu tablolar için sıkı görünüm — kolonlar ayrık kalır, ekrana sığar */
+.dense-table th,.dense-table td{padding-left:6px!important;padding-right:6px!important}
+.dense-table td{font-size:12px}
+.dense-table th{white-space:normal!important;font-size:10px!important;letter-spacing:.02em;vertical-align:bottom}
+.dense-table td .mono,.dense-table td.mono{font-size:11px}
 mark.evidence{background:var(--accent-soft);color:var(--ink);border-bottom:2px solid var(--accent);padding:0 1px}
 
 /* Düzeltme izi — eklenen sarı ve altı çizili, çıkarılan soluk ve üstü çizili */

@@ -211,3 +211,176 @@ export function Gauge({ label, value, good = 1, help }: { label: string; value: 
     </div>
   )
 }
+
+/* ---------------- Çoklu çizgi ---------------- */
+
+export interface LineSeries { label: string; color: string; values: (number | null)[]; dashed?: boolean; dotted?: boolean }
+
+/**
+ * Aynı eksende birden fazla kümülatif seri (plan · mevcut · recovery gibi). Üzerine gelince dikey çizgi ve değer kutusu.
+ * Değerler 0–100 aralığındadır; seri boyu x eksenindeki nokta sayısıdır.
+ */
+export function MultiLine({ series, labels, height = 180, today }: { series: LineSeries[]; labels: string[]; height?: number; today?: number }) {
+  const [hover, setHover] = useState<number | null>(null)
+  const [ref, W] = useWidth()
+  const n = labels.length
+  const H = height
+  const pad = { l: 34, r: 10, t: 8, b: 22 }
+  const x = (i: number) => pad.l + (i / (n - 1)) * (W - pad.l - pad.r)
+  const y = (v: number) => pad.t + (1 - v / 100) * (H - pad.t - pad.b)
+  const path = (arr: (number | null)[]) => arr.map((v, i) => (v == null ? '' : `${i && arr[i - 1] != null ? 'L' : 'M'}${x(i)},${y(v)}`)).join(' ')
+  return (
+    <div ref={ref} className="relative">
+      <svg width={W} height={H} className="block" onMouseLeave={() => setHover(null)}
+        onMouseMove={(e) => {
+          const r = (e.currentTarget as SVGSVGElement).getBoundingClientRect()
+          const i = Math.round((((e.clientX - r.left) / r.width) * W - pad.l) / (W - pad.l - pad.r) * (n - 1))
+          setHover(Math.max(0, Math.min(n - 1, i)))
+        }}>
+        {[0, 50, 100].map((v) => (
+          <g key={v}>
+            <line x1={pad.l} x2={W - pad.r} y1={y(v)} y2={y(v)} stroke="var(--border)" />
+            <text x={pad.l - 6} y={y(v) + 3} textAnchor="end" fontSize="10" fill="var(--faint)">%{v}</text>
+          </g>
+        ))}
+        {labels.map((l, i) => i % Math.ceil(n / 6) === 0 && <text key={i} x={x(i)} y={H - 6} textAnchor="middle" fontSize="10" fill="var(--faint)">{l}</text>)}
+        {today != null && <line x1={x(today)} x2={x(today)} y1={pad.t} y2={H - pad.b} stroke="var(--border-strong)" strokeDasharray="2 3" />}
+        {series.map((s) => (
+          <path key={s.label} d={path(s.values)} fill="none" stroke={s.color} strokeWidth="2"
+            strokeDasharray={s.dashed ? '5 4' : s.dotted ? '1.5 3' : undefined} strokeLinecap="round" />
+        ))}
+        {hover != null && <line x1={x(hover)} x2={x(hover)} y1={pad.t} y2={H - pad.b} stroke="var(--muted)" />}
+        {hover != null && series.map((s) => s.values[hover] != null && (
+          <circle key={s.label} cx={x(hover)} cy={y(s.values[hover]!)} r="3.5" fill={s.color} stroke="var(--surface)" strokeWidth="2" />
+        ))}
+      </svg>
+      {hover != null && (
+        <div className="pointer-events-none absolute top-0 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-[11.5px] shadow-md"
+          style={{ left: `calc(${(x(hover) / W) * 100}% + ${hover > n / 2 ? -150 : 10}px)` }}>
+          <div className="font-semibold text-[var(--ink)]">{labels[hover]}</div>
+          {series.map((s) => (
+            <div key={s.label} className="text-[var(--muted)]">{s.label} <b className="text-[var(--ink)] tnum">{s.values[hover] != null ? `%${tr(s.values[hover]!, 1)}` : '—'}</b></div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ---------------- Halka (dağılım) ---------------- */
+
+/** Az sayıda kategorinin paylarını gösteren halka; lejant ve yüzdeler yanında yazılıdır. */
+export function Donut({ parts, size = 150, center }: { parts: { label: string; value: number; color: string }[]; size?: number; center?: ReactNode }) {
+  const [hover, setHover] = useState<number | null>(null)
+  const total = parts.reduce((a, p) => a + p.value, 0) || 1
+  const r = size / 2 - 10
+  const c = 2 * Math.PI * r
+  let acc = 0
+  return (
+    <div className="flex flex-wrap items-center gap-4">
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
+          {parts.map((p, i) => {
+            const len = (p.value / total) * c
+            const el = (
+              <circle key={p.label} cx={size / 2} cy={size / 2} r={r} fill="none" stroke={p.color}
+                strokeWidth={hover === i ? 20 : 16} strokeDasharray={`${Math.max(0, len - 2)} ${c - Math.max(0, len - 2)}`} strokeDashoffset={-acc}
+                onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)} />
+            )
+            acc += len
+            return el
+          })}
+        </svg>
+        <div className="absolute inset-0 grid place-items-center text-center">
+          {hover != null
+            ? <div><div className="text-[18px] font-bold text-[var(--ink)] tnum">%{Math.round((parts[hover].value / total) * 100)}</div><div className="text-[10.5px] text-[var(--muted)]">{parts[hover].label}</div></div>
+            : center}
+        </div>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        {parts.map((p, i) => (
+          <div key={p.label} className="flex items-center gap-2 text-[12px]" onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}>
+            <span className="h-2.5 w-2.5 rounded-sm" style={{ background: p.color }} />
+            <span className="text-[var(--ink)]">{p.label}</span>
+            <span className="ml-2 text-[var(--muted)] tnum">%{Math.round((p.value / total) * 100)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ---------------- Zaman çizelgesi (Gantt) ---------------- */
+
+export interface GanttRow {
+  code: string
+  name: string
+  start: string
+  finish: string
+  progress?: number
+  critical?: boolean
+  /** Karşılaştırma için ikinci çubuk (ör. geçen haftanın planı, recovery planı) */
+  ghost?: { start: string; finish: string }
+}
+
+const day = (iso: string) => new Date(iso).getTime() / 86_400_000
+
+/**
+ * Tarihe dayalı zaman çizelgesi. Çubuğun koyu kısmı gerçekleşen ilerlemedir; kırmızı çubuk kritik yoldadır.
+ * `ghost` verilirse aynı satırda ince gri çubukla karşılaştırma (plan / önceki sürüm) gösterilir.
+ */
+export function Gantt({ rows, from, to, today, compact, labelW = 260, onRow }: {
+  rows: GanttRow[]; from: string; to: string; today?: string; compact?: boolean; labelW?: number; onRow?: (r: GanttRow) => void
+}) {
+  const a = day(from)
+  const b = day(to)
+  const pos = (iso: string) => Math.max(0, Math.min(100, ((day(iso) - a) / (b - a)) * 100))
+  const months: { label: string; left: number }[] = []
+  const d = new Date(from); d.setDate(1)
+  while (d.getTime() / 86_400_000 <= b) {
+    if (d.getTime() / 86_400_000 >= a) months.push({ label: new Intl.DateTimeFormat('tr-TR', { month: 'short', year: '2-digit' }).format(d), left: pos(d.toISOString().slice(0, 10)) })
+    d.setMonth(d.getMonth() + 1)
+  }
+  const step = Math.max(1, Math.ceil(months.length / 12))
+  const rowH = compact ? 22 : 28
+  return (
+    <div className="overflow-x-auto">
+      <div className="min-w-[760px]">
+        <div className="flex border-b border-[var(--border)] bg-[var(--surface-3)] text-[10px] text-[var(--muted)]">
+          <div className="flex-shrink-0 border-r border-[var(--border)] px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide" style={{ width: labelW }}>Aktivite</div>
+          <div className="relative h-7 flex-1">
+            {months.map((m, i) => i % step === 0 && (
+              <span key={i} className="absolute top-1.5 -translate-x-1/2 whitespace-nowrap" style={{ left: `${m.left}%` }}>{m.label}</span>
+            ))}
+          </div>
+        </div>
+        {rows.map((r) => {
+          const l = pos(r.start)
+          const w = Math.max(0.6, pos(r.finish) - l)
+          return (
+            <div key={r.code} onClick={() => onRow?.(r)} className={`flex border-b border-[var(--border)] last:border-0 ${onRow ? 'cursor-pointer hover:bg-[var(--surface-2)]' : ''}`} style={{ height: rowH }}>
+              <div className="flex flex-shrink-0 items-center gap-2 border-r border-[var(--border)] px-3" style={{ width: labelW }}>
+                <span className="mono w-[52px] flex-shrink-0 text-[10.5px] text-[var(--faint)]">{r.code}</span>
+                <span className="min-w-0 flex-1 truncate text-[12px] text-[var(--ink)]" title={r.name}>{r.name}</span>
+              </div>
+              <div className="relative flex-1">
+                {months.map((m, i) => <span key={i} className="absolute inset-y-0 w-px bg-[var(--border)] opacity-60" style={{ left: `${m.left}%` }} />)}
+                {today && <span className="absolute inset-y-0 w-px" style={{ left: `${pos(today)}%`, background: 'var(--crit)', opacity: 0.5 }} />}
+                {r.ghost && (
+                  <span className="absolute h-[4px] rounded-full" title={`${r.ghost.start} → ${r.ghost.finish}`}
+                    style={{ left: `${pos(r.ghost.start)}%`, width: `${Math.max(0.6, pos(r.ghost.finish) - pos(r.ghost.start))}%`, top: rowH - 7, background: 'var(--border-strong)' }} />
+                )}
+                <span className="absolute overflow-hidden rounded-[3px]" title={`${r.name} · ${r.start} → ${r.finish}${r.progress != null ? ` · %${r.progress}` : ''}`}
+                  style={{ left: `${l}%`, width: `${w}%`, top: 5, height: rowH - 13, background: r.critical ? 'var(--crit)' : 'var(--series-1)', opacity: 0.35 }}>
+                </span>
+                {r.progress != null && r.progress > 0 && (
+                  <span className="absolute rounded-l-[3px]" style={{ left: `${l}%`, width: `${(w * r.progress) / 100}%`, top: 5, height: rowH - 13, background: r.critical ? 'var(--crit)' : 'var(--series-1)' }} />
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
