@@ -305,3 +305,65 @@ export const criticalPath = [
   { name: 'Saha asfaltı ve çizgi', finish: '2026-12-12', float: 4, state: 'Başlamadı' },
   { name: 'Geçici kabul', finish: '2026-12-20', float: 0, state: 'Hedef' },
 ]
+
+/* ---------------- Home: kapsam, kilometre taşları, riskler, haftanın konuları ---------------- */
+
+/** Kapsam durumu — sözleşme kalemleri (BoQ pozları) bazında */
+export const scopeStatus = { inScope: 118, atRisk: 14, outOfScope: 6 }
+
+export interface Milestone {
+  name: string
+  date: string
+  state: 'Tamamlandı' | 'Geride' | 'İptal' | 'Planlandı'
+  note: string
+}
+
+export const milestones: Milestone[] = [
+  { name: 'Mobilizasyon tamamlandı', date: '2025-02-15', state: 'Tamamlandı', note: 'Zamanında' },
+  { name: 'Kaba yapı tamamlandı', date: '2025-12-20', state: 'Tamamlandı', note: 'Zamanında' },
+  { name: 'Depo A-B çelik montajı', date: '2026-04-30', state: 'Tamamlandı', note: '9 gün gecikmeyle' },
+  { name: 'Depo A erken teslim (kısmi kabul)', date: '2026-08-31', state: 'İptal', note: 'İşveren kısmi kabulden vazgeçti' },
+  { name: 'Kalıcı enerji bağlantısı', date: '2026-09-15', state: 'Geride', note: 'İzin bekleniyor · CL-03' },
+  { name: 'Depo C çatı kapanışı', date: '2026-10-22', state: 'Geride', note: '18 gün geride' },
+  { name: 'Yangın sistemi itfaiye onayı', date: '2026-12-02', state: 'Planlandı', note: 'Kritik yolda' },
+  { name: 'Geçici kabul', date: '2026-12-20', state: 'Planlandı', note: 'Öngörü 24 Oca 2027' },
+]
+
+export interface TopRisk {
+  id: string
+  title: string
+  /** Olasılık ve etki 1–5 */
+  p: number
+  i: number
+  owner: string
+  action: string
+  trend: 'up' | 'down' | 'flat'
+}
+
+export const topRisks: TopRisk[] = [
+  { id: 'R-03', title: 'Depo C çatı montajı gecikmesi geçici kabulü öteler', p: 5, i: 5, owner: 'b.yildiz', action: 'Gece vardiyası + ikinci montaj ekibi', trend: 'up' },
+  { id: 'R-07', title: 'Elektrik bağlantı izni gelmezse yangın testleri yapılamaz', p: 4, i: 5, owner: 'o.kara', action: 'CL-03 bildirimi; jeneratörle kısmi test', trend: 'up' },
+  { id: 'R-11', title: 'Kasım rüzgârında çatı paneli montajı durur', p: 4, i: 3, owner: 'm.aydin', action: 'Aks bazında öne çekme', trend: 'flat' },
+  { id: 'R-02', title: 'Taşeron kontrat farkları (tuğla, çelik) maliyeti artırır', p: 3, i: 4, owner: 'h.demir', action: 'Taşeron metrajı ana kontrata eşitlenecek', trend: 'down' },
+  { id: 'R-09', title: 'Tek mobil vinç iki kritik aktivitede çakışıyor', p: 3, i: 3, owner: 'm.aydin', action: 'Ekim sonu ikinci vinç kiralaması', trend: 'flat' },
+]
+
+export interface WeekTodo {
+  day: string
+  text: string
+  owner: string
+  tone: 'crit' | 'warn' | 'neutral'
+  go?: string
+  done?: boolean
+}
+
+/** İçinde bulunulan hafta: 28 Eyl – 4 Eki 2026 */
+export const weekTodos: WeekTodo[] = [
+  { day: '2026-09-28', text: 'Haftalık koordinasyon toplantısı · CO-02 rampa sayısı', owner: 'h.demir', tone: 'neutral', go: 'communication' },
+  { day: '2026-09-29', text: 'SAS-121 enerji kablosu onayı (acil)', owner: 'h.demir', tone: 'warn', go: 'sas' },
+  { day: '2026-09-30', text: 'HEA 200 aşık profili sahaya geliyor · teslim tutanağı', owner: 'depo.ali', tone: 'neutral', go: 'stock', done: true },
+  { day: '2026-10-01', text: 'Aks 8–12 makas montajı başlıyor', owner: 'b.yildiz', tone: 'warn', go: 'micro' },
+  { day: '2026-10-02', text: 'Eylül aylık raporu müdür onayına', owner: 'k.aslan', tone: 'neutral', go: 'r_monthly' },
+  { day: '2026-10-03', text: 'CL-03 bildirim yazısı (son gün 06 Eki)', owner: 'h.demir', tone: 'crit', go: 'claim' },
+  { day: '2026-10-04', text: 'LA-40 lookahead programı hazırlanacak', owner: 'm.aydin', tone: 'neutral', go: 'lookahead' },
+]

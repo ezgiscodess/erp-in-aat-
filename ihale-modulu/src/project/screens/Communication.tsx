@@ -7,7 +7,7 @@ import { Badge, Btn, Chips, IconBtn, Modal, PageHead, RowActions } from '../../c
  * bir başkasıyla paylaşılır veya ona atanır.
  */
 
-const ME = 'e.yilmaz'
+export const ME = 'e.yilmaz'
 const PEOPLE = ['h.demir', 'b.yildiz', 'o.kara', 'm.aydin', 'k.aslan', 't.celik', 's.kaya']
 const stamp = () => new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
 
@@ -35,7 +35,7 @@ const seed: Conv[] = [
   { id: 'c4', name: 's.kaya', group: false, members: ['s.kaya'], unread: 0, messages: [{ by: ME, at: 'Pzt', text: 'Aylık rapor taslağı hazır, onayınıza gönderdim.' }] },
 ]
 
-interface Note {
+export interface Note {
   id: string
   text: string
   kind: 'Not' | 'Görev'
@@ -46,7 +46,7 @@ interface Note {
   due?: string
 }
 
-const seedNotes: Note[] = [
+export const seedNotes: Note[] = [
   { id: 'n1', text: 'CL-03 elektrik izni bildirim yazısını hazırla', kind: 'Görev', done: false, owner: ME, assignee: 'h.demir', shared: [], due: '2026-10-03' },
   { id: 'n2', text: 'Mobil vinç kira sözleşmesi Kasım uzatması', kind: 'Görev', done: false, owner: 'm.aydin', assignee: ME, shared: [], due: '2026-10-10' },
   { id: 'n3', text: 'İşveren toplantısında rampa sayısı (CO-02) konuşulacak', kind: 'Not', done: false, owner: ME, shared: ['h.demir', 'm.aydin'] },

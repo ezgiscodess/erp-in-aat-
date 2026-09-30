@@ -16,6 +16,8 @@ export interface Activity {
   pred?: string
   /** Kaynak ataması (kişi / makine) — firmanın iç programında dolu */
   resource?: string
+  /** Metraj ağırlığı (%) — verilmezse süre × ekip büyüklüğünden hesaplanır */
+  weight?: number
 }
 
 export interface Program {
@@ -33,20 +35,20 @@ export interface Program {
 }
 
 const main: Activity[] = [
-  { code: 'A-1010', name: 'Mobilizasyon ve şantiye kurulumu', start: '2025-01-06', finish: '2025-02-15', progress: 100 },
-  { code: 'A-1110', name: 'Kazı ve temel', start: '2025-02-01', finish: '2025-06-15', progress: 100, critical: true, pred: 'A-1010' },
-  { code: 'A-1210', name: 'Betonarme kaba yapı', start: '2025-04-15', finish: '2025-12-20', progress: 100, critical: true, pred: 'A-1110' },
-  { code: 'A-2110', name: 'Depo A-B çelik montajı', start: '2025-09-01', finish: '2026-04-30', progress: 100, critical: true, pred: 'A-1210' },
-  { code: 'A-2120', name: 'Depo C çelik çatı makası montajı', start: '2026-03-01', finish: '2026-10-22', progress: 72, critical: true, pred: 'A-2110' },
-  { code: 'A-2140', name: 'Sandviç panel cephe', start: '2026-02-15', finish: '2026-11-10', progress: 64, pred: 'A-2110' },
-  { code: 'A-2150', name: 'Çatı paneli montajı', start: '2026-06-01', finish: '2026-11-18', progress: 40, critical: true, pred: 'A-2120' },
-  { code: 'A-3120', name: 'Tuğla bölme duvar', start: '2026-05-01', finish: '2026-10-18', progress: 80, pred: 'A-1210' },
-  { code: 'A-3310', name: 'Epoksi zemin', start: '2026-07-15', finish: '2026-11-28', progress: 38, pred: 'A-2140' },
-  { code: 'A-4210', name: 'Sprinkler ve yangın tesisatı', start: '2026-04-01', finish: '2026-11-20', progress: 59, pred: 'A-2110' },
-  { code: 'A-4410', name: 'Elektrik ve aydınlatma', start: '2026-04-15', finish: '2026-11-25', progress: 45, pred: 'A-2110' },
-  { code: 'A-4290', name: 'Yangın sistemi testleri', start: '2026-11-20', finish: '2026-12-02', progress: 0, critical: true, pred: 'A-4210' },
-  { code: 'A-5110', name: 'Saha asfaltı ve çizgi', start: '2026-09-15', finish: '2026-12-12', progress: 5 },
-  { code: 'A-9010', name: 'Geçici kabul', start: '2026-12-12', finish: '2026-12-20', progress: 0, critical: true, pred: 'A-4290' },
+  { code: 'A-1010', name: 'Mobilizasyon ve şantiye kurulumu', start: '2025-01-06', finish: '2025-02-15', progress: 100, weight: 3 },
+  { code: 'A-1110', name: 'Kazı ve temel', start: '2025-02-01', finish: '2025-06-15', progress: 100, weight: 11, critical: true, pred: 'A-1010' },
+  { code: 'A-1210', name: 'Betonarme kaba yapı', start: '2025-04-15', finish: '2025-12-20', progress: 100, weight: 29, critical: true, pred: 'A-1110' },
+  { code: 'A-2110', name: 'Depo A-B çelik montajı', start: '2025-09-01', finish: '2026-04-30', progress: 100, weight: 22, critical: true, pred: 'A-1210' },
+  { code: 'A-2120', name: 'Depo C çelik çatı makası montajı', start: '2026-03-01', finish: '2026-10-22', progress: 72, weight: 8, critical: true, pred: 'A-2110' },
+  { code: 'A-2140', name: 'Sandviç panel cephe', start: '2026-02-15', finish: '2026-11-10', progress: 64, weight: 7, pred: 'A-2110' },
+  { code: 'A-2150', name: 'Çatı paneli montajı', start: '2026-06-01', finish: '2026-11-18', progress: 40, weight: 4, critical: true, pred: 'A-2120' },
+  { code: 'A-3120', name: 'Tuğla bölme duvar', start: '2026-05-01', finish: '2026-10-18', progress: 80, weight: 3, pred: 'A-1210' },
+  { code: 'A-3310', name: 'Epoksi zemin', start: '2026-07-15', finish: '2026-11-28', progress: 38, weight: 3, pred: 'A-2140' },
+  { code: 'A-4210', name: 'Sprinkler ve yangın tesisatı', start: '2026-04-01', finish: '2026-11-20', progress: 59, weight: 4, pred: 'A-2110' },
+  { code: 'A-4410', name: 'Elektrik ve aydınlatma', start: '2026-04-15', finish: '2026-11-25', progress: 45, weight: 3, pred: 'A-2110' },
+  { code: 'A-4290', name: 'Yangın sistemi testleri', start: '2026-11-20', finish: '2026-12-02', progress: 0, weight: 1, critical: true, pred: 'A-4210' },
+  { code: 'A-5110', name: 'Saha asfaltı ve çizgi', start: '2026-09-15', finish: '2026-12-12', progress: 5, weight: 2 },
+  { code: 'A-9010', name: 'Geçici kabul', start: '2026-12-12', finish: '2026-12-20', progress: 0, weight: 0, critical: true, pred: 'A-4290' },
 ]
 
 export const programs: Program[] = [

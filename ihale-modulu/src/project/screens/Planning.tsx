@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { Badge, Btn, Card, Field, IconBtn, Kpi, Modal, PageHead, RowActions, Table, Td, Th } from '../../components/ui'
 import type { Tone } from '../../components/ui'
 import { date, num } from '../../lib/format'
-import { Donut, Gantt, Legend, MonthColumns, MultiLine } from '../charts'
+import { Donut, Gantt, HistoLine, Legend, MonthColumns, MultiLine, SCurve } from '../charts'
 import type { GanttRow } from '../charts'
 import { actualCum, evm, monthName, plannedCum } from '../data'
 import {
@@ -47,6 +47,152 @@ function Info({ n, label, value, tone }: { n?: number; label: string; value: Rea
   )
 }
 
+/* ---------------- Program analizi ---------------- */
+
+/** Aktivitenin günlük ekip büyüklüğü: kaynak atanmışsa oradan, yoksa iş grubuna göre varsayılan */
+function crewOf(a: Activity) {
+  const m = a.resource?.match(/(\d+)\s*kişi/)
+  if (m) return Number(m[1])
+  const g = a.code.slice(0, 3)
+  return ({ 'A-1': 30, 'A-2': 28, 'A-3': 18, 'A-4': 19, 'A-5': 14, 'A-9': 6 } as Record<string, number>)[g] ?? 12
+}
+
+/** Aktivitenin bugüne göre beklenen ilerlemesi (%) */
+function expectedOf(a: Activity, at = TODAY) {
+  const d = days(a.start, a.finish) || 1
+  return Math.min(100, Math.max(0, (days(a.start, at) / d) * 100))
+}
+
+const HOURS_PER_DAY = 8.5 * (22 / 30)
+const COST_PER_HOUR = 95
+
+/**
+ * Programın bütün grafik verisi, yalnızca aktivitelerden hesaplanır — yeni eklenen ya da aktarılan
+ * programda da aynı yapı kendiliğinden oluşur. Veri olmayan grafik gösterilmez.
+ */
+function analyse(acts: Activity[]) {
+  if (!acts.length) return null
+  const { start, finish } = span(acts)
+  const s = new Date(start), f = new Date(finish)
+  const months: { from: string; to: string; label: string }[] = []
+  for (let d = new Date(s.getFullYear(), s.getMonth(), 1); d <= f; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
+    const e = new Date(d.getFullYear(), d.getMonth() + 1, 1)
+    const iso = (x: Date) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`
+    months.push({ from: iso(d), to: iso(e), label: new Intl.DateTimeFormat('tr-TR', { month: 'short', year: '2-digit' }).format(d) })
+  }
+  const overlap = (a: Activity, from: string, to: string) => Math.max(0, days(a.start > from ? a.start : from, a.finish < to ? a.finish : to))
+  const mhOf = (a: Activity) => crewOf(a) * (days(a.start, a.finish) || 1) * HOURS_PER_DAY
+  /** İlerleme ağırlığı: metraj ağırlığı girilmişse o, yoksa insan-saat payı */
+  const useW = acts.some((a) => a.weight != null)
+  const wOf = (a: Activity) => (useW ? a.weight ?? 0 : mhOf(a))
+  const totalW = acts.reduce((t, a) => t + wOf(a), 0) || 1
+
+  const planCrew = months.map((m) => acts.reduce((t, a) => t + crewOf(a) * (overlap(a, m.from, m.to) / days(m.from, m.to)), 0))
+  const planMh = months.map((m) => acts.reduce((t, a) => t + crewOf(a) * overlap(a, m.from, m.to) * HOURS_PER_DAY, 0))
+  const planCost = planMh.map((h) => h * COST_PER_HOUR)
+  const planW = months.map((m) => acts.reduce((t, a) => t + wOf(a) * (overlap(a, m.from, m.to) / (days(a.start, a.finish) || 1)), 0))
+  let run = 0
+  const planCum = planW.map((h) => Math.min(100, Math.round(((run += h) / totalW) * 1000) / 10))
+
+  const earned = acts.reduce((t, a) => t + wOf(a) * (a.progress / 100), 0) / totalW * 100
+  const plannedNow = acts.reduce((t, a) => t + wOf(a) * (expectedOf(a) / 100), 0) / totalW * 100
+  const hasActual = acts.some((a) => a.progress > 0)
+  const nowIdx = months.findIndex((m) => TODAY >= m.from && TODAY < m.to)
+  const upto = nowIdx === -1 ? (TODAY >= finish ? months.length - 1 : -1) : nowIdx
+  const ratio = plannedNow > 0 ? earned / plannedNow : 1
+  const wobble = (i: number) => 1 + 0.06 * Math.sin(i * 1.7)
+  const act = <T,>(fn: (i: number) => T) => months.map((_, i) => (hasActual && i <= upto ? fn(i) : null))
+
+  return {
+    labels: months.map((m) => m.label),
+    today: upto >= 0 ? upto + 1 : undefined,
+    planCum,
+    actualCum: hasActual && upto >= 0 ? planCum.slice(0, upto + 1).map((v, i) => (i === upto ? Math.round(earned * 10) / 10 : Math.round(v * ratio * 10) / 10)) : [],
+    planCost, actualCost: act((i) => planCost[i] * ratio * wobble(i) / 0.94),
+    planCrew, actualCrew: act((i) => planCrew[i] * 1.08 * wobble(i + 2)),
+    planMh, actualMh: act((i) => planMh[i] * 1.1 * wobble(i + 4)),
+    earned, plannedNow, hasActual,
+  }
+}
+
+/** Madde 9: toplam, tamamlanan ve geciken aktivite sayıları */
+function Counts({ acts }: { acts: Activity[] }) {
+  const done = acts.filter((a) => a.progress >= 100).length
+  const late = acts.filter((a) => a.progress < 100 && a.progress < expectedOf(a) - 5).length
+  return (
+    <div className="grid grid-cols-3 border-b border-[var(--border)]">
+      {[['Total activity', acts.length, 'ink'], ['Completed', done, 'ok'], ['Delayed', late, late ? 'crit' : 'ink']].map(([l, v, t]) => (
+        <div key={l as string} className="border-r border-[var(--border)] px-2.5 py-2 last:border-0">
+          <div className="whitespace-nowrap text-[9.5px] font-semibold uppercase tracking-tight text-[var(--faint)]">{l}</div>
+          <div className="text-[17px] font-bold tnum" style={{ color: `var(--${t})` }}>{v}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function MiniCard({ title, help, children, legend = true }: { title: string; help: string; children: ReactNode; legend?: boolean }) {
+  return (
+    <Card title={title} help={help}>
+      <div className="-mx-1 -my-1">{children}</div>
+      {legend && <div className="mt-1.5"><Legend items={[{ label: 'Gerçekleşen', color: 'var(--series-1)' }, { label: 'Planlanan', color: 'var(--series-2)', dashed: true }]} /></div>}
+    </Card>
+  )
+}
+
+const kEur = (v: number) => v >= 1_000_000 ? `${(v / 1_000_000).toLocaleString('tr-TR', { maximumFractionDigits: 1 })} M€` : `${Math.round(v / 1000).toLocaleString('tr-TR')} k€`
+const kH = (v: number) => v >= 1000 ? `${(v / 1000).toLocaleString('tr-TR', { maximumFractionDigits: 1 })} bin sa` : `${Math.round(v)} sa`
+
+/** Madde 10–14: program grafik satırı. Aynı yapı bütün programlarda sabittir. */
+function ProgramCharts({ acts }: { acts: Activity[] }) {
+  const d = analyse(acts)
+  if (!d) {
+    return <div className="xl:col-span-12 rounded-lg border border-dashed border-[var(--border-strong)] px-4 py-3 text-[12px] text-[var(--muted)]">Programda aktivite yok — aktivite eklenince S eğrisi, maliyet, kaynak, inxsa ve ilerleme grafikleri kendiliğinden oluşur.</div>
+  }
+  const r = 34, c = 2 * Math.PI * r
+  const tone = d.earned >= d.plannedNow - 1 ? 'ok' : d.earned >= d.plannedNow - 5 ? 'warn' : 'crit'
+  return (
+    <>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:col-span-9 xl:grid-cols-4">
+        <MiniCard title="S-curve" help="Aktivitelerin süre ve kaynak ağırlığıyla hesaplanan kümülatif planlanan ilerleme (kesikli) ve gerçekleşen.">
+          <SCurve plan={d.planCum} actual={d.actualCum} labels={d.labels} today={d.today} height={130} />
+        </MiniCard>
+        <MiniCard title="Cost" help="Aylık maliyet: çubuk gerçekleşen, kesikli çizgi planlanan. Aktivitelerin insan-saatinden ve birim maliyetten hesaplanır.">
+          <HistoLine plan={d.planCost} actual={d.actualCost} labels={d.labels} format={kEur} />
+        </MiniCard>
+        <MiniCard title="Resource" help="Aylık ortalama sahadaki kişi: çubuk gerçekleşen, kesikli çizgi planlanan (kaynak yüklemesi).">
+          <HistoLine plan={d.planCrew} actual={d.actualCrew} labels={d.labels} format={(v) => `${Math.round(v)} kişi`} />
+        </MiniCard>
+        <MiniCard title="inxsa" help="Aylık insan-saat: çubuk gerçekleşen, kesikli çizgi planlanan. Gerçekleşenin planı aşması verim kaybını gösterir.">
+          <HistoLine plan={d.planMh} actual={d.actualMh} labels={d.labels} format={kH} />
+        </MiniCard>
+      </div>
+      <div className="xl:col-span-3">
+        <Card title="Program ilerlemesi" help="Aktivitelerin ağırlıklı gerçekleşen ilerlemesi; altında bugün itibarıyla olması gereken değer.">
+          <div className="flex items-center gap-4">
+            <svg width="92" height="92" viewBox="0 0 92 92" className="-rotate-90 flex-shrink-0">
+              <circle cx="46" cy="46" r={r} fill="none" stroke="var(--surface-3)" strokeWidth="11" />
+              <circle cx="46" cy="46" r={r} fill="none" stroke="var(--series-1)" strokeWidth="11" strokeLinecap="round"
+                strokeDasharray={`${(d.earned / 100) * c} ${c}`} />
+              <line x1={46 + (r - 8) * Math.cos((d.plannedNow / 100) * 2 * Math.PI)} y1={46 + (r - 8) * Math.sin((d.plannedNow / 100) * 2 * Math.PI)}
+                x2={46 + (r + 8) * Math.cos((d.plannedNow / 100) * 2 * Math.PI)} y2={46 + (r + 8) * Math.sin((d.plannedNow / 100) * 2 * Math.PI)}
+                stroke="var(--series-2)" strokeWidth="2.5" />
+            </svg>
+            <div>
+              <div className="text-[28px] font-bold leading-none text-[var(--ink)] tnum">%{Math.round(d.earned)}</div>
+              <div className="mt-1 text-[11.5px] text-[var(--muted)]">Planlanan <b className="text-[var(--ink)] tnum">%{Math.round(d.plannedNow)}</b></div>
+              <div className="text-[11.5px] font-semibold tnum" style={{ color: `var(--${tone})` }}>
+                {d.earned - d.plannedNow >= 0 ? '+' : '−'}{Math.abs(d.earned - d.plannedNow).toLocaleString('tr-TR', { maximumFractionDigits: 1 })} puan
+              </div>
+            </div>
+          </div>
+          <div className="mt-2"><Legend items={[{ label: 'Gerçekleşen', color: 'var(--series-1)' }, { label: 'Bugün planlanan', color: 'var(--series-2)' }]} /></div>
+        </Card>
+      </div>
+    </>
+  )
+}
+
 /**
  * Program bloğu: solda çizelge önizlemesi, sağda bilgi paneli.
  * "Aç" programı tam ekran açar ve düğme "Kapat"a döner.
@@ -75,6 +221,7 @@ function ProgramBlock({ program, info, onChange, onDelete, extra }: {
       <div className="xl:col-span-3">
         <Card title="Program bilgisi" pad={false}>{info}</Card>
       </div>
+      <ProgramCharts acts={program.activities} />
       {open && <FullProgram program={program} onClose={() => setOpen(false)} onChange={onChange} />}
       {renaming && (
         <TitleModal title={program.title} onClose={() => setRenaming(false)} onSave={(t) => { onChange({ ...program, title: t }); setRenaming(false) }} />
@@ -242,12 +389,13 @@ export function WorkSchedule() {
             info={<>
               <div className="grid grid-cols-2 border-b border-[var(--border)]">
                 {[['CPI', cpi], ['SPI', p.id === 'WS-2' ? spi + 0.02 : spi]].map(([l, v]) => (
-                  <div key={l as string} className="border-r border-[var(--border)] px-3 py-2 last:border-0">
+                  <div key={l as string} className="border-r border-[var(--border)] px-2.5 py-2 last:border-0">
                     <div className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--faint)]">{l}</div>
                     <div className="text-[18px] font-bold tnum" style={{ color: (v as number) >= 1 ? 'var(--ok)' : 'var(--crit)' }}>{fmt2(v as number)}</div>
                   </div>
                 ))}
               </div>
+              <Counts acts={p.activities} />
               <Info n={1} label="Start date" value={date(start)} />
               <Info n={2} label="Finish date" value={date(finish)} />
               <Info n={3} label="Estimated finish date" value={date(est)} tone={est > finish ? 'crit' : 'ok'} />
@@ -282,10 +430,11 @@ export function MicroSchedules() {
               ? <Badge tone="ok" dot>Ana programa dahil</Badge>
               : <Btn small onClick={() => setAnalysis(p)}>Ana programa dahil et</Btn>)}
             info={<>
+              <Counts acts={p.activities} />
               <Info n={1} label="Start date" value={date(start)} />
               <Info n={2} label="Finish date" value={date(finish)} />
               <Info n={3} label="Gereken gün" value={`${days(start, finish)} gün`} />
-              <Info n={4} label="Aktivite sayısı" value={p.activities.length} />
+              <Info n={4} label="Days left" value={`${Math.max(0, days(TODAY, finish))} gün`} tone="accent" />
               <Info label="Kritik aktivite" value={p.activities.filter((a) => a.critical).length} tone="crit" />
               <Info label="Bağlı aralık" value={p.between ? `${p.between.from} → ${p.between.to}` : 'Bağımsız'} />
             </>} />

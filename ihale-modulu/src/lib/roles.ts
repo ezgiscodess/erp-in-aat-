@@ -29,6 +29,7 @@ export const tabs: TabDef[] = [
   { key: 'sertifikalar', label: 'Sertifikalar', addon: true, note: 'İstenen belgeler, firmadaki durum ve geçerlilikler' },
   { key: 'ozet', label: 'Özet & Karar', note: 'Tüm sekmelerin tek sayfada toplandığı karar ekranı' },
   { key: 'kontrat_hazirlama', label: 'Kontrat Hazırlama', addon: true, note: 'İhale kazanıldıktan sonra şablondan sözleşme taslağı üretimi' },
+  { key: 'alternatif_teklif', label: 'Alternatif Teklif', addon: true, note: 'Doküman şartlarına göre hazırlanan ana teklifin yanında AI’nın önerdiği alternatif yöntem, malzeme, program ve ticari seçenekler' },
 ]
 
 /** Yetki matrisi: [sekme][rol] → R | RW */

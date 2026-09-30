@@ -18,6 +18,7 @@ import { PersonelEkipman } from './screens/PersonelEkipman'
 import { TeklifRiskleri } from './screens/TeklifRiskleri'
 import { KontratAnaliz } from './screens/KontratAnaliz'
 import { KontratHazirlama } from './screens/KontratHazirlama'
+import { AlternatifTeklif } from './screens/AlternatifTeklif'
 import { Sertifikalar } from './screens/Sertifikalar'
 import { Ozet } from './screens/Ozet'
 import { ProjectModule } from './project/ProjectModule'
@@ -156,6 +157,7 @@ function Screen({ tab, writable, role, onGo }: { tab: TabKey; writable: boolean;
     case 'teklif_riskleri': return <TeklifRiskleri writable={writable} role={role} />
     case 'kontrat_analiz': return <KontratAnaliz writable={writable} role={role} />
     case 'kontrat_hazirlama': return <KontratHazirlama writable={writable} role={role} />
+    case 'alternatif_teklif': return <AlternatifTeklif writable={writable} role={role} />
     case 'sertifikalar': return <Sertifikalar writable={writable} role={role} />
     case 'ozet': return <Ozet onGo={onGo} />
   }

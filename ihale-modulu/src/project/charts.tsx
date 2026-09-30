@@ -31,7 +31,7 @@ function useWidth(fallback = 600) {
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    const ro = new ResizeObserver(([e]) => setW(Math.max(280, Math.round(e.contentRect.width))))
+    const ro = new ResizeObserver(([e]) => setW(Math.max(160, Math.round(e.contentRect.width))))
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
@@ -64,13 +64,13 @@ export function SCurve({ plan, actual, labels, today, height = 220 }: {
           const i = Math.round(((px - pad.l) / (W - pad.l - pad.r)) * (n - 1))
           setHover(Math.max(0, Math.min(n - 1, i)))
         }}>
-        {[0, 25, 50, 75, 100].map((v) => (
+        {(H < 170 ? [0, 50, 100] : [0, 25, 50, 75, 100]).map((v) => (
           <g key={v}>
             <line x1={pad.l} x2={W - pad.r} y1={y(v)} y2={y(v)} stroke="var(--border)" strokeWidth="1" />
             <text x={pad.l - 6} y={y(v) + 3} textAnchor="end" fontSize="10" fill="var(--faint)">%{v}</text>
           </g>
         ))}
-        {labels.map((l, i) => i % (W > 700 ? 2 : 3) === 0 && (
+        {labels.map((l, i) => i % Math.max(1, Math.ceil(n / Math.max(2, Math.floor((W - 40) / 58)))) === 0 && (
           <text key={i} x={x(i)} y={H - 6} textAnchor="middle" fontSize="10" fill="var(--faint)">{l}</text>
         ))}
         {today != null && (
@@ -81,7 +81,7 @@ export function SCurve({ plan, actual, labels, today, height = 220 }: {
         )}
         <path d={path(plan)} fill="none" stroke="var(--series-2)" strokeWidth="2" strokeDasharray="5 4" />
         <path d={path(actual)} fill="none" stroke="var(--series-1)" strokeWidth="2" />
-        <circle cx={x(actual.length - 1)} cy={y(actual[actual.length - 1])} r="4" fill="var(--series-1)" stroke="var(--surface)" strokeWidth="2" />
+        {actual.length > 0 && <circle cx={x(actual.length - 1)} cy={y(actual[actual.length - 1])} r="4" fill="var(--series-1)" stroke="var(--surface)" strokeWidth="2" />}
         {hover != null && (
           <g>
             <line x1={x(hover)} x2={x(hover)} y1={pad.t} y2={H - pad.b} stroke="var(--muted)" strokeWidth="1" />
@@ -243,7 +243,7 @@ export function MultiLine({ series, labels, height = 180, today }: { series: Lin
             <text x={pad.l - 6} y={y(v) + 3} textAnchor="end" fontSize="10" fill="var(--faint)">%{v}</text>
           </g>
         ))}
-        {labels.map((l, i) => i % Math.ceil(n / 6) === 0 && <text key={i} x={x(i)} y={H - 6} textAnchor="middle" fontSize="10" fill="var(--faint)">{l}</text>)}
+        {labels.map((l, i) => i % Math.max(1, Math.ceil(n / Math.max(2, Math.floor((W - 40) / 58)))) === 0 && <text key={i} x={x(i)} y={H - 6} textAnchor="middle" fontSize="10" fill="var(--faint)">{l}</text>)}
         {today != null && <line x1={x(today)} x2={x(today)} y1={pad.t} y2={H - pad.b} stroke="var(--border-strong)" strokeDasharray="2 3" />}
         {series.map((s) => (
           <path key={s.label} d={path(s.values)} fill="none" stroke={s.color} strokeWidth="2"
@@ -381,6 +381,103 @@ export function Gantt({ rows, from, to, today, compact, labelW = 260, onRow }: {
           )
         })}
       </div>
+    </div>
+  )
+}
+
+/**
+ * Küçük halka grafik: ortada toplam ya da başlık, altında lejant satırları (sayı ve yüzde).
+ * Durum halkalarında renkler durum renkleridir (iyi / uyarı / kritik) ve her dilim etiketle birlikte gelir.
+ */
+export function Ring({ parts, size = 112, center, format = (v: number) => String(v) }: {
+  parts: { label: string; value: number; color: string }[]; size?: number; center: ReactNode; format?: (v: number) => string
+}) {
+  const [hover, setHover] = useState<number | null>(null)
+  const total = parts.reduce((a, p) => a + p.value, 0) || 1
+  const r = size / 2 - 9
+  const c = 2 * Math.PI * r
+  let acc = 0
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--surface-3)" strokeWidth="14" />
+          {parts.map((p, i) => {
+            const len = (p.value / total) * c
+            const el = (
+              <circle key={p.label} cx={size / 2} cy={size / 2} r={r} fill="none" stroke={p.color}
+                strokeWidth={hover === i ? 17 : 14} strokeDasharray={`${Math.max(0, len - 2)} ${c - Math.max(0, len - 2)}`} strokeDashoffset={-acc}
+                onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)} />
+            )
+            acc += len
+            return el
+          })}
+        </svg>
+        <div className="pointer-events-none absolute inset-0 grid place-items-center text-center">
+          {hover != null
+            ? <div><div className="text-[16px] font-bold text-[var(--ink)] tnum">%{Math.round((parts[hover].value / total) * 100)}</div><div className="px-2 text-[10px] leading-tight text-[var(--muted)]">{parts[hover].label}</div></div>
+            : center}
+        </div>
+      </div>
+      <div className="flex w-full flex-col gap-1">
+        {parts.map((p, i) => (
+          <div key={p.label} className="flex items-center gap-1.5 rounded px-1 text-[11.5px]" style={{ background: hover === i ? 'var(--surface-2)' : undefined }}
+            onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}>
+            <span className="h-2.5 w-2.5 flex-shrink-0 rounded-sm" style={{ background: p.color }} />
+            <span className="min-w-0 flex-1 truncate text-[var(--ink)]">{p.label}</span>
+            <span className="text-[var(--muted)] tnum">{format(p.value)}</span>
+            <span className="w-8 text-right font-semibold text-[var(--ink)] tnum">%{Math.round((p.value / total) * 100)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Histogram + çizgi: aylık gerçekleşen çubuk, aylık planlanan çizgi (kesikli). İkisi aynı ölçekte — tek eksen.
+ */
+export function HistoLine({ plan, actual, labels, format, height = 130 }: {
+  plan: number[]; actual: (number | null)[]; labels: string[]; format: (v: number) => string; height?: number
+}) {
+  const [hover, setHover] = useState<number | null>(null)
+  const [ref, W] = useWidth(240)
+  const n = labels.length
+  const H = height
+  const pad = { l: 6, r: 6, t: 16, b: 18 }
+  const max = Math.max(1, ...plan, ...actual.map((v) => v ?? 0)) * 1.08
+  const bw = (W - pad.l - pad.r) / Math.max(1, n)
+  const cx = (i: number) => pad.l + bw * (i + 0.5)
+  const y = (v: number) => pad.t + (1 - v / max) * (H - pad.t - pad.b)
+  const line = plan.map((v, i) => `${i ? 'L' : 'M'}${cx(i)},${y(v)}`).join(' ')
+  const step = Math.max(1, Math.ceil(n / Math.max(2, Math.floor(W / 56))))
+  return (
+    <div ref={ref} className="relative">
+      <svg width={W} height={H} className="block" onMouseLeave={() => setHover(null)}
+        onMouseMove={(e) => {
+          const r = (e.currentTarget as SVGSVGElement).getBoundingClientRect()
+          const i = Math.floor(((e.clientX - r.left) / r.width * W - pad.l) / bw)
+          setHover(Math.max(0, Math.min(n - 1, i)))
+        }}>
+        <line x1={pad.l} x2={W - pad.r} y1={H - pad.b} y2={H - pad.b} stroke="var(--border-strong)" />
+        <line x1={pad.l} x2={W - pad.r} y1={y(max / 1.08)} y2={y(max / 1.08)} stroke="var(--border)" strokeDasharray="2 3" />
+        <text x={pad.l} y={y(max / 1.08) - 4} fontSize="9.5" fill="var(--faint)">{format(max / 1.08)}</text>
+        {actual.map((v, i) => v != null && v > 0 && (
+          <rect key={i} x={cx(i) - Math.max(1.5, bw * 0.34)} width={Math.max(3, bw * 0.68)} y={y(v)} height={Math.max(0, H - pad.b - y(v))}
+            rx={Math.min(3, bw * 0.3)} fill="var(--series-1)" opacity={hover == null || hover === i ? 1 : 0.55} />
+        ))}
+        <path d={line} fill="none" stroke="var(--series-2)" strokeWidth="2" strokeDasharray="4 3" strokeLinejoin="round" />
+        {labels.map((l, i) => i % step === 0 && <text key={i} x={i === 0 ? pad.l : cx(i)} y={H - 5} textAnchor={i === 0 ? 'start' : 'middle'} fontSize="9.5" fill="var(--faint)">{l}</text>)}
+        {hover != null && <circle cx={cx(hover)} cy={y(plan[hover])} r="3.5" fill="var(--series-2)" stroke="var(--surface)" strokeWidth="2" />}
+      </svg>
+      {hover != null && (
+        <div className="pointer-events-none absolute top-0 z-10 whitespace-nowrap rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-[11px] shadow-md"
+          style={{ left: hover > n / 2 ? undefined : `${(cx(hover) / W) * 100}%`, right: hover > n / 2 ? `${100 - (cx(hover) / W) * 100}%` : undefined }}>
+          <div className="font-semibold text-[var(--ink)]">{labels[hover]}</div>
+          <div className="text-[var(--muted)]">Planlanan <b className="text-[var(--ink)] tnum">{format(plan[hover])}</b></div>
+          <div className="text-[var(--muted)]">Gerçekleşen <b className="text-[var(--ink)] tnum">{actual[hover] != null ? format(actual[hover]!) : '—'}</b></div>
+        </div>
+      )}
     </div>
   )
 }

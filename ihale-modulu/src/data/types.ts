@@ -31,6 +31,7 @@ export type TabKey =
   | 'teklif_riskleri'
   | 'kontrat_analiz'
   | 'kontrat_hazirlama'
+  | 'alternatif_teklif'
   | 'sertifikalar'
   | 'ozet'
 

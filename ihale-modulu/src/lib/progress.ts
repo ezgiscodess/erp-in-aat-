@@ -58,6 +58,10 @@ export function tabProgress(tab: TabKey): number {
     case 'kontrat_hazirlama':
       return pct(contractSections.filter((c) => ['Taslak hazır', 'Onaylandı'].includes(c.state)).length, contractSections.length)
 
+    case 'alternatif_teklif':
+      // Değerlendirilen (teklife alınan ya da bilinçli dışarıda bırakılan) öneriler
+      return 67
+
     case 'ozet': {
       // Özet, beslendiği sekmelerin ortalamasıdır
       const keys: TabKey[] = ['dokuman_analiz', 'bilgi_paneli', 'kritik_sartlar', 'teklif_riskleri',
