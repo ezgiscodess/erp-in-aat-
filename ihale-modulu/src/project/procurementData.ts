@@ -21,18 +21,57 @@ export interface SasItem {
   requestedAt: string
   orderedAt?: string
   arrivedAt?: string
+  /** Depoya teslim (stoka giriş) tarihi */
+  depotAt?: string
+  /** Kullanılacak yer */
+  site: string
 }
 
 export const sasItems: SasItem[] = [
-  { id: 'SAS-121', code: 'MLZ-4410-07', desc: 'NYY 4×16 enerji kablosu', qty: 1_200, unit: 'm', needBy: '2026-10-05', urgency: 'Acil', approvers: ['o.kara', 'h.demir'], approved: ['o.kara'], stage: 'Onay bekliyor', value: 14_200, requestedBy: 'k.aslan', requestedAt: '2026-09-25' },
-  { id: 'SAS-122', code: 'MLZ-4230-02', desc: 'Yangın dolabı (hortumlu, tip C)', qty: 24, unit: 'ad', needBy: '2026-10-15', urgency: 'Normal', approvers: ['o.kara', 'h.demir'], approved: [], stage: 'Onay bekliyor', value: 9_600, requestedBy: 't.celik', requestedAt: '2026-09-26' },
-  { id: 'SAS-123', code: 'HZM-0310-01', desc: 'Hidrostatik test pompası kiralama (2 hafta)', qty: 1, unit: 'hizmet', needBy: '2026-10-18', urgency: 'Normal', approvers: ['o.kara'], approved: [], stage: 'Onay bekliyor', value: 3_800, requestedBy: 'k.aslan', requestedAt: '2026-09-27' },
-  { id: 'SAS-115', code: 'MLZ-2150-11', desc: 'Çatı paneli vidası ve conta seti', qty: 180, unit: 'kutu', needBy: '2026-10-01', urgency: 'Acil', approvers: ['b.yildiz', 'h.demir'], approved: ['b.yildiz', 'h.demir'], stage: 'Sipariş verildi', value: 6_300, supplier: 'Bağlantı Market', requestedBy: 't.celik', requestedAt: '2026-09-19', orderedAt: '2026-09-22' },
-  { id: 'SAS-112', code: 'MLZ-3310-04', desc: 'Epoksi son kat boya (RAL 7035)', qty: 2_400, unit: 'kg', needBy: '2026-10-08', urgency: 'Normal', approvers: ['b.yildiz', 'h.demir'], approved: ['b.yildiz', 'h.demir'], stage: 'Yolda', value: 22_800, supplier: 'Kimya Boya', requestedBy: 't.celik', requestedAt: '2026-09-12', orderedAt: '2026-09-15' },
-  { id: 'SAS-110', code: 'MLZ-2120-09', desc: 'HEA 200 aşık profili', qty: 36, unit: 'ton', needBy: '2026-09-30', urgency: 'Acil', approvers: ['b.yildiz', 'h.demir'], approved: ['b.yildiz', 'h.demir'], stage: 'Yolda', value: 41_400, supplier: 'Marmara Çelik', requestedBy: 'k.aslan', requestedAt: '2026-09-08', orderedAt: '2026-09-10' },
-  { id: 'SAS-106', code: 'MLZ-4210-03', desc: 'Sprinkler başlığı ESFR K25', qty: 640, unit: 'ad', needBy: '2026-09-25', urgency: 'Normal', approvers: ['o.kara', 'h.demir'], approved: ['o.kara', 'h.demir'], stage: 'Sahada', value: 18_600, supplier: 'Yangın Sistem', requestedBy: 'k.aslan', requestedAt: '2026-09-01', orderedAt: '2026-09-04', arrivedAt: '2026-09-24' },
-  { id: 'SAS-104', code: 'MLZ-3120-01', desc: 'Yatay delikli tuğla 19 cm', qty: 18_000, unit: 'ad', needBy: '2026-09-22', urgency: 'Normal', approvers: ['b.yildiz'], approved: ['b.yildiz'], stage: 'Sahada', value: 7_900, supplier: 'Tuğla AŞ', requestedBy: 't.celik', requestedAt: '2026-09-03', orderedAt: '2026-09-05', arrivedAt: '2026-09-18' },
-  { id: 'SAS-099', code: 'MLZ-4410-02', desc: 'Kablo tavası 300 mm', qty: 850, unit: 'm', needBy: '2026-09-15', urgency: 'Normal', approvers: ['o.kara'], approved: ['o.kara'], stage: 'Depoda', value: 11_050, supplier: 'Elektro Tava', requestedBy: 'k.aslan', requestedAt: '2026-08-25', orderedAt: '2026-08-27', arrivedAt: '2026-09-11' },
+  { id: 'SAS-121', code: 'MLZ-4410-07', desc: 'NYY 4×16 enerji kablosu', qty: 1_200, unit: 'm', needBy: '2026-10-05', urgency: 'Acil', approvers: ['o.kara', 'h.demir'], approved: ['o.kara'], stage: 'Onay bekliyor', value: 14_200, requestedBy: 'k.aslan', requestedAt: '2026-09-25', site: 'Depo C · elektrik' },
+  { id: 'SAS-122', code: 'MLZ-4230-02', desc: 'Yangın dolabı (hortumlu, tip C)', qty: 24, unit: 'ad', needBy: '2026-10-15', urgency: 'Normal', approvers: ['o.kara', 'h.demir'], approved: [], stage: 'Onay bekliyor', value: 9_600, requestedBy: 't.celik', requestedAt: '2026-09-26', site: 'Depo A-B · yangın' },
+  { id: 'SAS-123', code: 'HZM-0310-01', desc: 'Hidrostatik test pompası kiralama (2 hafta)', qty: 1, unit: 'hizmet', needBy: '2026-10-18', urgency: 'Normal', approvers: ['o.kara'], approved: [], stage: 'Onay bekliyor', value: 3_800, requestedBy: 'k.aslan', requestedAt: '2026-09-27', site: 'Yangın testleri' },
+  { id: 'SAS-115', code: 'MLZ-2150-11', desc: 'Çatı paneli vidası ve conta seti', qty: 180, unit: 'kutu', needBy: '2026-10-01', urgency: 'Acil', approvers: ['b.yildiz', 'h.demir'], approved: ['b.yildiz', 'h.demir'], stage: 'Sipariş verildi', value: 6_300, supplier: 'Bağlantı Market', requestedBy: 't.celik', requestedAt: '2026-09-19', orderedAt: '2026-09-22', site: 'Depo C · çatı' },
+  { id: 'SAS-112', code: 'MLZ-3310-04', desc: 'Epoksi son kat boya (RAL 7035)', qty: 2_400, unit: 'kg', needBy: '2026-10-08', urgency: 'Normal', approvers: ['b.yildiz', 'h.demir'], approved: ['b.yildiz', 'h.demir'], stage: 'Yolda', value: 22_800, supplier: 'Kimya Boya', requestedBy: 't.celik', requestedAt: '2026-09-12', orderedAt: '2026-09-15', site: 'Depo A · zemin' },
+  { id: 'SAS-110', code: 'MLZ-2120-09', desc: 'HEA 200 aşık profili', qty: 36, unit: 'ton', needBy: '2026-09-30', urgency: 'Acil', approvers: ['b.yildiz', 'h.demir'], approved: ['b.yildiz', 'h.demir'], stage: 'Yolda', value: 41_400, supplier: 'Marmara Çelik', requestedBy: 'k.aslan', requestedAt: '2026-09-08', orderedAt: '2026-09-10', site: 'Depo C · çatı' },
+  { id: 'SAS-106', code: 'MLZ-4210-03', desc: 'Sprinkler başlığı ESFR K25', qty: 640, unit: 'ad', needBy: '2026-09-25', urgency: 'Normal', approvers: ['o.kara', 'h.demir'], approved: ['o.kara', 'h.demir'], stage: 'Sahada', value: 18_600, supplier: 'Yangın Sistem', requestedBy: 'k.aslan', requestedAt: '2026-09-01', orderedAt: '2026-09-04', arrivedAt: '2026-09-24', site: 'Depo B · sprinkler' },
+  { id: 'SAS-104', code: 'MLZ-3120-01', desc: 'Yatay delikli tuğla 19 cm', qty: 18_000, unit: 'ad', needBy: '2026-09-22', urgency: 'Normal', approvers: ['b.yildiz'], approved: ['b.yildiz'], stage: 'Sahada', value: 7_900, supplier: 'Tuğla AŞ', requestedBy: 't.celik', requestedAt: '2026-09-03', orderedAt: '2026-09-05', arrivedAt: '2026-09-18', site: 'Ofis bloğu' },
+  { id: 'SAS-099', code: 'MLZ-4410-02', desc: 'Kablo tavası 300 mm', qty: 850, unit: 'm', needBy: '2026-09-15', urgency: 'Normal', approvers: ['o.kara'], approved: ['o.kara'], stage: 'Depoda', value: 11_050, supplier: 'Elektro Tava', requestedBy: 'k.aslan', requestedAt: '2026-08-25', orderedAt: '2026-08-27', arrivedAt: '2026-09-11', site: 'Depo A · elektrik', depotAt: '2026-09-12' },
+]
+
+/**
+ * Proje başından bugüne aylık kümülatif satın alma (EUR): sipariş verilen, depoya aktarılan
+ * ve ay sonunda yolda olan tutar. Tarih aralığı seçilince bu diziden kesilir.
+ */
+export const procurementFlow = (() => {
+  const total = 7_900_000
+  const cum = (t: number) => total / (1 + Math.exp(-0.3 * (t - 11)))
+  const base = cum(0)
+  return Array.from({ length: 21 }, (_, i) => {
+    const month = new Date(2025, i, 1)
+    const ordered = Math.round(cum(i + 1) - base)
+    const depot = Math.round(cum(i + 1 - 1.1) - base)
+    const transit = Math.max(0, Math.round((cum(i + 1) - cum(i + 1 - 0.55)) * 0.9))
+    return { iso: `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}-01`, ordered, depot: Math.max(0, depot), transit }
+  })
+})()
+
+/** SAS adım kaydı — her işlem (talep, onay, sipariş, yola çıkış, sahaya ulaşma, depoya aktarma) kim ve ne zaman */
+export interface SasEvent { at: string; by: string; id: string; step: string }
+
+export const sasEvents: SasEvent[] = [
+  { at: '2026-09-27 10:40', by: 'k.aslan', id: 'SAS-123', step: 'Talep oluşturuldu' },
+  { at: '2026-09-26 16:05', by: 't.celik', id: 'SAS-122', step: 'Talep oluşturuldu' },
+  { at: '2026-09-26 09:05', by: 'o.kara', id: 'SAS-121', step: 'o.kara onayladı' },
+  { at: '2026-09-25 11:20', by: 'k.aslan', id: 'SAS-121', step: 'Talep oluşturuldu · acil' },
+  { at: '2026-09-24 11:30', by: 'depo.ali', id: 'SAS-106', step: 'Sahaya ulaştı' },
+  { at: '2026-09-22 08:50', by: 'k.aslan', id: 'SAS-115', step: 'Sipariş verildi · Bağlantı Market' },
+  { at: '2026-09-18 15:10', by: 'depo.ali', id: 'SAS-104', step: 'Sahaya ulaştı' },
+  { at: '2026-09-17 09:30', by: 'lojistik', id: 'SAS-112', step: 'Yola çıktı' },
+  { at: '2026-09-15 10:00', by: 'k.aslan', id: 'SAS-112', step: 'Sipariş verildi · Kimya Boya' },
+  { at: '2026-09-12 14:15', by: 'depo.ali', id: 'SAS-099', step: 'Depoya aktarıldı' },
+  { at: '2026-09-11 13:40', by: 'depo.ali', id: 'SAS-099', step: 'Sahaya ulaştı' },
+  { at: '2026-09-10 09:10', by: 'k.aslan', id: 'SAS-110', step: 'Sipariş verildi · Marmara Çelik' },
 ]
 
 /* ---------------- Depo ---------------- */

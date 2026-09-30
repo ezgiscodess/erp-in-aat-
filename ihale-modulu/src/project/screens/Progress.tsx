@@ -63,7 +63,7 @@ const PRESETS: Record<Preset, [string, string]> = {
 }
 
 /** Takvim: başlangıç ve bitiş seçilir, "Getir" ile kayıtlar yüklenir; hazır aralıklar tek tıkla gelir */
-function DateRange({ range, onApply }: { range: [string, string]; onApply: (r: [string, string]) => void }) {
+export function DateRange({ range, onApply, presets = PRESETS }: { range: [string, string]; onApply: (r: [string, string]) => void; presets?: Record<string, [string, string]> }) {
   const [from, setFrom] = useState(range[0])
   const [to, setTo] = useState(range[1])
   const input = 'rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-[12.5px] text-[var(--ink)] outline-none focus:border-[var(--accent)]'
@@ -75,10 +75,10 @@ function DateRange({ range, onApply }: { range: [string, string]; onApply: (r: [
       <input type="date" value={to} min={from} max={TODAY} onChange={(e) => setTo(e.target.value)} className={input} />
       <Btn small primary onClick={() => onApply([from, to])}>Getir</Btn>
       <span className="mx-1 h-5 w-px bg-[var(--border)]" />
-      {(Object.keys(PRESETS) as Preset[]).map((p) => {
-        const on = range[0] === PRESETS[p][0] && range[1] === PRESETS[p][1]
+      {Object.keys(presets).map((p) => {
+        const on = range[0] === presets[p][0] && range[1] === presets[p][1]
         return (
-          <button key={p} onClick={() => { setFrom(PRESETS[p][0]); setTo(PRESETS[p][1]); onApply(PRESETS[p]) }}
+          <button key={p} onClick={() => { setFrom(presets[p][0]); setTo(presets[p][1]); onApply(presets[p]) }}
             className="rounded-full border px-2.5 py-0.5 text-[12px] transition-colors"
             style={on
               ? { background: 'var(--accent-soft)', borderColor: 'var(--accent)', color: 'var(--accent)' }

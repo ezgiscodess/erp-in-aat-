@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import { Badge, Btn, Card, Field, IconBtn, Kpi, Modal, PageHead, RowActions, Table, Td, Th } from '../../components/ui'
+import { Badge, Btn, Card, Field, Help, IconBtn, Kpi, Modal, PageHead, RowActions, Table, Td, Th } from '../../components/ui'
 import type { Tone } from '../../components/ui'
 import { date, num } from '../../lib/format'
-import { Donut, Gantt, HistoLine, Legend, MonthColumns, MultiLine, SCurve } from '../charts'
+import { Donut, Gantt, HistoLine, Legend, MonthColumns, MultiLine, Ring, SCurve } from '../charts'
 import type { GanttRow } from '../charts'
 import { actualCum, evm, monthName, plannedCum } from '../data'
 import {
@@ -63,6 +63,14 @@ function expectedOf(a: Activity, at = TODAY) {
   return Math.min(100, Math.max(0, (days(a.start, at) / d) * 100))
 }
 
+/** Aktivitenin sahadaki makine-ekipman sayısı: kaynakta yazıyorsa oradan, yoksa iş grubuna göre varsayılan */
+function machinesOf(a: Activity) {
+  const m = [...(a.resource ?? '').matchAll(/(\d+)\s*(mobil vinç|vinç|platform|makine|pompa)/g)]
+  if (m.length) return m.reduce((t, x) => t + Number(x[1]), 0)
+  const g = a.code.slice(0, 3)
+  return ({ 'A-1': 6, 'A-2': 5, 'A-3': 2, 'A-4': 3, 'A-5': 6, 'A-9': 1 } as Record<string, number>)[g] ?? 2
+}
+
 const HOURS_PER_DAY = 8.5 * (22 / 30)
 const COST_PER_HOUR = 95
 
@@ -87,7 +95,7 @@ function analyse(acts: Activity[]) {
   const wOf = (a: Activity) => (useW ? a.weight ?? 0 : mhOf(a))
   const totalW = acts.reduce((t, a) => t + wOf(a), 0) || 1
 
-  const planCrew = months.map((m) => acts.reduce((t, a) => t + crewOf(a) * (overlap(a, m.from, m.to) / days(m.from, m.to)), 0))
+  const planMach = months.map((m) => acts.reduce((t, a) => t + machinesOf(a) * (overlap(a, m.from, m.to) / days(m.from, m.to)), 0))
   const planMh = months.map((m) => acts.reduce((t, a) => t + crewOf(a) * overlap(a, m.from, m.to) * HOURS_PER_DAY, 0))
   const planCost = planMh.map((h) => h * COST_PER_HOUR)
   const planW = months.map((m) => acts.reduce((t, a) => t + wOf(a) * (overlap(a, m.from, m.to) / (days(a.start, a.finish) || 1)), 0))
@@ -109,7 +117,7 @@ function analyse(acts: Activity[]) {
     planCum,
     actualCum: hasActual && upto >= 0 ? planCum.slice(0, upto + 1).map((v, i) => (i === upto ? Math.round(earned * 10) / 10 : Math.round(v * ratio * 10) / 10)) : [],
     planCost, actualCost: act((i) => planCost[i] * ratio * wobble(i) / 0.94),
-    planCrew, actualCrew: act((i) => planCrew[i] * 1.08 * wobble(i + 2)),
+    planMach, actualMach: act((i) => planMach[i] * 1.05 * wobble(i + 2)),
     planMh, actualMh: act((i) => planMh[i] * 1.1 * wobble(i + 4)),
     earned, plannedNow, hasActual,
   }
@@ -160,8 +168,8 @@ function ProgramCharts({ acts }: { acts: Activity[] }) {
         <MiniCard title="Cost" help="Aylık maliyet: çubuk gerçekleşen, kesikli çizgi planlanan. Aktivitelerin insan-saatinden ve birim maliyetten hesaplanır.">
           <HistoLine plan={d.planCost} actual={d.actualCost} labels={d.labels} format={kEur} />
         </MiniCard>
-        <MiniCard title="Resource" help="Aylık ortalama sahadaki kişi: çubuk gerçekleşen, kesikli çizgi planlanan (kaynak yüklemesi).">
-          <HistoLine plan={d.planCrew} actual={d.actualCrew} labels={d.labels} format={(v) => `${Math.round(v)} kişi`} />
+        <MiniCard title="Machinery & Equipment" help="Aylık ortalama sahadaki makine-ekipman sayısı: çubuk gerçekleşen, kesikli çizgi planlanan. Personel yükü inxsa grafiğinde.">
+          <HistoLine plan={d.planMach} actual={d.actualMach} labels={d.labels} format={(v) => `${Math.round(v)} makine`} />
         </MiniCard>
         <MiniCard title="inxsa" help="Aylık insan-saat: çubuk gerçekleşen, kesikli çizgi planlanan. Gerçekleşenin planı aşması verim kaybını gösterir.">
           <HistoLine plan={d.planMh} actual={d.actualMh} labels={d.labels} format={kH} />
@@ -197,13 +205,27 @@ function ProgramCharts({ acts }: { acts: Activity[] }) {
  * Program bloğu: solda çizelge önizlemesi, sağda bilgi paneli.
  * "Aç" programı tam ekran açar ve düğme "Kapat"a döner.
  */
-function ProgramBlock({ program, info, onChange, onDelete, extra }: {
-  program: Program; info: ReactNode; onChange: (p: Program) => void; onDelete: () => void; extra?: ReactNode
+/**
+ * Sayfadaki programlar solda numaralanır; programlar arasında soft gri bir çizgi durur.
+ */
+function Numbered({ n, children }: { n: number; children: ReactNode }) {
+  return (
+    <div className={`flex gap-3 ${n > 1 ? 'border-t border-[var(--border)] pt-5' : ''}`}>
+      <span className="mt-2 grid h-7 w-7 flex-shrink-0 place-items-center rounded-full border border-[var(--border-strong)] bg-[var(--surface)] text-[12.5px] font-bold text-[var(--muted)] tnum"
+        title={`${n}. program`}>{n}</span>
+      <div className="min-w-0 flex-1">{children}</div>
+    </div>
+  )
+}
+
+function ProgramBlock({ program, info, onChange, onDelete, extra, n }: {
+  program: Program; info: ReactNode; onChange: (p: Program) => void; onDelete: () => void; extra?: ReactNode; n: number
 }) {
   const [open, setOpen] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const { start, finish } = span(program.activities)
   return (
+    <Numbered n={n}>
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
       <div className="xl:col-span-9">
         <Card title={program.title} subtitle={`${program.kind} · Rev.${program.rev} · ${program.activities.length} aktivite`}
@@ -227,6 +249,7 @@ function ProgramBlock({ program, info, onChange, onDelete, extra }: {
         <TitleModal title={program.title} onClose={() => setRenaming(false)} onSave={(t) => { onChange({ ...program, title: t }); setRenaming(false) }} />
       )}
     </div>
+    </Numbered>
   )
 }
 
@@ -381,11 +404,11 @@ export function WorkSchedule() {
       <PageHead title="Planning · Work Schedule"
         note="İşverenle anlaşılan program ve firmanın kendi (kaynak yüklü) programları. Programlar birbirinden bağımsız ama aynı saha verisine bağlı ilerler; hepsi aynı panel ve grafik yapısındadır. “Aç” programı tam ekran açar; ekle, sil, revize et ve yazdır oradan yapılır."
         right={<><PrintButtons /><Btn primary onClick={() => setAdding(true)}>+ Program ekle</Btn></>} />
-      {list.map((p) => {
+      {list.map((p, idx) => {
         const { start, finish } = span(p.activities)
         const est = p.id === 'WS-1' ? '2027-01-24' : p.id === 'WS-2' ? '2027-01-12' : finish
         return (
-          <ProgramBlock key={p.id} program={p} onChange={update} onDelete={() => setList((l) => l.filter((x) => x.id !== p.id))}
+          <ProgramBlock key={p.id} n={idx + 1} program={p} onChange={update} onDelete={() => setList((l) => l.filter((x) => x.id !== p.id))}
             info={<>
               <div className="grid grid-cols-2 border-b border-[var(--border)]">
                 {[['CPI', cpi], ['SPI', p.id === 'WS-2' ? spi + 0.02 : spi]].map(([l, v]) => (
@@ -422,10 +445,10 @@ export function MicroSchedules() {
       <PageHead title="Planning · Micro Schedules"
         note="Ana programın bazı kısımlarının (genelde kritik işlerin veya taşerona verilen kapsamların) detay programları. Ana programa bağlanacaksa önceki ve sonraki aktivitenin kodu verilir; bu aralık detaylandırılır ve “ana programa dahil et / analiz et” ile etkisi görülür. Bağımsız boş program da açılabilir."
         right={<><PrintButtons /><Btn primary onClick={() => setAdding(true)}>+ Micro program ekle</Btn></>} />
-      {list.map((p) => {
+      {list.map((p, idx) => {
         const { start, finish } = span(p.activities)
         return (
-          <ProgramBlock key={p.id} program={p} onChange={update} onDelete={() => setList((l) => l.filter((x) => x.id !== p.id))}
+          <ProgramBlock key={p.id} n={idx + 1} program={p} onChange={update} onDelete={() => setList((l) => l.filter((x) => x.id !== p.id))}
             extra={p.between && (p.integrated
               ? <Badge tone="ok" dot>Ana programa dahil</Badge>
               : <Btn small onClick={() => setAnalysis(p)}>Ana programa dahil et</Btn>)}
@@ -522,6 +545,97 @@ function statusOf(a: Activity): { label: string; tone: Tone } {
   return { label: 'Devam ediyor', tone: 'accent' }
 }
 
+/**
+ * Lookahead penceresinde gün gün planlanan kaynak: material (EUR), inxsa (saat), makine-ekipman (adet)
+ * sütun; toplam maliyetin kümülatif yüzdesi çizgi. Pazar günleri çalışılmaz.
+ */
+function LookaheadMix({ acts, from, to }: { acts: Activity[]; from: string; to: string }) {
+  const [hover, setHover] = useState<number | null>(null)
+  const n = days(from, to) + 1
+  const dayList = Array.from({ length: n }, (_, i) => { const d = new Date(from); d.setDate(d.getDate() + i); return d })
+  const rows = dayList.map((d) => {
+    const iso = d.toISOString().slice(0, 10)
+    const on = acts.filter((a) => a.start <= iso && a.finish >= iso && a.progress < 100)
+    const work = d.getDay() === 0 ? 0 : d.getDay() === 6 ? 0.5 : 1
+    const mh = on.reduce((t, a) => t + crewOf(a) * 8.5, 0) * work
+    const mach = on.reduce((t, a) => t + machinesOf(a), 0) * (work ? 1 : 0)
+    const material = on.reduce((t, a) => t + (a.code.startsWith('A-2') ? 5200 : a.code.startsWith('A-4') ? 3600 : 1800), 0) * work
+    return { d, mh, mach, material, cost: mh * 42 + mach * 650 + material }
+  })
+  const max = { mh: Math.max(1, ...rows.map((r) => r.mh)), mach: Math.max(1, ...rows.map((r) => r.mach)), material: Math.max(1, ...rows.map((r) => r.material)) }
+  const totalCost = rows.reduce((t, r) => t + r.cost, 0) || 1
+  let run = 0
+  const cum = rows.map((r) => ((run += r.cost) / totalCost) * 100)
+  const W = 420, H = 190, pad = { l: 30, r: 8, t: 8, b: 22 }
+  const bw = (W - pad.l - pad.r) / n
+  const y = (v: number) => pad.t + (1 - v / 100) * (H - pad.t - pad.b)
+  const series = [
+    { k: 'material' as const, label: 'Material', color: 'var(--series-1)', fmt: (v: number) => `${Math.round(v / 1000)} k€` },
+    { k: 'mh' as const, label: 'inxsa', color: 'var(--series-3)', fmt: (v: number) => `${Math.round(v).toLocaleString('tr-TR')} sa` },
+    { k: 'mach' as const, label: 'Mac & Equ', color: 'var(--series-4)', fmt: (v: number) => `${v} adet` },
+  ]
+  const h = hover != null ? rows[hover] : null
+  return (
+    <div className="relative">
+      <svg viewBox={`0 0 ${W} ${H}`} className="block w-full" onMouseLeave={() => setHover(null)}>
+        {[0, 50, 100].map((v) => (
+          <g key={v}>
+            <line x1={pad.l} x2={W - pad.r} y1={y(v)} y2={y(v)} stroke="var(--border)" />
+            <text x={pad.l - 4} y={y(v) + 3} textAnchor="end" fontSize="9.5" fill="var(--faint)">%{v}</text>
+          </g>
+        ))}
+        {rows.map((r, i) => (
+          <g key={i} onMouseEnter={() => setHover(i)}>
+            <rect x={pad.l + i * bw} y={pad.t} width={bw} height={H - pad.t - pad.b} fill={hover === i ? 'var(--surface-2)' : 'transparent'} />
+            {series.map((s, j) => {
+              const v = (r[s.k] / max[s.k]) * 100
+              const w = Math.max(1.5, (bw - 4) / 3)
+              return v > 0 && <rect key={s.k} x={pad.l + i * bw + 2 + j * w} width={Math.max(1, w - 1)} y={y(v)} height={H - pad.b - y(v)} rx="1.5" fill={s.color} />
+            })}
+            {(i % 2 === 0) && <text x={pad.l + i * bw + bw / 2} y={H - 7} textAnchor="middle" fontSize="9" fill="var(--faint)">{r.d.getDate()}</text>}
+          </g>
+        ))}
+        <path d={cum.map((v, i) => `${i ? 'L' : 'M'}${pad.l + i * bw + bw / 2},${y(v)}`).join(' ')} fill="none" stroke="var(--series-2)" strokeWidth="2" />
+        {h && <circle cx={pad.l + hover! * bw + bw / 2} cy={y(cum[hover!])} r="3.5" fill="var(--series-2)" stroke="var(--surface)" strokeWidth="2" />}
+      </svg>
+      {h && (
+        <div className="pointer-events-none absolute top-0 z-10 whitespace-nowrap rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-[11px] shadow-md"
+          style={hover! > n / 2 ? { right: `${100 - ((pad.l + hover! * bw) / W) * 100}%` } : { left: `${((pad.l + (hover! + 1) * bw) / W) * 100}%` }}>
+          <div className="font-semibold text-[var(--ink)]">{h.d.toLocaleDateString('tr-TR', { weekday: 'short', day: '2-digit', month: 'short' })}</div>
+          {series.map((s) => <div key={s.k} className="text-[var(--muted)]">{s.label} <b className="text-[var(--ink)] tnum">{s.fmt(h[s.k])}</b></div>)}
+          <div className="text-[var(--muted)]">Maliyet <b className="text-[var(--ink)] tnum">{Math.round(h.cost / 1000)} k€</b> · kümülatif %{Math.round(cum[hover!])}</div>
+        </div>
+      )}
+      <div className="mt-1"><Legend items={[...series.map((s) => ({ label: s.label, color: s.color })), { label: 'Toplam cost (kümülatif)', color: 'var(--series-2)' }]} /></div>
+    </div>
+  )
+}
+
+/** Pencerenin tamamlanma oranı, bir önceki haftanın kesitiyle karşılaştırmalı */
+function WeekRing({ acts, snap, prev, prevTitle }: { acts: Activity[]; snap: Record<string, number>; prev?: Record<string, number>; prevTitle?: string }) {
+  const avg = (s: Record<string, number>) => (acts.length ? acts.reduce((t, a) => t + (s[a.code] ?? a.progress), 0) / acts.length : 0)
+  const now = avg(snap)
+  const before = prev ? Math.min(now, avg(prev)) : null
+  const parts = before != null
+    ? [
+      { label: 'Önceki haftaya kadar', value: before, color: 'var(--series-1)' },
+      { label: 'Bu hafta', value: now - before, color: 'var(--ok)' },
+      { label: 'Kalan', value: 100 - now, color: '#98A2B3' },
+    ]
+    : [{ label: 'Tamamlanan', value: now, color: 'var(--series-1)' }, { label: 'Kalan', value: 100 - now, color: '#98A2B3' }]
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Ring size={104} parts={parts} format={(v) => `${Math.round(v)}`}
+        center={<div><div className="text-[17px] font-bold text-[var(--ink)] tnum">%{Math.round(now)}</div><div className="text-[10px] text-[var(--muted)]">tamamlandı</div></div>} />
+      <div className="text-center text-[11px] text-[var(--muted)]">
+        {before != null
+          ? <>Önceki kesite göre <b style={{ color: 'var(--ok)' }}>+{(now - before).toLocaleString('tr-TR', { maximumFractionDigits: 1 })} puan</b><br /><span className="text-[var(--faint)]">{prevTitle}</span></>
+          : 'Karşılaştırılacak önceki kesit yok'}
+      </div>
+    </div>
+  )
+}
+
 export function LookaheadSch() {
   const [list, setList] = useState<Lookahead[]>(lookaheads)
   const [adding, setAdding] = useState(false)
@@ -532,32 +646,57 @@ export function LookaheadSch() {
       <PageHead title="Planning · Lookahead Sch."
         note="İşverenin genelde haftalık istediği, önümüzdeki 2–4 haftada hangi imalatların yapılacağını gösteren kesitler. “Ekle” ile program ve iki tarih seçilir; bu aralıktaki aktiviteler bulunur. “Çakıştır” ile önceki ya da seçilen bir lookahead üst üste konur; geçen hafta ile bu hafta arasında ne durumda olduğumuz görülür."
         right={<><PrintButtons /><Btn primary onClick={() => setAdding(true)}>+ Lookahead ekle</Btn></>} />
-      {list.map((la) => {
+      {list.map((la, k) => {
         const acts = windowActs(la)
+        const prev = list[k + 1]
+        const tiles: [string, ReactNode, Tone?][] = [
+          ['Program', programs.find((p) => p.id === la.program)?.title ?? la.program],
+          ['Aralık', `${days(la.from, la.to) + 1} gün`],
+          ['Aktivite', acts.length],
+          ['Kritik', acts.filter((a) => a.critical).length, 'crit'],
+          ['Riskli', acts.filter((a) => statusOf(a).label === 'Riskli').length, 'warn'],
+          ['Alındı', date(la.createdAt)],
+        ]
         return (
-          <div key={la.id} className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-            <div className="xl:col-span-9">
-              <Card title={la.title} subtitle={`${date(la.from)} – ${date(la.to)}`}
-                right={<>
-                  <Btn small onClick={() => setOverlay({ base: la })}>Çakıştır</Btn>
-                  <Btn small title="Pencereyi bugünkü program verisiyle yeniden al"
-                    onClick={() => setList((l) => l.map((x) => (x.id === la.id ? { ...x, createdAt: TODAY, snapshot: Object.fromEntries(acts.map((a) => [a.code, a.progress])) } : x)))}>Rev et</Btn>
-                  <RowActions name={la.title} onDelete={() => setList((l) => l.filter((x) => x.id !== la.id))} />
-                </>} pad={false}>
-                <Gantt rows={toRows(acts)} from={la.from} to={la.to} today={TODAY} compact />
-              </Card>
+          <Numbered key={la.id} n={k + 1}>
+          <Card title={la.title} subtitle={`${date(la.from)} – ${date(la.to)}`}
+            right={<>
+              <Btn small onClick={() => setOverlay({ base: la })}>Çakıştır</Btn>
+              <Btn small title="Pencereyi bugünkü program verisiyle yeniden al"
+                onClick={() => setList((l) => l.map((x) => (x.id === la.id ? { ...x, createdAt: TODAY, snapshot: Object.fromEntries(acts.map((a) => [a.code, a.progress])) } : x)))}>Rev et</Btn>
+              <RowActions name={la.title} onDelete={() => setList((l) => l.filter((x) => x.id !== la.id))} />
+            </>}>
+            {/* 23 — kesit bilgisi kutucuklar hâlinde */}
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+              {tiles.map(([l, v, t]) => (
+                <div key={l} className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
+                  <div className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--faint)]">{l}</div>
+                  <div className="truncate text-[15px] font-bold tnum" style={{ color: t ? `var(--${t})` : 'var(--ink)' }}>{v}</div>
+                </div>
+              ))}
             </div>
-            <div className="xl:col-span-3">
-              <Card title="Kesit bilgisi" pad={false}>
-                <Info label="Program" value={programs.find((p) => p.id === la.program)?.title ?? la.program} />
-                <Info label="Aralık" value={`${days(la.from, la.to) + 1} gün`} />
-                <Info label="Aktivite" value={acts.length} />
-                <Info label="Kritik" value={acts.filter((a) => a.critical).length} tone="crit" />
-                <Info label="Riskli" value={acts.filter((a) => statusOf(a).label === 'Riskli').length} tone="warn" />
-                <Info label="Alındı" value={date(la.createdAt)} />
-              </Card>
+            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-12">
+              {/* 24 — program */}
+              <div className="xl:col-span-6">
+                <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Program</div>
+                <div className="rounded-md border border-[var(--border)]"><Gantt rows={toRows(acts)} from={la.from} to={la.to} today={TODAY} compact labelW={200} /></div>
+              </div>
+              {/* 25 — planlanan kaynak ve maliyet */}
+              <div className="xl:col-span-4">
+                <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">
+                  Planlanan kaynak ve maliyet
+                  <Help text="Günlük planlanan material, inxsa ve makine-ekipman: her biri kendi en yüksek gününe göre % (sütun). Toplam maliyet kümülatif % olarak çizgi (S eğrisi). Tek eksen; gerçek değerler üzerine gelince görünür." />
+                </div>
+                <LookaheadMix acts={acts} from={la.from} to={la.to} />
+              </div>
+              {/* 26 — bir önceki haftaya göre tamamlanma */}
+              <div className="xl:col-span-2">
+                <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Tamamlanma</div>
+                <WeekRing acts={acts} snap={la.snapshot} prev={prev?.snapshot} prevTitle={prev?.title} />
+              </div>
             </div>
-          </div>
+          </Card>
+          </Numbered>
         )
       })}
       {adding && <AddLookahead onClose={() => setAdding(false)} onAdd={(la) => { setList((l) => [la, ...l]); setAdding(false) }} />}
@@ -633,6 +772,69 @@ function OverlayModal({ base, list, onClose }: { base: Lookahead; list: Lookahea
 
 /* ---------------- Critical Path ---------------- */
 
+/** Kritik yol risk kayıtları: risk, engel ve kısıtlar — eklenir, düzenlenir, silinir */
+function CpRegister() {
+  const [list, setList] = useState(cpFindings.map((f, i) => ({ ...f, id: `K-${i + 1}` })))
+  const [filter, setFilter] = useState('Tümü')
+  const [editing, setEditing] = useState<(typeof list)[number] | 'new' | null>(null)
+  const shown = list.filter((f) => filter === 'Tümü' || f.type === filter)
+  return (
+    <div className="flex h-full flex-col">
+      <div className="mb-2 flex items-center gap-2">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Risk kayıtları ({list.length})</span>
+        <span className="ml-auto"><IconBtn icon="add" title="Kayıt ekle" onClick={() => setEditing('new')} /></span>
+      </div>
+      <div className="mb-2 flex gap-1">
+        {['Tümü', 'Risk', 'Engel', 'Kısıt'].map((k) => (
+          <button key={k} onClick={() => setFilter(k)} className="rounded-full border px-2.5 py-0.5 text-[11.5px]"
+            style={filter === k ? { background: 'var(--accent-soft)', borderColor: 'var(--accent)', color: 'var(--accent)' } : { borderColor: 'var(--border)', color: 'var(--muted)' }}>
+            {k}{k !== 'Tümü' && ` ${list.filter((f) => f.type === k).length}`}
+          </button>
+        ))}
+      </div>
+      <div className="flex flex-col gap-1.5">
+        {shown.map((f) => (
+          <div key={f.id} className="rounded-md border-l-[3px] bg-[var(--surface-2)] px-3 py-2" style={{ borderColor: `var(--${f.tone})` }}>
+            <div className="flex items-center gap-2">
+              <Badge tone={f.tone}>{f.type}</Badge>
+              <span className="min-w-0 flex-1 truncate text-[12.5px] font-semibold text-[var(--ink)]" title={f.title}>{f.title}</span>
+              <RowActions name={f.id} onEdit={() => setEditing(f)} onDelete={() => setList((l) => l.filter((x) => x.id !== f.id))} />
+            </div>
+            <p className="mt-0.5 text-[11.5px] leading-snug text-[var(--muted)]">{f.detail}</p>
+          </div>
+        ))}
+      </div>
+      {editing && <CpForm item={editing === 'new' ? null : editing} onClose={() => setEditing(null)}
+        onSave={(v) => { setList((l) => (editing === 'new' ? [...l, { ...v, id: `K-${l.length + 1}` }] : l.map((x) => (x.id === editing.id ? { ...x, ...v } : x)))); setEditing(null) }} />}
+    </div>
+  )
+}
+
+function CpForm({ item, onClose, onSave }: {
+  item: { type: string; title: string; detail: string } | null; onClose: () => void
+  onSave: (v: { type: 'Risk' | 'Engel' | 'Kısıt'; title: string; detail: string; tone: 'crit' | 'warn' }) => void
+}) {
+  const [type, setType] = useState(item?.type ?? 'Risk')
+  const [title, setTitle] = useState(item?.title ?? '')
+  const [detail, setDetail] = useState(item?.detail ?? '')
+  return (
+    <Modal title={item ? 'Kaydı düzenle' : 'Kayıt ekle'} onClose={onClose}
+      footer={<span className="ml-auto flex gap-2"><Btn onClick={onClose}>Vazgeç</Btn>
+        <Btn primary disabled={!title.trim()} onClick={() => onSave({ type: type as 'Risk', title: title.trim(), detail, tone: type === 'Kısıt' ? 'warn' : 'crit' })}>Kaydet</Btn></span>}>
+      <div className="flex flex-col gap-3">
+        <div className="flex gap-1.5">
+          {['Risk', 'Engel', 'Kısıt'].map((k) => (
+            <button key={k} onClick={() => setType(k)} className="rounded-full border px-2.5 py-0.5 text-[12px]"
+              style={type === k ? { background: 'var(--accent-soft)', borderColor: 'var(--accent)', color: 'var(--accent)' } : { borderColor: 'var(--border)', color: 'var(--muted)' }}>{k}</button>
+          ))}
+        </div>
+        <Field label="Başlık" value={title} onChange={setTitle} />
+        <Field label="Açıklama" value={detail} onChange={setDetail} />
+      </div>
+    </Modal>
+  )
+}
+
 export function CriticalPath() {
   const [analyses, setAnalyses] = useState<{ id: string; program: string; at: string }[]>([{ id: 'CP-1', program: 'WS-1', at: '2026-09-27' }])
   const [adding, setAdding] = useState(false)
@@ -644,45 +846,73 @@ export function CriticalPath() {
         right={<><PrintButtons /><Btn primary onClick={() => setAdding(true)}>+ Kritik yol analizi</Btn></>} />
       {analyses.map((an) => {
         const p = programs.find((x) => x.id === an.program) ?? programs[0]
-        const chain = p.activities.filter((a) => a.critical && a.progress < 100)
+        const chain = p.activities.filter((a) => a.critical)
         return (
           <Card key={an.id} title={`${p.title} — kritik yol`} subtitle={`${an.id} · ${date(an.at)}`}
             right={<><Btn small onClick={() => setAnalyses((l) => l.map((x) => (x.id === an.id ? { ...x, at: TODAY } : x)))}>Yeniden hesapla</Btn>
               <RowActions name={an.id} onDelete={() => setAnalyses((l) => l.filter((x) => x.id !== an.id))} /></>}>
-            <div className="mb-4 flex flex-wrap items-center gap-1.5">
-              {chain.map((a, i) => (
-                <span key={a.code} className="flex items-center gap-1.5">
-                  <span className="rounded-md border px-2.5 py-1.5 text-[12px]" style={{ borderColor: 'var(--crit)', background: 'var(--crit-bg)' }}>
-                    <span className="mono block text-[10.5px] text-[var(--crit)]">{a.code}</span>
-                    <span className="block text-[var(--ink)]">{a.name}</span>
-                    <span className="block text-[10.5px] text-[var(--muted)]">{date(a.finish)} · %{a.progress}</span>
-                  </span>
-                  {i < chain.length - 1 && <span className="text-[var(--crit)]">→</span>}
-                </span>
-              ))}
-            </div>
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-              <div className="xl:col-span-7">
-                <Table head={<tr><Th>Kod</Th><Th>Başlangıç</Th><Th>Bitiş</Th><Th w={220}>Aktivite</Th><Th right>Bolluk</Th><Th right>İlerleme</Th><Th>Durum</Th></tr>}>
-                  {chain.map((a) => {
-                    const st = statusOf(a)
-                    return (
-                      <tr key={a.code}><Td mono nowrap>{a.code}</Td><Td nowrap>{date(a.start)}</Td><Td nowrap>{date(a.finish)}</Td><Td>{a.name}</Td>
-                        <Td right>{a.code === 'A-2120' ? <b className="text-[var(--crit)]">−18 gün</b> : '0 gün'}</Td>
-                        <Td right>%{a.progress}</Td><Td nowrap><Badge tone={st.tone} dot>{st.label}</Badge></Td></tr>
-                    )
-                  })}
-                </Table>
+              <div className="xl:col-span-8">
+                <div className="mb-2 flex items-center">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">İş programı · kritik aktiviteler kırmızı</span>
+                  <span className="ml-auto"><Legend items={[{ label: 'Kritik yol', color: 'var(--crit)' }, { label: 'Diğer', color: 'var(--series-1)' }]} /></span>
+                </div>
+                <div className="rounded-md border border-[var(--border)]"><Gantt rows={toRows(p.activities)} from={span(p.activities).start} to={span(p.activities).finish} today={TODAY} compact labelW={230} /></div>
               </div>
-              <div className="flex flex-col gap-2 xl:col-span-5">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Risk · engel · kısıt</div>
-                {cpFindings.map((f) => (
-                  <div key={f.title} className="rounded-md border-l-[3px] bg-[var(--surface-2)] px-3 py-2" style={{ borderColor: `var(--${f.tone})` }}>
-                    <div className="flex items-center gap-2"><Badge tone={f.tone}>{f.type}</Badge><span className="text-[12.5px] font-semibold text-[var(--ink)]">{f.title}</span></div>
-                    <p className="mt-0.5 text-[12px] text-[var(--muted)]">{f.detail}</p>
-                  </div>
-                ))}
+              <div className="xl:col-span-4">
+                <CpRegister />
               </div>
+            </div>
+            <div className="mt-4">
+              <div className="mb-2 flex items-center">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Kritik yol zinciri ({chain.length} aktivite)</span>
+                <span className="ml-auto"><Legend items={[{ label: 'Tamamlandı', color: 'var(--ok)' }, { label: 'Gecikmede', color: 'var(--crit)' }, { label: 'Başlamadı / devam', color: 'var(--accent)' }]} /></span>
+              </div>
+              <div className="flex items-stretch gap-1.5 overflow-x-auto pb-1">
+                {chain.map((a, i) => {
+                  const late = a.code === 'A-2120'
+                  const tone = a.progress >= 100 ? 'ok' : late ? 'crit' : 'accent'
+                  return (
+                    <span key={a.code} className="flex flex-shrink-0 items-center gap-1.5">
+                      <span className="w-[150px] rounded-md border px-2.5 py-1.5 text-[12px]" style={{ borderColor: `var(--${tone})`, background: tone === 'accent' ? 'var(--surface-2)' : `var(--${tone}-bg)` }}>
+                        <span className="mono block text-[10.5px]" style={{ color: `var(--${tone})` }}>{a.code}</span>
+                        <span className="block truncate text-[var(--ink)]" title={a.name}>{a.name}</span>
+                        <span className="block text-[10.5px] text-[var(--muted)]">{date(a.finish)} · %{a.progress}</span>
+                        <span className="block text-[10.5px] font-semibold" style={{ color: late ? 'var(--crit)' : 'var(--muted)' }}>Bolluk {late ? '−18' : '0'} gün</span>
+                      </span>
+                      {i < chain.length - 1 && <span className="text-[var(--crit)]">→</span>}
+                    </span>
+                  )
+                })}
+              </div>
+            </div>
+            {/* 22 — kritik aktivitelerin detaylı kırılımı */}
+            <div className="mt-4">
+              <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Kritik aktiviteler — detay</div>
+              <Table dense head={<tr>
+                <Th>Kod</Th><Th>Başlangıç</Th><Th>Bitiş</Th><Th w={220}>Aktivite</Th><Th>Öncül</Th><Th right>Süre</Th><Th right>Kalan</Th>
+                <Th right>Planlanan</Th><Th right>Gerçekleşen</Th><Th right>Sapma</Th><Th right>Bolluk</Th><Th>Kaynak</Th><Th>Durum</Th>
+              </tr>}>
+                {chain.map((a) => {
+                  const st = statusOf(a)
+                  const exp = Math.round(expectedOf(a))
+                  const gap = a.progress - exp
+                  const late = a.code === 'A-2120'
+                  return (
+                    <tr key={a.code} className="hover:bg-[var(--surface-2)]">
+                      <Td mono nowrap>{a.code}</Td><Td nowrap>{date(a.start)}</Td><Td nowrap>{date(a.finish)}</Td><Td>{a.name}</Td>
+                      <Td mono nowrap>{a.pred ?? '—'}</Td>
+                      <Td right nowrap>{days(a.start, a.finish)} gün</Td>
+                      <Td right nowrap>{a.progress >= 100 ? '—' : `${Math.max(0, days(TODAY, a.finish))} gün`}</Td>
+                      <Td right>%{exp}</Td><Td right>%{a.progress}</Td>
+                      <Td right nowrap><span style={{ color: gap < -2 ? 'var(--crit)' : gap > 2 ? 'var(--ok)' : 'var(--muted)' }}>{gap > 0 ? '+' : ''}{gap} puan</span></Td>
+                      <Td right nowrap>{late ? <b className="text-[var(--crit)]">−18 gün</b> : '0 gün'}</Td>
+                      <Td nowrap><span className="text-[12px] text-[var(--muted)]">{crewOf(a)} kişi · {machinesOf(a)} makine</span></Td>
+                      <Td nowrap><Badge tone={st.tone} dot>{st.label}</Badge></Td>
+                    </tr>
+                  )
+                })}
+              </Table>
             </div>
           </Card>
         )
@@ -702,9 +932,53 @@ export function CriticalPath() {
 
 /* ---------------- Mitigation Plan ---------------- */
 
+type ResKey = 'cost' | 'mh' | 'material' | 'machines'
+const NO_ADJ: Record<ResKey, number> = { cost: 0, mh: 0, material: 0, machines: 0 }
+const RES: { k: ResKey; label: string; step: number; fmt: (v: number) => string }[] = [
+  { k: 'cost', label: 'Cost', step: 10_000, fmt: (v) => `${(v / 1000).toLocaleString('tr-TR')} k€` },
+  { k: 'mh', label: 'inxsa', step: 500, fmt: (v) => `${v.toLocaleString('tr-TR')} sa` },
+  { k: 'material', label: 'Material', step: 5_000, fmt: (v) => `${(v / 1000).toLocaleString('tr-TR')} k€` },
+  { k: 'machines', label: 'Mac & Equip', step: 1, fmt: (v) => `${v} adet` },
+]
+
+/**
+ * Recovery planı için ilave kaynak: seçili önerilerin gerektirdiği kaynak otomatik gelir,
+ * + / − ile artırılıp azaltılır. Toplam, önerilerin karşılığı ile elle yapılan düzeltmenin toplamıdır.
+ */
+function ExtraResources({ actions, adj, onAdj }: { actions: RecoveryAction[]; adj: Record<ResKey, number>; onAdj: (k: ResKey, d: number) => void }) {
+  const base = (k: ResKey) => actions.reduce((t, a) => t + (a.extra?.[k] ?? 0), 0)
+  return (
+    <div className="mt-3 rounded-md border border-[var(--border)]">
+      <div className="flex items-center border-b border-[var(--border)] px-3 py-2">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">İlave kaynaklar</span>
+        <Help text="Seçili önerilerin gerektirdiği ilave kaynak otomatik hesaplanır. + / − ile kaynak eklenip çıkarılabilir; parantezde önerilerden gelen değer." />
+        <span className="ml-auto text-[11px] text-[var(--muted)]">{actions.length} öneri seçili</span>
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4">
+        {RES.map((r) => {
+          const total = Math.max(0, base(r.k) + adj[r.k])
+          return (
+            <div key={r.k} className="border-r border-[var(--border)] px-3 py-2.5 last:border-0">
+              <div className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--faint)]">{r.label}</div>
+              <div className="mt-1 flex items-center gap-1.5">
+                <button onClick={() => onAdj(r.k, -r.step)} disabled={total <= 0} aria-label={`${r.label} azalt`}
+                  className="grid h-6 w-6 place-items-center rounded-md border border-[var(--border)] bg-[var(--surface-2)] text-[14px] font-bold text-[var(--muted)] hover:border-[var(--crit)] hover:text-[var(--crit)] disabled:opacity-40">−</button>
+                <span className="min-w-0 flex-1 text-center text-[15px] font-bold text-[var(--ink)] tnum">+{r.fmt(total)}</span>
+                <button onClick={() => onAdj(r.k, r.step)} aria-label={`${r.label} artır`}
+                  className="grid h-6 w-6 place-items-center rounded-md border border-[var(--border)] bg-[var(--surface-2)] text-[14px] font-bold text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]">+</button>
+              </div>
+              <div className="mt-0.5 text-center text-[10.5px] text-[var(--faint)]">öneriler {r.fmt(base(r.k))}{adj[r.k] ? ` · elle ${adj[r.k] > 0 ? '+' : '−'}${r.fmt(Math.abs(adj[r.k]))}` : ''}</div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export function MitigationPlan() {
-  const [plans, setPlans] = useState<{ id: string; program: string; rev: number; transferred: boolean; actions: RecoveryAction[] }[]>(
-    [{ id: 'RP-1', program: 'WS-1', rev: 1, transferred: false, actions: recoveryActions }],
+  const [plans, setPlans] = useState<{ id: string; program: string; rev: number; transferred: boolean; actions: RecoveryAction[]; adj: Record<ResKey, number> }[]>(
+    [{ id: 'RP-1', program: 'WS-1', rev: 1, transferred: false, actions: recoveryActions, adj: { ...NO_ADJ } }],
   )
   const [adding, setAdding] = useState(false)
   const [pick, setPick] = useState(programs[0].id)
@@ -743,7 +1017,7 @@ export function MitigationPlan() {
               <div className="xl:col-span-5">
                 <div className="mb-2 flex items-center">
                   <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Öneriler</span>
-                  <span className="ml-auto"><IconBtn icon="add" title="Öneri ekle" onClick={() => setPlans((l) => l.map((x) => (x.id === rp.id ? { ...x, actions: [...x.actions, { id: `R-${x.actions.length + 1}`, title: 'Yeni öneri', activity: '—', gain: 0, resource: '—', include: false }] } : x)))} /></span>
+                  <span className="ml-auto"><IconBtn icon="add" title="Öneri ekle" onClick={() => setPlans((l) => l.map((x) => (x.id === rp.id ? { ...x, actions: [...x.actions, { id: `R-${x.actions.length + 1}`, title: 'Yeni öneri', activity: '—', gain: 0, resource: '—', include: false, extra: { cost: 0, mh: 0, material: 0, machines: 0 } }] } : x)))} /></span>
                 </div>
                 <div className="flex flex-col gap-1.5">
                   {rp.actions.map((a) => (
@@ -764,6 +1038,8 @@ export function MitigationPlan() {
                   <span className="ml-auto"><Legend items={[{ label: 'Recovery', color: 'var(--crit)' }, { label: 'Mevcut plan', color: 'var(--border-strong)' }]} /></span>
                 </div>
                 <div className="rounded-md border border-[var(--border)]"><Gantt rows={rows} from="2026-03-01" to="2027-01-31" today={TODAY} compact labelW={220} /></div>
+                <ExtraResources actions={rp.actions.filter((a) => a.include)} adj={rp.adj}
+                  onAdj={(k, d) => setPlans((l) => l.map((x) => (x.id === rp.id ? { ...x, adj: { ...x.adj, [k]: x.adj[k] + d } } : x)))} />
               </div>
             </div>
           </Card>
@@ -772,7 +1048,7 @@ export function MitigationPlan() {
       {adding && (
         <Modal title="Recovery planı" onClose={() => setAdding(false)} note="Programı seçin; sapma analiz edilip telafi önerileri üretilir."
           footer={<span className="ml-auto flex gap-2"><Btn onClick={() => setAdding(false)}>Vazgeç</Btn>
-            <Btn primary onClick={() => { setPlans((l) => [{ id: `RP-${l.length + 1}`, program: pick, rev: 1, transferred: false, actions: recoveryActions.map((a) => ({ ...a })) }, ...l]); setAdding(false) }}>Oluştur</Btn></span>}>
+            <Btn primary onClick={() => { setPlans((l) => [{ id: `RP-${l.length + 1}`, program: pick, rev: 1, transferred: false, actions: recoveryActions.map((a) => ({ ...a })), adj: { ...NO_ADJ } }, ...l]); setAdding(false) }}>Oluştur</Btn></span>}>
           <select value={pick} onChange={(e) => setPick(e.target.value)} className="w-full rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-2 text-[13px] text-[var(--ink)] outline-none">
             {programs.map((p) => <option key={p.id} value={p.id}>{p.title} · Rev.{p.rev}</option>)}
           </select>

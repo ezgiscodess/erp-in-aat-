@@ -220,14 +220,19 @@ export interface LineSeries { label: string; color: string; values: (number | nu
  * Aynı eksende birden fazla kümülatif seri (plan · mevcut · recovery gibi). Üzerine gelince dikey çizgi ve değer kutusu.
  * Değerler 0–100 aralığındadır; seri boyu x eksenindeki nokta sayısıdır.
  */
-export function MultiLine({ series, labels, height = 180, today }: { series: LineSeries[]; labels: string[]; height?: number; today?: number }) {
+export function MultiLine({ series, labels, height = 180, today, max = 100, format }: {
+  series: LineSeries[]; labels: string[]; height?: number; today?: number
+  /** Y ekseninin üst değeri — yüzde dışındaki değerler (tutar vb.) için */
+  max?: number; format?: (v: number) => string
+}) {
+  const fv = format ?? ((v: number) => `%${tr(v, 1)}`)
   const [hover, setHover] = useState<number | null>(null)
   const [ref, W] = useWidth()
   const n = labels.length
   const H = height
-  const pad = { l: 34, r: 10, t: 8, b: 22 }
+  const pad = { l: format ? 52 : 34, r: 10, t: 8, b: 22 }
   const x = (i: number) => pad.l + (i / (n - 1)) * (W - pad.l - pad.r)
-  const y = (v: number) => pad.t + (1 - v / 100) * (H - pad.t - pad.b)
+  const y = (v: number) => pad.t + (1 - v / max) * (H - pad.t - pad.b)
   const path = (arr: (number | null)[]) => arr.map((v, i) => (v == null ? '' : `${i && arr[i - 1] != null ? 'L' : 'M'}${x(i)},${y(v)}`)).join(' ')
   return (
     <div ref={ref} className="relative">
@@ -237,10 +242,10 @@ export function MultiLine({ series, labels, height = 180, today }: { series: Lin
           const i = Math.round((((e.clientX - r.left) / r.width) * W - pad.l) / (W - pad.l - pad.r) * (n - 1))
           setHover(Math.max(0, Math.min(n - 1, i)))
         }}>
-        {[0, 50, 100].map((v) => (
+        {[0, max / 2, max].map((v) => (
           <g key={v}>
             <line x1={pad.l} x2={W - pad.r} y1={y(v)} y2={y(v)} stroke="var(--border)" />
-            <text x={pad.l - 6} y={y(v) + 3} textAnchor="end" fontSize="10" fill="var(--faint)">%{v}</text>
+            <text x={pad.l - 6} y={y(v) + 3} textAnchor="end" fontSize="10" fill="var(--faint)">{format ? format(v) : `%${v}`}</text>
           </g>
         ))}
         {labels.map((l, i) => i % Math.max(1, Math.ceil(n / Math.max(2, Math.floor((W - 40) / 58)))) === 0 && <text key={i} x={x(i)} y={H - 6} textAnchor="middle" fontSize="10" fill="var(--faint)">{l}</text>)}
@@ -259,7 +264,7 @@ export function MultiLine({ series, labels, height = 180, today }: { series: Lin
           style={{ left: `calc(${(x(hover) / W) * 100}% + ${hover > n / 2 ? -150 : 10}px)` }}>
           <div className="font-semibold text-[var(--ink)]">{labels[hover]}</div>
           {series.map((s) => (
-            <div key={s.label} className="text-[var(--muted)]">{s.label} <b className="text-[var(--ink)] tnum">{s.values[hover] != null ? `%${tr(s.values[hover]!, 1)}` : '—'}</b></div>
+            <div key={s.label} className="text-[var(--muted)]">{s.label} <b className="text-[var(--ink)] tnum">{s.values[hover] != null ? fv(s.values[hover]!) : '—'}</b></div>
           ))}
         </div>
       )}

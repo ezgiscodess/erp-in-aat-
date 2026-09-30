@@ -41,16 +41,17 @@ export interface Note {
   kind: 'Not' | 'Görev'
   done: boolean
   owner: string
-  assignee?: string
+  /** Görev birden fazla kişiye atanabilir */
+  assignees?: string[]
   shared: string[]
   due?: string
 }
 
 export const seedNotes: Note[] = [
-  { id: 'n1', text: 'CL-03 elektrik izni bildirim yazısını hazırla', kind: 'Görev', done: false, owner: ME, assignee: 'h.demir', shared: [], due: '2026-10-03' },
-  { id: 'n2', text: 'Mobil vinç kira sözleşmesi Kasım uzatması', kind: 'Görev', done: false, owner: 'm.aydin', assignee: ME, shared: [], due: '2026-10-10' },
+  { id: 'n1', text: 'CL-03 elektrik izni bildirim yazısını hazırla', kind: 'Görev', done: false, owner: ME, assignees: ['h.demir', 'o.kara'], shared: [], due: '2026-10-03' },
+  { id: 'n2', text: 'Mobil vinç kira sözleşmesi Kasım uzatması', kind: 'Görev', done: false, owner: 'm.aydin', assignees: [ME], shared: [], due: '2026-10-10' },
   { id: 'n3', text: 'İşveren toplantısında rampa sayısı (CO-02) konuşulacak', kind: 'Not', done: false, owner: ME, shared: ['h.demir', 'm.aydin'] },
-  { id: 'n4', text: 'Tuğla ekibi verim takibi — haftalık inxsa', kind: 'Görev', done: true, owner: ME, assignee: 'b.yildiz', shared: [] },
+  { id: 'n4', text: 'Tuğla ekibi verim takibi — haftalık inxsa', kind: 'Görev', done: true, owner: ME, assignees: ['b.yildiz'], shared: [] },
   { id: 'n5', text: 'Kasım rüzgâr tahminlerini planlamaya gönder', kind: 'Not', done: false, owner: ME, shared: [] },
 ]
 
@@ -66,6 +67,7 @@ export function Communication() {
   const [newKind, setNewKind] = useState<Note['kind']>('Not')
   const [target, setTarget] = useState<{ note: Note; mode: 'ata' | 'paylas' } | null>(null)
   const [newChat, setNewChat] = useState(false)
+  const [editing, setEditing] = useState<Note | null>(null)
 
   const conv = convs.find((c) => c.id === sel)!
   function send() {
@@ -74,10 +76,10 @@ export function Communication() {
     setDraft('')
   }
   const shownNotes = notes.filter((n) => {
-    if (filter === 'Notlarım') return n.owner === ME && !n.assignee
-    if (filter === 'Bana atanan') return n.assignee === ME
-    if (filter === 'Atadıklarım') return n.owner === ME && n.assignee && n.assignee !== ME
-    return n.owner === ME || n.assignee === ME || n.shared.includes(ME)
+    if (filter === 'Notlarım') return n.owner === ME && !n.assignees?.length
+    if (filter === 'Bana atanan') return !!n.assignees?.includes(ME)
+    if (filter === 'Atadıklarım') return n.owner === ME && !!n.assignees?.some((a) => a !== ME)
+    return n.owner === ME || !!n.assignees?.includes(ME) || n.shared.includes(ME)
   })
   const upd = (id: string, patch: Partial<Note>) => setNotes((l) => l.map((n) => (n.id === id ? { ...n, ...patch } : n)))
 
@@ -149,7 +151,7 @@ export function Communication() {
         <div className="flex flex-col rounded-lg border border-[var(--border)] bg-[var(--surface)] xl:col-span-4">
           <div className="flex items-center border-b border-[var(--border)] px-3 py-2">
             <span className="text-[13px] font-semibold text-[var(--ink)]">Not defteri</span>
-            <span className="ml-auto text-[11.5px] text-[var(--muted)]">{notes.filter((n) => n.assignee === ME && !n.done).length} açık görevim</span>
+            <span className="ml-auto text-[11.5px] text-[var(--muted)]">{notes.filter((n) => n.assignees?.includes(ME) && !n.done).length} açık görevim</span>
           </div>
           <div className="border-b border-[var(--border)] p-3">
             <div className="flex gap-1.5">
@@ -179,7 +181,7 @@ export function Communication() {
                   <div className="text-[12.5px] leading-snug" style={{ color: n.done ? 'var(--faint)' : 'var(--ink)', textDecoration: n.done ? 'line-through' : undefined }}>{n.text}</div>
                   <div className="mt-1 flex flex-wrap items-center gap-1 text-[10.5px]">
                     <Badge tone={n.kind === 'Görev' ? 'accent' : 'neutral'}>{n.kind}</Badge>
-                    {n.assignee && <span className="mono text-[var(--muted)]">{n.owner === ME ? `→ ${n.assignee}` : `${n.owner} atadı`}</span>}
+                    {!!n.assignees?.length && <span className="mono text-[var(--muted)]">{n.owner === ME ? `→ ${n.assignees.join(', ')}` : `${n.owner} atadı`}</span>}
                     {n.shared.length > 0 && <span className="text-[var(--muted)]">paylaşıldı: <span className="mono">{n.shared.join(', ')}</span></span>}
                     {n.due && <span className="text-[var(--warn)]">son gün {new Date(n.due).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' })}</span>}
                   </div>
@@ -187,7 +189,7 @@ export function Communication() {
                 <span className="flex flex-shrink-0 items-center gap-1">
                   <button onClick={() => setTarget({ note: n, mode: 'ata' })} className="rounded border border-[var(--border)] px-1.5 py-0.5 text-[11px] text-[var(--muted)] hover:text-[var(--accent)]">Ata</button>
                   <button onClick={() => setTarget({ note: n, mode: 'paylas' })} className="rounded border border-[var(--border)] px-1.5 py-0.5 text-[11px] text-[var(--muted)] hover:text-[var(--accent)]">Paylaş</button>
-                  {n.owner === ME && <RowActions name="Bu not" onDelete={() => setNotes((l) => l.filter((x) => x.id !== n.id))} />}
+                  {n.owner === ME && <RowActions name="Bu not" onEdit={() => setEditing(n)} onDelete={() => setNotes((l) => l.filter((x) => x.id !== n.id))} />}
                 </span>
               </div>
             ))}
@@ -198,29 +200,64 @@ export function Communication() {
 
       {target && <AssignModal note={target.note} mode={target.mode} onClose={() => setTarget(null)}
         onSave={(people) => {
-          if (target.mode === 'ata') upd(target.note.id, { assignee: people[0], kind: 'Görev' })
+          if (target.mode === 'ata') upd(target.note.id, { assignees: people, kind: 'Görev' })
           else upd(target.note.id, { shared: people })
           setTarget(null)
         }} />}
+      {editing && <NoteEditModal note={editing} onClose={() => setEditing(null)} onSave={(patch) => { upd(editing.id, patch); setEditing(null) }} />}
       {newChat && <NewChatModal onClose={() => setNewChat(false)} onCreate={(c) => { setConvs((l) => [c, ...l]); setSel(c.id); setNewChat(false) }} />}
     </>
   )
 }
 
-/** Ata: tek kişi (not göreve döner) · Paylaş: bir veya birden fazla kişi */
+/** Ata ve Paylaş: bir veya birden fazla kişi (atanan not göreve döner) */
 function AssignModal({ note, mode, onClose, onSave }: { note: Note; mode: 'ata' | 'paylas'; onClose: () => void; onSave: (p: string[]) => void }) {
-  const [sel, setSel] = useState<string[]>(mode === 'ata' ? (note.assignee ? [note.assignee] : []) : note.shared)
-  const toggle = (p: string) => setSel((s) => (mode === 'ata' ? [p] : s.includes(p) ? s.filter((x) => x !== p) : [...s, p]))
+  const [sel, setSel] = useState<string[]>(mode === 'ata' ? note.assignees ?? [] : note.shared)
+  const toggle = (p: string) => setSel((s) => (s.includes(p) ? s.filter((x) => x !== p) : [...s, p]))
   return (
     <Modal title={mode === 'ata' ? 'Görev ata' : 'Paylaş'} onClose={onClose} note={note.text}
       footer={<span className="ml-auto flex gap-2"><Btn onClick={onClose}>Vazgeç</Btn><Btn primary disabled={sel.length === 0} onClick={() => onSave(sel)}>{mode === 'ata' ? 'Ata' : 'Paylaş'}</Btn></span>}>
-      <p className="mb-2 text-[12px] text-[var(--muted)]">{mode === 'ata' ? 'Görev seçilen kişinin not defterine ve ana sayfasına düşer.' : 'Seçilen kişiler notu kendi not defterlerinde görür.'}</p>
+      <p className="mb-2 text-[12px] text-[var(--muted)]">{mode === 'ata' ? 'Birden fazla kişi seçebilirsiniz; görev seçilen herkesin not defterine ve ana sayfasına düşer.' : 'Seçilen kişiler notu kendi not defterlerinde görür.'}</p>
+      <div className="mb-2 flex items-center gap-3 text-[11.5px]">
+        <button className="font-medium text-[var(--accent)]" onClick={() => setSel(PEOPLE)}>Tümünü seç</button>
+        <button className="text-[var(--muted)]" onClick={() => setSel([])}>Temizle</button>
+        <span className="ml-auto text-[var(--muted)]">{sel.length} kişi seçili</span>
+      </div>
       <div className="flex flex-wrap gap-1.5">
         {PEOPLE.map((p) => {
           const on = sel.includes(p)
           return <button key={p} onClick={() => toggle(p)} className="mono rounded-full border px-2.5 py-1 text-[12px]"
             style={on ? { background: 'var(--accent-soft)', borderColor: 'var(--accent)', color: 'var(--accent)' } : { borderColor: 'var(--border)', color: 'var(--muted)' }}>{on ? '✓ ' : ''}{p}</button>
         })}
+      </div>
+    </Modal>
+  )
+}
+
+/** Not / görev düzenleme: metin, tür ve son gün */
+function NoteEditModal({ note, onClose, onSave }: { note: Note; onClose: () => void; onSave: (p: Partial<Note>) => void }) {
+  const [text, setText] = useState(note.text)
+  const [kind, setKind] = useState<Note['kind']>(note.kind)
+  const [due, setDue] = useState(note.due ?? '')
+  const input = 'rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-2 text-[13px] text-[var(--ink)] outline-none focus:border-[var(--accent)]'
+  return (
+    <Modal title={kind === 'Görev' ? 'Görevi düzenle' : 'Notu düzenle'} onClose={onClose}
+      footer={<span className="ml-auto flex gap-2"><Btn onClick={onClose}>Vazgeç</Btn><Btn primary disabled={!text.trim()} onClick={() => onSave({ text: text.trim(), kind, due: due || undefined })}>Kaydet</Btn></span>}>
+      <div className="flex flex-col gap-3">
+        <div className="flex gap-1.5">
+          {(['Not', 'Görev'] as const).map((k) => (
+            <button key={k} onClick={() => setKind(k)} className="rounded-full border px-2.5 py-0.5 text-[12px]"
+              style={kind === k ? { background: 'var(--accent-soft)', borderColor: 'var(--accent)', color: 'var(--accent)' } : { borderColor: 'var(--border)', color: 'var(--muted)' }}>{k}</button>
+          ))}
+        </div>
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Metin</span>
+          <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} className={input} />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Son gün</span>
+          <input type="date" value={due} onChange={(e) => setDue(e.target.value)} className={input} />
+        </label>
       </div>
     </Modal>
   )

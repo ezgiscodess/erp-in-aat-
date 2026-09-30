@@ -132,14 +132,16 @@ export interface RecoveryAction {
   gain: number
   resource: string
   include: boolean
+  /** Önerinin gerektirdiği ilave kaynak: maliyet (EUR), inxsa (saat), malzeme (EUR), makine-ekipman (adet) */
+  extra?: { cost: number; mh: number; material: number; machines: number }
 }
 
 export const recoveryActions: RecoveryAction[] = [
-  { id: 'R-1', title: 'Gece vardiyasına ikinci montaj ekibi', activity: 'A-2120', gain: 9, resource: '+14 kişi · +1 mobil vinç', include: true },
-  { id: 'R-2', title: 'Çatı panelini aks bazında makas montajıyla örtüştür (FS → SS)', activity: 'A-2150', gain: 10, resource: '+8 kişi', include: true },
-  { id: 'R-3', title: 'Yangın testlerini depo bazında paralel yap', activity: 'A-4290', gain: 6, resource: '+1 test ekibi', include: true },
-  { id: 'R-4', title: 'Kritik aktivitelerde cumartesi çalışması', activity: 'A-2120 · A-2150', gain: 5, resource: 'Mevcut ekip', include: true },
-  { id: 'R-5', title: 'Kuzey otopark asfaltını öne çek', activity: 'A-5110', gain: 4, resource: 'Mevcut ekip', include: false },
+  { id: 'R-1', title: 'Gece vardiyasına ikinci montaj ekibi', activity: 'A-2120', gain: 9, resource: '+14 kişi · +1 mobil vinç', include: true, extra: { cost: 96_000, mh: 6_200, material: 0, machines: 1 } },
+  { id: 'R-2', title: 'Çatı panelini aks bazında makas montajıyla örtüştür (FS → SS)', activity: 'A-2150', gain: 10, resource: '+8 kişi', include: true, extra: { cost: 38_000, mh: 3_500, material: 12_000, machines: 0 } },
+  { id: 'R-3', title: 'Yangın testlerini depo bazında paralel yap', activity: 'A-4290', gain: 6, resource: '+1 test ekibi', include: true, extra: { cost: 22_000, mh: 1_400, material: 4_000, machines: 1 } },
+  { id: 'R-4', title: 'Kritik aktivitelerde cumartesi çalışması', activity: 'A-2120 · A-2150', gain: 5, resource: 'Mevcut ekip', include: true, extra: { cost: 30_000, mh: 2_600, material: 0, machines: 0 } },
+  { id: 'R-5', title: 'Kuzey otopark asfaltını öne çek', activity: 'A-5110', gain: 4, resource: 'Mevcut ekip', include: false, extra: { cost: 8_000, mh: 600, material: 0, machines: 0 } },
 ]
 
 /* ---------------- Program sağlık kontrolleri ve riskler ---------------- */

@@ -92,7 +92,7 @@ export function Home({ onGo, persona }: { onGo: (k: string) => void; persona: Pe
   }
 
   /* 6 — yapılacaklar: bana atanan ya da benim açtığım açık görevler */
-  const todos = notes.filter((n) => n.kind === 'Görev' && (n.assignee === ME || n.owner === ME))
+  const todos = notes.filter((n) => n.kind === 'Görev' && (!!n.assignees?.includes(ME) || n.owner === ME))
 
   return (
     <>
@@ -242,7 +242,7 @@ export function Home({ onGo, persona }: { onGo: (k: string) => void; persona: Pe
                 <input type="checkbox" checked={n.done} onChange={() => setNotes((l) => l.map((x) => (x.id === n.id ? { ...x, done: !x.done } : x)))} />
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[12.5px] font-medium" style={{ color: n.done ? 'var(--faint)' : 'var(--ink)', textDecoration: n.done ? 'line-through' : undefined }}>{n.text}</div>
-                  <div className="text-[11.5px] text-[var(--muted)]">{n.assignee === ME ? `${n.owner} atadı` : `${n.assignee} kişisine atandı`}</div>
+                  <div className="text-[11.5px] text-[var(--muted)]">{n.assignees?.includes(ME) ? `${n.owner} atadı` : `${n.assignees?.join(', ')} kişisine atandı`}</div>
                 </div>
                 {n.due && <Badge tone={n.done ? 'neutral' : n.due <= '2026-10-04' ? 'warn' : 'neutral'}>{date(n.due)}</Badge>}
               </label>

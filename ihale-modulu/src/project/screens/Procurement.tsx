@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { Badge, Btn, Card, ColumnFilter, ExportButtons, Field, IconBtn, Kpi, Modal, PageHead, RowActions, Table, Td, Th } from '../../components/ui'
 import type { Tone } from '../../components/ui'
 import { date, moneyShort, num } from '../../lib/format'
-import { Donut, Legend, MonthColumns } from '../charts'
+import { Donut, Legend, MonthColumns, MultiLine } from '../charts'
 import { prj } from '../data'
-import { sasItems, stockFlow, stockHistory, stockMoves } from '../procurementData'
-import type { SasItem, SasStage } from '../procurementData'
+import { procurementFlow, sasEvents, sasItems, stockFlow, stockHistory, stockMoves } from '../procurementData'
+import type { SasEvent, SasItem, SasStage } from '../procurementData'
+import { DateRange } from './Progress'
 
 /**
  * Procurement: satın alma talepleri (SAS) ve depo (Stock).
@@ -24,7 +25,19 @@ const PEOPLE = ['b.yildiz', 'o.kara', 'h.demir', 'm.aydin']
 export function Sas() {
   const [items, setItems] = useState<SasItem[]>(sasItems)
   const [adding, setAdding] = useState(false)
-  const set = (id: string, patch: Partial<SasItem>) => setItems((l) => l.map((x) => (x.id === id ? { ...x, ...patch } : x)))
+  const [events, setEvents] = useState<SasEvent[]>(sasEvents)
+  const [range, setRange] = useState<[string, string]>(['2025-01-01', TODAY])
+  const now = () => `${TODAY} ${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`
+  const log = (id: string, step: string, by = 'k.aslan') => setEvents((l) => [{ at: now(), by, id, step }, ...l])
+  const set = (id: string, patch: Partial<SasItem>, step?: string, by?: string) => {
+    setItems((l) => l.map((x) => (x.id === id ? { ...x, ...patch } : x)))
+    if (step) log(id, step, by)
+  }
+  const flow = procurementFlow.filter((f) => f.iso.slice(0, 7) >= range[0].slice(0, 7) && f.iso.slice(0, 7) <= range[1].slice(0, 7))
+  const flowMax = Math.ceil(Math.max(1, ...flow.map((f) => f.ordered)) / 1_000_000) * 1_000_000
+  const byStage = (['Onay bekliyor', 'Sipariş verildi', 'Yolda', 'Sahada', 'Depoda'] as SasStage[]).map((st, i) => ({
+    label: st, value: items.filter((x) => x.stage === st).reduce((a, x) => a + x.value, 0), color: ['#98A2B3', 'var(--series-1)', 'var(--series-2)', 'var(--series-3)', 'var(--series-4)'][i],
+  })).filter((p) => p.value > 0)
 
   const req = items.filter((i) => i.stage === 'Onay bekliyor')
   const ord = items.filter((i) => i.stage === 'Sipariş verildi' || i.stage === 'Yolda')
@@ -46,6 +59,38 @@ export function Sas() {
         <Kpi label="Toplam değer" value={m(items.reduce((a, i) => a + i.value, 0))} sub={`Ort. onay ${avg(approvalDays).toFixed(1).replace('.', ',')} gün · teslim ${Math.round(avg(deliveryDays))} gün`} />
       </div>
 
+      <DateRange range={range} onApply={setRange} presets={{ 'Proje başından': ['2025-01-01', TODAY], 'Son 6 ay': ['2026-04-01', TODAY], 'Son 3 ay': ['2026-07-01', TODAY] }} />
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+        <div className="xl:col-span-8">
+          <Card title="Satın alma eğrisi" help="Seçilen tarih aralığında kümülatif sipariş verilen tutar, kümülatif depoya aktarılan tutar ve her ay sonunda yolda olan malzeme tutarı. Sipariş ile depo çizgisi arasındaki açıklık, sahaya gelmemiş ya da depoya aktarılmamış malzemedir."
+            right={<Legend items={[{ label: 'Sipariş (kümülatif)', color: 'var(--series-1)' }, { label: 'Depoya aktarılan', color: 'var(--series-3)' }, { label: 'Yolda', color: 'var(--series-2)', dashed: true }]} />}>
+            {flow.length > 1
+              ? <MultiLine height={220} max={flowMax} format={(v) => moneyShort(v, '').trim()} labels={flow.map((f) => new Intl.DateTimeFormat('tr-TR', { month: 'short', year: '2-digit' }).format(new Date(f.iso)))}
+                series={[
+                  { label: 'Sipariş', color: 'var(--series-1)', values: flow.map((f) => f.ordered) },
+                  { label: 'Depoya aktarılan', color: 'var(--series-3)', values: flow.map((f) => f.depot) },
+                  { label: 'Yolda', color: 'var(--series-2)', values: flow.map((f) => f.transit), dashed: true },
+                ]} />
+              : <div className="py-10 text-center text-[12px] text-[var(--faint)]">Seçilen aralıkta en az iki ay olmalı.</div>}
+          </Card>
+        </div>
+        <div className="xl:col-span-4">
+          <Card title="Aşamalara göre tutar" help="Açık taleplerin ve siparişlerin bulunduğu aşamaya göre tutar dağılımı.">
+            <Donut size={140} parts={byStage} center={<div><div className="text-[14px] font-bold text-[var(--ink)]">{m(byStage.reduce((a, p) => a + p.value, 0))}</div><div className="text-[10.5px] text-[var(--muted)]">toplam</div></div>} />
+            <div className="mt-3 grid grid-cols-3 gap-2 border-t border-[var(--border)] pt-3 text-center">
+              {[
+                ['Ort. onay', `${avg(approvalDays).toFixed(1).replace('.', ',')} gün`],
+                ['Ort. teslim', `${Math.round(avg(deliveryDays))} gün`],
+                ['Zamanında', `%${Math.round((arr.filter((i) => (dd(i.needBy, i.arrivedAt) ?? 0) <= 0).length / Math.max(1, arr.length)) * 100)}`],
+              ].map(([l, v]) => (
+                <div key={l}><div className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--faint)]">{l}</div><div className="text-[15px] font-bold text-[var(--ink)] tnum">{v}</div></div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         {/* 1. Talepler — yapılacaklar listesi gibi */}
         <Card title={`Talepler (${req.length})`} help="Yeni talep + ile eklenir. Her onaycı kendi onayını verir; hepsi onaylayınca talep siparişe geçer."
@@ -57,7 +102,7 @@ export function Sas() {
                 <div className="flex items-center gap-2">
                   <span className="mono text-[11px] text-[var(--faint)]">{i.id}</span>
                   <Badge tone={URG[i.urgency]}>{i.urgency}</Badge>
-                  <span className="ml-auto"><RowActions name={i.id} onDelete={() => setItems((l) => l.filter((x) => x.id !== i.id))} /></span>
+                  <span className="ml-auto"><RowActions name={i.id} onDelete={() => { setItems((l) => l.filter((x) => x.id !== i.id)); log(i.id, 'Talep silindi') }} /></span>
                 </div>
                 <div className="mt-1 text-[12.5px] font-medium text-[var(--ink)]">{i.desc}</div>
                 <div className="text-[11px] text-[var(--muted)]"><span className="mono">{i.code}</span> · {num(i.qty)} {i.unit} · gerek: {date(i.needBy)} · {m(i.value)}</div>
@@ -72,7 +117,8 @@ export function Sas() {
                     <span className="ml-auto">
                       <Btn small primary onClick={() => {
                         const approved = [...i.approved, next]
-                        set(i.id, approved.length === i.approvers.length ? { approved, stage: 'Sipariş verildi', orderedAt: TODAY, supplier: 'Tedarikçi seçilecek' } : { approved })
+                        set(i.id, approved.length === i.approvers.length ? { approved, stage: 'Sipariş verildi', orderedAt: TODAY, supplier: 'Tedarikçi seçilecek' } : { approved },
+                          approved.length === i.approvers.length ? `${next} onayladı · sipariş verildi` : `${next} onayladı`, next)
                       }}>{next} olarak onayla</Btn>
                     </span>
                   )}
@@ -106,8 +152,8 @@ export function Sas() {
                   ))}
                 </div>
                 <div className="mt-1.5 flex justify-end gap-1.5">
-                  {i.stage === 'Sipariş verildi' && <Btn small onClick={() => set(i.id, { stage: 'Yolda' })}>Yola çıktı</Btn>}
-                  {i.stage === 'Yolda' && <Btn small primary onClick={() => set(i.id, { stage: 'Sahada', arrivedAt: TODAY })}>Sahaya ulaştı</Btn>}
+                  {i.stage === 'Sipariş verildi' && <Btn small onClick={() => set(i.id, { stage: 'Yolda' }, 'Yola çıktı', 'lojistik')}>Yola çıktı</Btn>}
+                  {i.stage === 'Yolda' && <Btn small primary onClick={() => set(i.id, { stage: 'Sahada', arrivedAt: TODAY }, 'Sahaya ulaştı', 'depo.ali')}>Sahaya ulaştı</Btn>}
                 </div>
               </div>
             )
@@ -120,7 +166,7 @@ export function Sas() {
             <div key={i.id} className="border-b border-[var(--border)] px-4 py-2.5 last:border-0">
               <div className="flex items-center gap-2">
                 <span className="mono text-[11px] text-[var(--faint)]">{i.id}</span>
-                <span className="ml-auto">{i.stage === 'Depoda' ? <Badge tone="ok" dot>Depoda</Badge> : <Btn small primary onClick={() => set(i.id, { stage: 'Depoda' })}>Depoya aktar</Btn>}</span>
+                <span className="ml-auto">{i.stage === 'Depoda' ? <Badge tone="ok" dot>Depoda</Badge> : <Btn small primary onClick={() => set(i.id, { stage: 'Depoda', depotAt: TODAY }, 'Depoya aktarıldı', 'depo.ali')}>Depoya aktar</Btn>}</span>
               </div>
               <div className="mt-1 text-[12.5px] font-medium text-[var(--ink)]">{i.desc}</div>
               <div className="mt-1 grid grid-cols-3 gap-1.5 text-[11px]">
@@ -135,13 +181,15 @@ export function Sas() {
         </Card>
       </div>
 
-      {adding && <SasForm onClose={() => setAdding(false)} onAdd={(i) => { setItems((l) => [i, ...l]); setAdding(false) }} />}
+      <SasLog items={items} events={events} range={range} />
+
+      {adding && <SasForm onClose={() => setAdding(false)} onAdd={(i) => { setItems((l) => [i, ...l]); log(i.id, 'Talep oluşturuldu'); setAdding(false) }} />}
     </>
   )
 }
 
 function SasForm({ onClose, onAdd }: { onClose: () => void; onAdd: (i: SasItem) => void }) {
-  const [v, setV] = useState({ code: '', desc: '', qty: '', unit: 'ad', needBy: '2026-10-10', value: '' })
+  const [v, setV] = useState({ code: '', desc: '', qty: '', unit: 'ad', needBy: '2026-10-10', value: '', site: '' })
   const [urgency, setUrgency] = useState<SasItem['urgency']>('Normal')
   const [approvers, setApprovers] = useState<string[]>(['h.demir'])
   const set = (k: keyof typeof v) => (x: string) => setV((o) => ({ ...o, [k]: x }))
@@ -152,7 +200,7 @@ function SasForm({ onClose, onAdd }: { onClose: () => void; onAdd: (i: SasItem) 
         <span className="ml-auto flex gap-2"><Btn onClick={onClose}>Vazgeç</Btn>
           <Btn primary disabled={!ready} onClick={() => onAdd({
             id: `SAS-${124 + Math.floor(Math.random() * 50)}`, code: v.code.trim(), desc: v.desc.trim(), qty: Number(v.qty), unit: v.unit,
-            needBy: v.needBy, urgency, approvers, approved: [], stage: 'Onay bekliyor', value: Number(v.value) || 0, requestedBy: 'k.aslan', requestedAt: TODAY,
+            needBy: v.needBy, urgency, approvers, approved: [], stage: 'Onay bekliyor', value: Number(v.value) || 0, requestedBy: 'k.aslan', requestedAt: TODAY, site: v.site || '—',
           })}>Talep oluştur</Btn></span></>}>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Field label="Malzeme / hizmet kodu" value={v.code} onChange={set('code')} placeholder="MLZ-4410-07" />
@@ -161,6 +209,7 @@ function SasForm({ onClose, onAdd }: { onClose: () => void; onAdd: (i: SasItem) 
         <Field label="Birim" value={v.unit} onChange={set('unit')} />
         <Field label="Gerektiği tarih" value={v.needBy} onChange={set('needBy')} type="date" />
         <Field label={`Tahmini tutar (${C})`} value={v.value} onChange={set('value')} type="number" />
+        <Field label="Kullanılacak yer" value={v.site} onChange={set('site')} placeholder="Depo C · çatı" />
         <div className="sm:col-span-2">
           <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Aciliyet</div>
           <div className="flex gap-1.5">
@@ -187,6 +236,68 @@ function SasForm({ onClose, onAdd }: { onClose: () => void; onAdd: (i: SasItem) 
   )
 }
 
+/**
+ * SAS kayıt defteri: yatay A4 sayfa. Üstte her talebin siparişten depoya teslime kadar satırı,
+ * altında yapılan her adımın kim ve ne zaman kaydı. PDF / Excel olarak alınır.
+ */
+function SasLog({ items, events, range }: { items: SasItem[]; events: SasEvent[]; range: [string, string] }) {
+  const rows = [...items].sort((a, b) => (b.orderedAt ?? b.requestedAt).localeCompare(a.orderedAt ?? a.requestedAt))
+  const steps = events.filter((e) => e.at.slice(0, 10) >= range[0] && e.at.slice(0, 10) <= range[1])
+  const th = 'border-b border-[var(--border-strong)] px-1.5 py-1 text-left text-[9.5px] font-semibold uppercase tracking-wide text-[var(--muted)]'
+  const td = 'border-b border-[var(--border)] px-1.5 py-[3px] align-top'
+  return (
+    <Card title="Kayıt defteri" help="Yapılan her adım kaydedilir. Sayfa yatay A4 ölçüsündedir; PDF ya da Excel olarak alınabilir." right={<ExportButtons />}>
+      <div className="overflow-x-auto rounded-md bg-[var(--surface-3)] p-4">
+        <div className="mx-auto flex w-full min-w-[900px] max-w-[1120px] flex-col bg-white px-8 py-6 text-[10.5px] text-[#1F2733] shadow-md" style={{ aspectRatio: '297 / 210' }}>
+          <div className="flex items-end border-b-2 border-[#1F2733] pb-2">
+            <div>
+              <div className="text-[13px] font-bold">SAS kayıt defteri — {prj.name}</div>
+              <div className="text-[10px] text-[#667085]">{prj.code} · {date(range[0])} – {date(range[1])} · {rows.length} talep · {steps.length} adım</div>
+            </div>
+            <div className="ml-auto text-right text-[10px] text-[#667085]">ICCM Construction LTD<br />Rapor günü {date(TODAY)}</div>
+          </div>
+          <table className="mt-3 w-full border-collapse tnum">
+            <thead><tr>
+              {['Sipariş tarihi', 'Poz no', 'Ürün açıklaması', 'Birim', 'Adet', 'Tutar', 'Talep eden', 'Kullanılacak yer', 'Sahaya geliş', 'Depo teslim', 'Durum'].map((h) => <th key={h} className={th}>{h}</th>)}
+            </tr></thead>
+            <tbody>
+              {rows.map((i) => (
+                <tr key={i.id}>
+                  <td className={td}>{i.orderedAt ? date(i.orderedAt) : '—'}</td>
+                  <td className={`${td} mono`}>{i.code}</td>
+                  <td className={td}>{i.desc}</td>
+                  <td className={td}>{i.unit}</td>
+                  <td className={`${td} text-right`}>{num(i.qty)}</td>
+                  <td className={`${td} text-right`}>{num(i.value)}</td>
+                  <td className={`${td} mono`}>{i.requestedBy}</td>
+                  <td className={td}>{i.site}</td>
+                  <td className={td}>{i.arrivedAt ? date(i.arrivedAt) : '—'}</td>
+                  <td className={td}>{i.depotAt ? date(i.depotAt) : i.stage === 'Depoda' ? date(i.arrivedAt ?? TODAY) : '—'}</td>
+                  <td className={td}>{i.stage}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="mt-4 text-[10px] font-semibold uppercase tracking-wide text-[#667085]">Adım kaydı</div>
+          <div className="mt-1 grid grid-cols-2 gap-x-6">
+            {steps.map((e, k) => (
+              <div key={k} className="flex gap-2 border-b border-[#EEF1F4] py-[2px]">
+                <span className="mono w-[98px] flex-shrink-0 text-[#667085]">{e.at}</span>
+                <span className="mono w-[56px] flex-shrink-0">{e.id}</span>
+                <span className="min-w-0 flex-1 truncate">{e.step}</span>
+                <span className="mono text-[#667085]">{e.by}</span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-auto flex border-t border-[#D0D5DD] pt-1.5 text-[9.5px] text-[#98A2B3]">
+            <span>ICCM Ecosystem · otomatik üretildi</span><span className="ml-auto">Sayfa 1 / 1</span>
+          </div>
+        </div>
+      </div>
+    </Card>
+  )
+}
+
 /* ---------------- Stock ---------------- */
 
 const GROUP_COLORS: Record<string, string> = {
@@ -204,7 +315,9 @@ export function Stock() {
     invoice: (x) => x.invoice, supplier: (x) => x.supplier, location: (x) => x.location,
     orderDate: (x) => date(x.orderDate), arrivalDate: (x) => date(x.arrivalDate), exitDate: (x) => (x.exitDate ? date(x.exitDate) : '—'),
   }
+  /** Genel kayıt her zaman depo giriş (geliş) tarihine göre, en yeni üstte */
   const rows = moves.filter((x) => Object.entries(f).every(([k, v]) => !v || v === 'Tümü' || getters[k](x) === v))
+    .sort((a, b) => b.arrivalDate.localeCompare(a.arrivalDate))
   const head = (k: string, label: string) => (
     <span className="flex items-center gap-1.5">{label}
       <ColumnFilter value={f[k] ?? 'Tümü'} onChange={(v) => setF((o) => ({ ...o, [k]: v }))} values={[...new Set(moves.map(getters[k]))]} />
@@ -226,7 +339,7 @@ export function Stock() {
 
       <div className="flex flex-col gap-4">
         <div>
-          <Card title={`Genel kayıt (${rows.length})`} help="Her malzeme ve hizmet alımının siparişten depodan çıkışa kadar kaydı. Sıra: kod, tarihler, açıklama." pad={false}>
+          <Card title={`Genel kayıt (${rows.length})`} help="Her malzeme ve hizmet alımının siparişten depodan çıkışa kadar kaydı. Kayıtlar her zaman depo giriş (geliş) tarihine göre sıralanır, en yeni üstte." pad={false}>
             <Table dense head={<tr>
               <Th>{head('code', 'Kod')}</Th><Th>{head('orderDate', 'Sipariş')}</Th><Th>{head('arrivalDate', 'Geliş')}</Th><Th>{head('exitDate', 'Çıkış')}</Th>
               <Th w={180}>{head('desc', 'Açıklama')}</Th><Th>{head('group', 'Grup')}</Th>

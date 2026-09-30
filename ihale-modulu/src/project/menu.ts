@@ -42,6 +42,15 @@ export const menu: MenuGroup[] = [
     items: [{ key: 'budget_detail', label: 'Budget', ready: true }],
   },
   {
+    key: 'contracts', label: 'Contracts',
+    note: 'İşverenle ana kontrat ve alt yüklenici kontratları; aynı kalemde fark varsa otomatik uyarı.',
+    items: [
+      { key: 'contracts_dashboard', label: 'Dashboard', ready: true, note: 'Ana ve alt yüklenici kontratlarının özeti, taşere oranı, uyuşmayan kalemler.' },
+      { key: 'main_contract', label: 'Main Contract', ready: true, note: 'İşverenle sözleşme künyesi, hakedişler, değişiklik emirleri, bildirim süreleri.' },
+      { key: 'sub_contracts', label: 'Sub-Contracts', ready: true, note: 'Alt yüklenici sözleşmeleri ve ana kontratla karşılaştırma.' },
+    ],
+  },
+  {
     key: 'planning', label: 'Planning',
     items: [
       { key: 'work_schedule', ready: true, label: 'Work Schedule', note: 'İşverenle anlaşılan program ve firmanın kendi (resource’lu) ikinci programı; ikisi paralel, aynı panel ve grafik yapısıyla.' },
@@ -76,11 +85,10 @@ export const menu: MenuGroup[] = [
   { key: 'accounting', label: 'Accounting', items: [{ key: 'acc_dashboard', label: 'Dashboard', note: 'Kurgusu üzerinde çalışılıyor.' }] },
   {
     key: 'risk', label: 'Risk',
-    note: 'Modül 1 mantığında; kullanıcılar veri girdikçe ve iş ilerledikçe analiz oluşur.',
+    note: 'Saha ve yönetim riskleri tek Dashboard’da; kontrat riskleri ihaleden aktarılır ya da kontrattan analiz edilir.',
     items: [
-      { key: 'management_risks', label: 'Management Risks' },
-      { key: 'site_risks', label: 'Site Risks' },
-      { key: 'contract_risks', label: 'Contract Risks' },
+      { key: 'risk_dashboard', label: 'Dashboard', ready: true, note: 'Olasılık × etki matrisi, risk etki haritası (maliyet, inxsa, program), şiddet × sıklık ve tiplere göre ayrım.' },
+      { key: 'contract_risks', label: 'Contract Risks', ready: true, note: 'Proje ihaleden geldiyse ihale aşamasındaki Kontrat Analiz’den, doğrudan başladıysa kontrattan analiz edilen riskler.' },
     ],
   },
   {

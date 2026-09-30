@@ -20,13 +20,13 @@ function source(r: BidRisk): RiskSource {
  * kontrat riskleri iş yürürken uzun dönemde ortaya çıkar (hak talebi, fiyat farkı talebi,
  * bildirim süreleri, teminat, fesih).
  */
-export function KontratAnaliz({ writable, role }: { writable: boolean; role: string }) {
+export function KontratAnaliz({ writable, role, title = 'Kontrat Analiz' }: { writable: boolean; role: string; title?: string }) {
   const high = contractRisks.filter((r) => r.probability * r.impact >= 16).length
   const timeBars = contractRisks.filter((r) => r.timeBar)
 
   return (
     <RiskRegister
-      title="Kontrat Analiz"
+      title={title}
       note="Kontratsal riskler: iş boyunca, uzun dönemde ortaya çıkan riskler (hak talebi, fiyat farkı talebi, ödeme, bildirim süreleri, teminat, fesih). Teklif riskleriyle aynı yapıda tutulur; her risk bir sözleşme maddesine bağlıdır ve maddenin asıl metni sağdaki Kaynak panelinde açılır."
       risks={contractRisks}
       writable={writable}

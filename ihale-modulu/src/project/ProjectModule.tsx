@@ -10,6 +10,8 @@ import { BudgetDetail } from './screens/Budget'
 import { ReportViewer } from './screens/Reports'
 import { Sas, Stock } from './screens/Procurement'
 import { Communication } from './screens/Communication'
+import { ContractRisks, RiskDashboard } from './screens/Risk'
+import { ContractsDashboard, MainContract, SubContracts } from './screens/Contracts'
 import { CriticalPath, LookaheadSch, MicroSchedules, MitigationPlan, PlanningRisks, WorkSchedule } from './screens/Planning'
 import { DailyEquipment, DailyManpower, ProgressDashboard, ProgressDisruptions, SiteActivity, SitePhotos } from './screens/Progress'
 import {
@@ -161,6 +163,9 @@ function Screen({ page, onGo, persona }: { page: string; onGo: (k: string) => vo
     case 'daily_manpower': return <DailyManpower />
     case 'daily_equipment': return <DailyEquipment />
     case 'budget_detail': return <BudgetDetail />
+    case 'contracts_dashboard': return <ContractsDashboard onGo={onGo} />
+    case 'main_contract': return <MainContract />
+    case 'sub_contracts': return <SubContracts />
     case 'work_schedule': return <WorkSchedule />
     case 'micro': return <MicroSchedules />
     case 'lookahead': return <LookaheadSch />
@@ -172,6 +177,8 @@ function Screen({ page, onGo, persona }: { page: string; onGo: (k: string) => vo
     case 'sas': return <Sas />
     case 'stock': return <Stock />
     case 'communication': return <Communication />
+    case 'risk_dashboard': return <RiskDashboard />
+    case 'contract_risks': return <ContractRisks />
     default: return <Placeholder page={page} />
   }
 }
