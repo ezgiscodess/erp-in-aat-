@@ -565,19 +565,19 @@ export function AdminClaim() {
           help="Olaydan sonra 28 gün içinde bildirim yapılmazsa hak düşer (time-bar)." />
       </div>
       <Card title="Hak talepleri" pad={false}>
-        <Table head={<tr><Th>No</Th><Th w={260}>Konu ve dayanak</Th><Th right>Tutar</Th><Th right>Süre</Th><Th>Olay</Th><Th w={150}>Bildirim süresi</Th><Th>Durum</Th></tr>}>
+        <Table head={<tr><Th>No</Th><Th>Olay tarihi</Th><Th w={260}>Konu ve dayanak</Th><Th right>Tutar</Th><Th right>Süre</Th><Th w={150}>Bildirim süresi</Th><Th>Durum</Th></tr>}>
           {claims.map((c) => {
             const left = daysTo(c.noticeDue)
             return (
               <tr key={c.no} className="hover:bg-[var(--surface-2)]">
                 <Td mono nowrap>{c.no}</Td>
+                <Td nowrap>{date(c.eventDate)}</Td>
                 <Td>
                   <div className="text-[12.5px] text-[var(--ink)]">{c.title}</div>
                   <div className="mt-0.5 text-[11px] text-[var(--muted)]">{c.basis}</div>
                 </Td>
                 <Td right>{num(c.amount)}</Td>
                 <Td right>+{c.days} gün</Td>
-                <Td nowrap>{date(c.eventDate)}</Td>
                 <Td nowrap>
                   {c.noticed
                     ? <span className="text-[12px] text-[var(--ok)]">✓ Bildirildi</span>

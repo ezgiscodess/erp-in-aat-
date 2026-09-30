@@ -194,8 +194,8 @@ export function Hub({ persona, onOpen, onLogout }: { persona: Persona; onOpen: (
             <tr>
               <Th w={64}>{head('tur', 'Tür')}</Th>
               <Th w={110}>{head('kod', 'Kod')}</Th>
-              <Th w={300}>{head('is', 'İş')}</Th>
               <Th w={120}>{head('tarih', 'Tarih')}</Th>
+              <Th w={300}>{head('is', 'İş')}</Th>
               <Th w={100}>{head('bedel', 'Bedel')}</Th>
               <Th w={60}>{head('dosya', 'Dosya')}</Th>
               <Th w={130}>{head('ilerleme', 'İlerleme')}</Th>
@@ -208,13 +208,13 @@ export function Hub({ persona, onOpen, onLogout }: { persona: Persona; onOpen: (
                 style={i.id === justAdded ? { background: 'var(--accent-soft)' } : undefined}>
                 <Td nowrap><Badge tone={i.kind === 'ihale' ? 'accent' : 'ok'}>{i.kind === 'ihale' ? 'İhale' : 'Proje'}</Badge></Td>
                 <Td mono nowrap>{i.code}</Td>
-                <Td>
-                  <div className="text-[12.5px] font-medium text-[var(--ink)]">{i.name}</div>
-                  <div className="text-[11px] text-[var(--muted)]">{i.employer} · {i.location}</div>
-                </Td>
                 <Td nowrap>
                   <div className="tnum text-[12px] text-[var(--ink)]">{date(i.dueAt)}</div>
                   <div className="text-[11px] text-[var(--faint)]">{daysLabel(i.daysLeft)}</div>
+                </Td>
+                <Td>
+                  <div className="text-[12.5px] font-medium text-[var(--ink)]">{i.name}</div>
+                  <div className="text-[11px] text-[var(--muted)]">{i.employer} · {i.location}</div>
                 </Td>
                 <Td right>{moneyShort(i.value, i.currency)}</Td>
                 <Td right>{i.docCount}</Td>

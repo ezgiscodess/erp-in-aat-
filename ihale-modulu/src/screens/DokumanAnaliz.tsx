@@ -95,6 +95,12 @@ export function DokumanAnaliz({ writable, role }: { writable: boolean; role: str
           >
             <Table head={
               <tr>
+                <Th w={96}>
+                  <span className="flex items-center gap-1.5">
+                    Yüklendi
+                    <ColumnFilter value={userFilter} onChange={setUserFilter} values={[...new Set(docs.map((d) => d.uploadedBy))]} />
+                  </span>
+                </Th>
                 <Th w={190}>
                   <span className="flex items-center gap-1.5">
                     Doküman
@@ -105,12 +111,6 @@ export function DokumanAnaliz({ writable, role }: { writable: boolean; role: str
                   <span className="flex items-center gap-1.5">
                     Sayfa
                     <ColumnFilter value={pageFilter} onChange={setPageFilter} values={PAGE_BANDS} />
-                  </span>
-                </Th>
-                <Th w={96}>
-                  <span className="flex items-center gap-1.5">
-                    Yüklendi
-                    <ColumnFilter value={userFilter} onChange={setUserFilter} values={[...new Set(docs.map((d) => d.uploadedBy))]} />
                   </span>
                 </Th>
                 <Th w={104}>
@@ -125,6 +125,10 @@ export function DokumanAnaliz({ writable, role }: { writable: boolean; role: str
               {rows.map((d) => (
                 <tr key={d.id} onClick={() => setSel(d)} className="cursor-pointer hover:bg-[var(--surface-2)]"
                   style={d.id === sel.id ? { background: 'var(--accent-soft)' } : undefined}>
+                  <Td nowrap>
+                    <div className="mono text-[11.5px] text-[var(--ink)]">{d.uploadedAt.slice(0, 10)}</div>
+                    <div className="mono text-[11px] text-[var(--faint)]">{d.uploadedBy}</div>
+                  </Td>
                   <Td>
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-[var(--ink)]">{d.name}</span>
@@ -134,10 +138,6 @@ export function DokumanAnaliz({ writable, role }: { writable: boolean; role: str
                     <div className="mt-0.5 text-[11px] text-[var(--muted)]">{d.kind}</div>
                   </Td>
                   <Td right>{d.pages}</Td>
-                  <Td nowrap>
-                    <div className="mono text-[11.5px] text-[var(--ink)]">{d.uploadedAt.slice(0, 10)}</div>
-                    <div className="mono text-[11px] text-[var(--faint)]">{d.uploadedBy}</div>
-                  </Td>
                   <Td nowrap><StateBadge value={d.state} /></Td>
                   <Td nowrap center>
                     <RowActions name={d.name} disabled={!writable}

@@ -933,23 +933,82 @@ export function ColumnFilter({ values, value, onChange }: {
   values: string[]; value: string; onChange: (v: string) => void
 }) {
   const [open, setOpen] = useState(false)
+  const [q, setQ] = useState('')
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
+  const btn = useRef<HTMLButtonElement>(null)
+  const pop = useRef<HTMLDivElement>(null)
+  const active = value !== 'Tümü'
+  const W = 220
+
+  /**
+   * Menü sayfa katmanında (fixed) açılır: tablonun kaydırma kutusu onu kırpmaz,
+   * sağ kenara yakınsa sola doğru açılır. Dışarı tıklayınca, Esc'ye basınca ya da sayfa kayınca kapanır.
+   */
+  function toggle() {
+    if (open) { setOpen(false); return }
+    const r = btn.current!.getBoundingClientRect()
+    setPos({ top: r.bottom + 4, left: Math.max(8, Math.min(r.left, window.innerWidth - W - 8)) })
+    setQ('')
+    setOpen(true)
+  }
+
+  useEffect(() => {
+    if (!open) return
+    const close = (e: Event) => {
+      if (e.type === 'keydown' && (e as KeyboardEvent).key !== 'Escape') return
+      if (e.type === 'mousedown' && (pop.current?.contains(e.target as Node) || btn.current?.contains(e.target as Node))) return
+      setOpen(false)
+    }
+    const onScroll = (e: Event) => { if (!pop.current?.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', close)
+    document.addEventListener('keydown', close)
+    window.addEventListener('scroll', onScroll, true)
+    window.addEventListener('resize', close)
+    return () => {
+      document.removeEventListener('mousedown', close)
+      document.removeEventListener('keydown', close)
+      window.removeEventListener('scroll', onScroll, true)
+      window.removeEventListener('resize', close)
+    }
+  }, [open])
+
+  const list = values.filter((v) => !q.trim() || v.toLocaleLowerCase('tr').includes(q.toLocaleLowerCase('tr')))
+  const pick = (v: string) => { onChange(v); setOpen(false) }
+
   return (
-    <span className="relative inline-flex">
-      <button onClick={() => setOpen((v) => !v)} title="Filtrele"
+    <span className="inline-flex">
+      <button ref={btn} onClick={(e) => { e.stopPropagation(); toggle() }} title={active ? `Filtre: ${value}` : 'Filtrele'}
         className="grid h-[15px] w-[15px] place-items-center rounded border text-[9px] leading-none transition-colors"
-        style={value === 'Tümü'
-          ? { borderColor: 'var(--border-strong)', color: 'var(--muted)', background: 'var(--surface)' }
-          : { borderColor: 'var(--accent)', color: 'var(--accent)', background: 'var(--accent-soft)' }}>▼</button>
-      {open && (
-        <span className="absolute left-0 top-[19px] z-50 flex min-w-[150px] flex-col rounded-md border border-[var(--border)] bg-[var(--surface)] py-1 shadow-lg">
-          {['Tümü', ...values].map((v) => (
-            <button key={v} onClick={() => { onChange(v); setOpen(false) }}
-              className="px-2.5 py-1 text-left text-[12px] font-normal normal-case tracking-normal hover:bg-[var(--surface-2)]"
-              style={{ color: v === value ? 'var(--accent)' : 'var(--ink)' }}>
-              {v}
+        style={active
+          ? { borderColor: 'var(--accent)', color: '#fff', background: 'var(--accent)' }
+          : { borderColor: 'var(--border-strong)', color: 'var(--muted)', background: 'var(--surface)' }}>▼</button>
+      {open && pos && (
+        <div ref={pop} onClick={(e) => e.stopPropagation()}
+          className="fixed z-[70] flex flex-col rounded-md border border-[var(--border)] bg-[var(--surface)] text-left font-normal normal-case tracking-normal shadow-xl"
+          style={{ top: pos.top, left: pos.left, width: W }}>
+          {values.length > 6 && (
+            <div className="border-b border-[var(--border)] p-1.5">
+              <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ara…"
+                className="w-full rounded border border-[var(--border)] bg-[var(--surface-2)] px-2 py-1 text-[12px] text-[var(--ink)] outline-none focus:border-[var(--accent)]" />
+            </div>
+          )}
+          <div className="max-h-[260px] overflow-y-auto py-1">
+            {['Tümü', ...list].map((v) => (
+              <button key={v} onClick={() => pick(v)}
+                className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[12px] hover:bg-[var(--surface-2)]"
+                style={{ color: v === value ? 'var(--accent)' : 'var(--ink)', fontWeight: v === value ? 600 : 400 }}>
+                <span className="w-3 text-[11px]">{v === value ? '✓' : ''}</span>
+                <span className="min-w-0 flex-1 truncate">{v === 'Tümü' ? 'Tümü (filtre yok)' : v}</span>
+              </button>
+            ))}
+            {list.length === 0 && <div className="px-3 py-2 text-[12px] text-[var(--faint)]">Sonuç yok</div>}
+          </div>
+          {active && (
+            <button onClick={() => pick('Tümü')} className="border-t border-[var(--border)] px-3 py-1.5 text-left text-[11.5px] text-[var(--accent)] hover:bg-[var(--surface-2)]">
+              Filtreyi temizle
             </button>
-          ))}
-        </span>
+          )}
+        </div>
       )}
     </span>
   )

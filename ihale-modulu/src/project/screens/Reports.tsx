@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import { Btn, IconBtn, PageHead, RowActions } from '../../components/ui'
+import { Badge, Btn, Field, IconBtn, Modal, PageHead, RowActions } from '../../components/ui'
+import type { Tone } from '../../components/ui'
 import { date, num, pct } from '../../lib/format'
 import { SCurve } from '../charts'
 import { actualCum, dailyReport, evm, monthName, plannedCum, prj } from '../data'
@@ -11,7 +12,25 @@ import { lookaheads, programs } from '../planningData'
  * Reports: günlük, haftalık, aylık, işveren, merkez ofis raporları ve sunumlar.
  * Rapor sayfalardan oluşur; sağdaki önizlemelerden sayfalar arasında hızlıca gezilir.
  * Raporlar finansal tutar içermez. Sayfaların içeriği, gönderilecek örnek raporlara göre düzenlenecek.
+ *
+ * Onay akışı: tanımlı kullanıcı (planlama) raporu düzenler ve teknik ofis müdürüne onaya gönderir;
+ * müdür onaylar ya da revizyon ister; onaydan sonra müdür "Paylaş" ile mail listesine gönderir.
  */
+
+type RStatus = 'Hazırlanıyor' | 'Müdür onayında' | 'Revizyon istendi' | 'Onaylandı' | 'Paylaşıldı'
+const R_TONE: Record<RStatus, Tone> = { 'Hazırlanıyor': 'neutral', 'Müdür onayında': 'warn', 'Revizyon istendi': 'crit', 'Onaylandı': 'accent', 'Paylaşıldı': 'ok' }
+const EDITOR = 'k.aslan'
+const MANAGER = 's.kaya'
+const stamp = () => new Date().toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+
+const MAIL: Record<string, string[]> = {
+  r_daily: ['h.demir', 'b.yildiz', 'o.kara', 'm.aydin', 'k.aslan', 't.celik', 'saha.ofis'],
+  r_weekly: ['h.demir', 'm.aydin', 'genel.mudur', 'planlama.merkez', 'b.yildiz', 'o.kara'],
+  r_monthly: ['isveren.pm', 'isveren.kontrol', 'genel.mudur', 'h.demir', 'm.aydin'],
+  r_employer: ['isveren.pm', 'isveren.kontrol', 'isveren.musavir'],
+  r_hq: ['genel.mudur', 'mali.isler', 'planlama.merkez'],
+  r_presentations: ['toplanti.katilimcilari'],
+}
 
 type PageKind = 'cover' | 'summary' | 'scurve' | 'works' | 'manpower' | 'equipment' | 'lookahead' | 'disruptions' | 'photos'
 
@@ -33,24 +52,74 @@ export function ReportViewer({ type }: { type: string }) {
   const rep = REPORTS[type] ?? REPORTS.r_daily
   const [pages, setPages] = useState<PageKind[]>(rep.pages)
   const [cur, setCur] = useState(0)
+  const [status, setStatus] = useState<RStatus>(type === 'r_daily' ? 'Müdür onayında' : 'Hazırlanıyor')
+  const [log, setLog] = useState<{ at: string; by: string; text: string }[]>(
+    type === 'r_daily' ? [{ at: '27.09 06:40', by: EDITOR, text: 'Rapor hazırlandı ve teknik ofis müdürüne gönderildi' }] : [],
+  )
+  const [mail, setMail] = useState<string[]>(MAIL[type] ?? [])
+  const [sharing, setSharing] = useState(false)
+  const [editingMail, setEditingMail] = useState(false)
+  const [revising, setRevising] = useState(false)
   const [key, setKey] = useState(type)
-  if (key !== type) { setKey(type); setPages(rep.pages); setCur(0) }
+  if (key !== type) {
+    setKey(type); setPages(rep.pages); setCur(0)
+    setStatus(type === 'r_daily' ? 'Müdür onayında' : 'Hazırlanıyor')
+    setLog(type === 'r_daily' ? [{ at: '27.09 06:40', by: EDITOR, text: 'Rapor hazırlandı ve teknik ofis müdürüne gönderildi' }] : [])
+    setMail(MAIL[type] ?? [])
+  }
+  const note = (by: string, text: string) => setLog((l) => [{ at: stamp(), by, text }, ...l])
+  const editable = status === 'Hazırlanıyor' || status === 'Revizyon istendi'
+  const steps: { s: RStatus; who: string }[] = [
+    { s: 'Hazırlanıyor', who: `Planlama · ${EDITOR}` },
+    { s: 'Müdür onayında', who: `Teknik ofis müdürü · ${MANAGER}` },
+    { s: 'Onaylandı', who: MANAGER },
+    { s: 'Paylaşıldı', who: `Mail listesi · ${mail.length} kişi` },
+  ]
+  const order: RStatus[] = ['Hazırlanıyor', 'Müdür onayında', 'Onaylandı', 'Paylaşıldı']
+  const at = status === 'Revizyon istendi' ? 0 : order.indexOf(status)
   const kind = pages[Math.min(cur, pages.length - 1)]
   const addable = (Object.keys(PAGE_TITLE) as PageKind[]).filter((k) => !pages.includes(k))
 
   return (
     <>
       <PageHead title={`Reports · ${rep.title}`}
-        note="Rapor sayfalardan oluşur; sağdaki önizlemelerden sayfalar arasında gezilir, sayfa eklenir veya silinir. Raporlar finansal tutar içermez ve belirlenen periyotta mail listesine otomatik gönderilir. Sayfaların içeriği, örnek raporlarınıza göre düzenlenecek."
+        note="Rapor sayfalardan oluşur; sağdaki önizlemelerden sayfalar arasında gezilir, sayfa eklenir veya silinir. Tanımlı kullanıcı raporu düzenleyip teknik ofis müdürüne onaya gönderir; müdür onayladıktan sonra “Paylaş” ile mail listesine gönderir. Raporlar finansal tutar içermez."
         right={<>
           <Btn small>PDF</Btn><Btn small>Word</Btn>{rep.slides && <Btn small>PowerPoint</Btn>}
-          <Btn small title={rep.to}>Mail listesi</Btn>
-          <Btn primary>Oluştur ve gönder</Btn>
+          <Btn small onClick={() => setEditingMail(true)} title={rep.to}>Mail listesi ({mail.length})</Btn>
+          {editable && <Btn primary onClick={() => { setStatus('Müdür onayında'); note(EDITOR, 'Teknik ofis müdürüne onaya gönderildi') }}>Onaya gönder</Btn>}
+          {status === 'Müdür onayında' && <>
+            <Btn onClick={() => setRevising(true)}>Revizyon iste</Btn>
+            <Btn primary onClick={() => { setStatus('Onaylandı'); note(MANAGER, 'Rapor onaylandı') }}>Onayla</Btn>
+          </>}
+          {status === 'Onaylandı' && <Btn primary onClick={() => setSharing(true)}>Paylaş</Btn>}
+          {status === 'Paylaşıldı' && <Btn onClick={() => { setStatus('Hazırlanıyor'); note(EDITOR, 'Yeni sürüm açıldı') }}>Yeni sürüm</Btn>}
         </>} />
+
+      {/* Onay akışı */}
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+        {steps.map((st, i) => {
+          const done = i < at || (i === at && status === 'Paylaşıldı')
+          const now = i === at && status !== 'Paylaşıldı'
+          return (
+            <div key={st.s} className="flex items-center gap-2.5 rounded-lg border bg-[var(--surface)] px-3 py-2"
+              style={{ borderColor: now ? `var(--${R_TONE[status] === 'neutral' ? 'accent' : R_TONE[status]})` : 'var(--border)' }}>
+              <span className="grid h-6 w-6 flex-shrink-0 place-items-center rounded-full text-[11px] font-bold"
+                style={done ? { background: 'var(--ok)', color: '#fff' } : now ? { background: 'var(--accent-soft)', color: 'var(--accent)' } : { background: 'var(--surface-3)', color: 'var(--muted)' }}>
+                {done ? '✓' : i + 1}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[12.5px] font-semibold text-[var(--ink)]">{i === 0 && status === 'Revizyon istendi' ? 'Revizyon istendi' : st.s}</span>
+                <span className="block truncate text-[11px] text-[var(--muted)]">{st.who}</span>
+              </span>
+            </div>
+          )
+        })}
+      </div>
       <div className="flex flex-wrap items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-[12px] text-[var(--muted)]">
         <span><b className="text-[var(--ink)]">Dönem:</b> {rep.period}</span>
         <span><b className="text-[var(--ink)]">Alıcılar:</b> {rep.to}</span>
-        <span className="ml-auto">{pages.length} sayfa</span>
+        <span className="ml-auto flex items-center gap-2">{pages.length} sayfa · <Badge tone={R_TONE[status]} dot>{status}</Badge></span>
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
@@ -74,7 +143,7 @@ export function ReportViewer({ type }: { type: string }) {
             <div className="flex items-center border-b border-[var(--border)] px-3 py-2">
               <span className="text-[13px] font-semibold text-[var(--ink)]">Sayfalar</span>
               <span className="ml-auto">
-                {addable.length > 0 && <IconBtn icon="add" title={`Sayfa ekle: ${PAGE_TITLE[addable[0]]}`} onClick={() => { setPages((p) => [...p, addable[0]]); setCur(pages.length) }} />}
+                {editable && addable.length > 0 && <IconBtn icon="add" title={`Sayfa ekle: ${PAGE_TITLE[addable[0]]}`} onClick={() => { setPages((p) => [...p, addable[0]]); setCur(pages.length) }} />}
               </span>
             </div>
             <div className="flex max-h-[calc(100vh-260px)] flex-col gap-2 overflow-y-auto p-2.5">
@@ -92,14 +161,67 @@ export function ReportViewer({ type }: { type: string }) {
                     <span className="block text-[11px] text-[var(--faint)]">Sayfa {i + 1}</span>
                     <span className="block truncate text-[12.5px] font-medium" style={{ color: i === cur ? 'var(--accent)' : 'var(--ink)' }}>{PAGE_TITLE[p]}</span>
                   </span>
-                  {p !== 'cover' && <span className="opacity-0 group-hover:opacity-100"><RowActions name={PAGE_TITLE[p]} onDelete={() => { setPages((l) => l.filter((_, k) => k !== i)); setCur(0) }} /></span>}
+                  {editable && p !== 'cover' && <span className="opacity-0 group-hover:opacity-100"><RowActions name={PAGE_TITLE[p]} onDelete={() => { setPages((l) => l.filter((_, k) => k !== i)); setCur(0) }} /></span>}
                 </div>
               ))}
             </div>
           </div>
+          <div className="mt-3 rounded-lg border border-[var(--border)] bg-[var(--surface)]">
+            <div className="border-b border-[var(--border)] px-3 py-2 text-[13px] font-semibold text-[var(--ink)]">Onay kaydı</div>
+            {log.length === 0 ? <div className="px-3 py-3 text-[12px] text-[var(--faint)]">Henüz işlem yok.</div>
+              : log.map((l, i) => (
+                <div key={i} className="border-b border-[var(--border)] px-3 py-1.5 text-[12px] last:border-0">
+                  <div className="mono text-[10.5px] text-[var(--faint)]">{l.at} · {l.by}</div>
+                  <div className="text-[var(--ink)]">{l.text}</div>
+                </div>
+              ))}
+          </div>
         </div>
       </div>
+
+      {revising && <RevisionModal onClose={() => setRevising(false)} onSend={(t) => { setStatus('Revizyon istendi'); note(MANAGER, `Revizyon istendi: ${t}`); setRevising(false) }} />}
+      {sharing && (
+        <Modal title="Paylaş" onClose={() => setSharing(false)} note={`${rep.title} · ${rep.period} — onaylanan rapor aşağıdaki mail listesine PDF olarak gönderilir.`}
+          footer={<span className="ml-auto flex gap-2"><Btn onClick={() => setSharing(false)}>Vazgeç</Btn>
+            <Btn primary disabled={mail.length === 0} onClick={() => { setStatus('Paylaşıldı'); note(MANAGER, `Mail listesine paylaşıldı (${mail.length} kişi)`); setSharing(false) }}>Gönder</Btn></span>}>
+          <div className="flex flex-wrap gap-1.5">{mail.map((m) => <Badge key={m} tone="accent">{m}</Badge>)}</div>
+          <p className="mt-3 text-[11.5px] text-[var(--muted)]">Periyot: {rep.to}. Sonraki raporlar onaylandığında aynı listeye otomatik gönderilir.</p>
+        </Modal>
+      )}
+      {editingMail && <MailListModal list={mail} onClose={() => setEditingMail(false)} onSave={(l) => { setMail(l); setEditingMail(false) }} />}
     </>
+  )
+}
+
+function RevisionModal({ onClose, onSend }: { onClose: () => void; onSend: (t: string) => void }) {
+  const [t, setT] = useState('')
+  return (
+    <Modal title="Revizyon iste" onClose={onClose} note="Rapor düzeltme için hazırlayana geri gönderilir."
+      footer={<span className="ml-auto flex gap-2"><Btn onClick={onClose}>Vazgeç</Btn><Btn primary disabled={!t.trim()} onClick={() => onSend(t.trim())}>Geri gönder</Btn></span>}>
+      <Field label="Revizyon notu" value={t} onChange={setT} placeholder="Ör. Personel sayfasında taşeron kırılımı eksik" />
+    </Modal>
+  )
+}
+
+function MailListModal({ list, onClose, onSave }: { list: string[]; onClose: () => void; onSave: (l: string[]) => void }) {
+  const [l, setL] = useState(list)
+  const [add, setAdd] = useState('')
+  return (
+    <Modal title="Mail listesi" onClose={onClose} note="Onaylanan rapor bu listeye gönderilir."
+      footer={<span className="ml-auto flex gap-2"><Btn onClick={onClose}>Vazgeç</Btn><Btn primary onClick={() => onSave(l)}>Kaydet</Btn></span>}>
+      <div className="flex flex-col gap-1.5">
+        {l.map((m) => (
+          <div key={m} className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1.5 text-[12.5px]">
+            <span className="mono text-[var(--ink)]">{m}</span>
+            <span className="ml-auto"><RowActions name={m} onDelete={() => setL((x) => x.filter((y) => y !== m))} /></span>
+          </div>
+        ))}
+        <div className="mt-1 flex items-end gap-2">
+          <div className="flex-1"><Field label="Kişi ekle" value={add} onChange={setAdd} placeholder="ad.soyad veya e-posta" /></div>
+          <IconBtn icon="add" primary title="Ekle" onClick={() => { if (add.trim()) { setL((x) => [...x, add.trim()]); setAdd('') } }} />
+        </div>
+      </div>
+    </Modal>
   )
 }
 

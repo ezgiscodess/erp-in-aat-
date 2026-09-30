@@ -120,18 +120,18 @@ function FullProgram({ program, onClose, onChange }: { program: Program; onClose
             <Gantt rows={toRows(program.activities)} from={start} to={finish} today={TODAY} onRow={(r) => setEditing(program.activities.find((a) => a.code === r.code) ?? null)} />
           </Card>
           <Card title="Aktiviteler" pad={false}>
-            <Table head={<tr><Th>Kod</Th><Th w={260}>Aktivite</Th><Th>Öncül</Th><Th right>Süre</Th><Th right>İlerleme</Th><Th>Kaynak</Th><Th>Kritik</Th><Th>Başlangıç</Th><Th>Bitiş</Th><Th w={80} center>İşlem</Th></tr>}>
+            <Table head={<tr><Th>Kod</Th><Th>Başlangıç</Th><Th>Bitiş</Th><Th w={260}>Aktivite</Th><Th>Öncül</Th><Th right>Süre</Th><Th right>İlerleme</Th><Th>Kaynak</Th><Th>Kritik</Th><Th w={80} center>İşlem</Th></tr>}>
               {program.activities.map((a) => (
                 <tr key={a.code} className="hover:bg-[var(--surface-2)]">
                   <Td mono nowrap>{a.code}</Td>
+                  <Td nowrap>{date(a.start)}</Td>
+                  <Td nowrap>{date(a.finish)}</Td>
                   <Td>{a.name}</Td>
                   <Td mono nowrap>{a.pred ?? '—'}</Td>
                   <Td right>{days(a.start, a.finish)} gün</Td>
                   <Td right>%{a.progress}</Td>
                   <Td><span className="text-[12px] text-[var(--muted)]">{a.resource ?? '—'}</span></Td>
                   <Td nowrap>{a.critical ? <Badge tone="crit">Evet</Badge> : <span className="text-[var(--faint)]">—</span>}</Td>
-                  <Td nowrap>{date(a.start)}</Td>
-                  <Td nowrap>{date(a.finish)}</Td>
                   <Td nowrap center>
                     <RowActions name={a.code} onEdit={() => setEditing(a)} onDelete={() => { onChange({ ...program, activities: program.activities.filter((x) => x.code !== a.code) }); note(`${a.code} silindi`) }} />
                   </Td>
@@ -514,12 +514,13 @@ export function CriticalPath() {
             </div>
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
               <div className="xl:col-span-7">
-                <Table head={<tr><Th>Kod</Th><Th w={220}>Aktivite</Th><Th right>Bolluk</Th><Th right>İlerleme</Th><Th>Durum</Th><Th>Başlangıç</Th><Th>Bitiş</Th></tr>}>
+                <Table head={<tr><Th>Kod</Th><Th>Başlangıç</Th><Th>Bitiş</Th><Th w={220}>Aktivite</Th><Th right>Bolluk</Th><Th right>İlerleme</Th><Th>Durum</Th></tr>}>
                   {chain.map((a) => {
                     const st = statusOf(a)
                     return (
-                      <tr key={a.code}><Td mono nowrap>{a.code}</Td><Td>{a.name}</Td><Td right>{a.code === 'A-2120' ? <b className="text-[var(--crit)]">−18 gün</b> : '0 gün'}</Td>
-                        <Td right>%{a.progress}</Td><Td nowrap><Badge tone={st.tone} dot>{st.label}</Badge></Td><Td nowrap>{date(a.start)}</Td><Td nowrap>{date(a.finish)}</Td></tr>
+                      <tr key={a.code}><Td mono nowrap>{a.code}</Td><Td nowrap>{date(a.start)}</Td><Td nowrap>{date(a.finish)}</Td><Td>{a.name}</Td>
+                        <Td right>{a.code === 'A-2120' ? <b className="text-[var(--crit)]">−18 gün</b> : '0 gün'}</Td>
+                        <Td right>%{a.progress}</Td><Td nowrap><Badge tone={st.tone} dot>{st.label}</Badge></Td></tr>
                     )
                   })}
                 </Table>

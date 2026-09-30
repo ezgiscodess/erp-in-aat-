@@ -116,7 +116,7 @@ export function Home({ onGo, persona }: { onGo: (k: string) => void; persona: Pe
       <Card title="Modüller" help="Proje dönemi modülleri. Soluk olanların kurgusu yazıldı, ekranları sıradaki adımlarda çizilecek.">
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-7">
           {menu.map((g) => {
-            const ready = g.items.some((i) => i.ready)
+            const ready = g.ready || g.items.some((i) => i.ready)
             return (
               <button key={g.key} onClick={() => onGo(g.items[0]?.key ?? g.key)}
                 className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-left transition-colors hover:border-[var(--accent)]">

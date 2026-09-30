@@ -17,7 +17,7 @@ import type { EquipmentRow, ManpowerRow, SiteDisruption, SiteEntry, SitePhoto, S
 /**
  * Progress alt modülü: sahadan veri girişi, 3'lü onay, günlük personel ve ekipman, aksaklıklar ve saha fotoğrafları.
  * Veri mühendisi girer → kısım şefi onaylar → şantiye şefi onaylar; şantiye şefi onayı olmadan kayıt işlenmez.
- * Tablolarda tarih her zaman son sütundadır; kolonlar olabildiğince ayrık tutulur (kolay adreslemek için).
+ * Tablolarda sıra her zaman kod, tarih, açıklama; kolonlar olabildiğince ayrık tutulur (kolay adreslemek için).
  */
 
 const STAGE_TONE: Record<Stage, Tone> = {
@@ -39,7 +39,20 @@ function useColumnFilters<T>(rows: T[], getters: Record<string, (r: T) => string
         values={[...new Set(rows.map(getters[k]))].sort((a, b) => a.localeCompare(b, 'tr'))} />
     </span>
   )
-  return { filtered, head }
+  const active = Object.values(f).filter((v) => v && v !== 'Tümü').length
+  const reset = () => setF({})
+  return { filtered, head, active, reset }
+}
+
+/** Aktif filtre sayısı ve tek tıkla temizleme */
+function FilterNote({ active, reset }: { active: number; reset: () => void }) {
+  if (!active) return null
+  return (
+    <button onClick={reset} className="rounded-full border px-2.5 py-0.5 text-[11.5px]"
+      style={{ borderColor: 'var(--accent)', background: 'var(--accent-soft)', color: 'var(--accent)' }}>
+      {active} filtre · temizle ×
+    </button>
+  )
 }
 
 type Preset = 'Dün' | 'Geçen hafta' | 'Geçen ay'
@@ -189,7 +202,7 @@ export function SiteActivity() {
     const s = q.toLocaleLowerCase('tr')
     return [e.id, e.code, e.activity, e.loc1, e.loc2, e.loc3, e.company].some((v) => v.toLocaleLowerCase('tr').includes(s))
   })
-  const { filtered: rows, head } = useColumnFilters(searched, {
+  const { filtered: rows, head, active, reset } = useColumnFilters(searched, {
     code: (e) => e.code, activity: (e) => e.activity, loc1: (e) => e.loc1, loc2: (e) => e.loc2, loc3: (e) => e.loc3,
     unit: (e) => e.unit, qty: (e) => num(e.qty), company: (e) => e.company, people: (e) => String(e.people),
     inxsa: (e) => num(e.people * e.hours), by: (e) => e.entered.by, stage: (e) => stageOf(e), date: (e) => date(e.date),
@@ -215,10 +228,11 @@ export function SiteActivity() {
 
       <Card title={`Kayıtlar (${rows.length})`}
         help="Her sütun başlığındaki ▼ ile filtrelenir. Onay sütunundaki noktalar: girildi · kısım şefi · şantiye şefi. Göz simgesiyle kayıt açılır ve onay verilir; onaylanmış kayıt düzenlenemez ve silinemez."
-        right={<Search value={q} onChange={setQ} placeholder="Kod, açıklama, lokasyon…" />} pad={false}>
+        right={<><FilterNote active={active} reset={reset} /><Search value={q} onChange={setQ} placeholder="Kod, açıklama, lokasyon…" /></>} pad={false}>
         <Table dense head={
           <tr>
             <Th>{head('code', 'Aktivite kodu')}</Th>
+            <Th>{head('date', 'Tarih')}</Th>
             <Th w={160}>{head('activity', 'Açıklama')}</Th>
             <Th>{head('loc1', 'Lokasyon 1')}</Th>
             <Th>{head('loc2', 'Lokasyon 2')}</Th>
@@ -230,7 +244,6 @@ export function SiteActivity() {
             <Th right>{head('inxsa', 'inxsa')}</Th>
             <Th>{head('by', 'Veri giren')}</Th>
             <Th>{head('stage', 'Onay')}</Th>
-            <Th>{head('date', 'Tarih')}</Th>
             <Th w={100} center>İşlem</Th>
           </tr>
         }>
@@ -239,6 +252,7 @@ export function SiteActivity() {
             return (
               <tr key={e.id} onClick={() => setOpen(e)} className="cursor-pointer hover:bg-[var(--surface-2)]">
                 <Td mono nowrap><span className="font-semibold text-[var(--accent)]">{e.code}</span></Td>
+                <Td nowrap><span className="tnum">{date(e.date)}</span></Td>
                 <Td>
                   <div className="text-[12.5px] text-[var(--ink)]">{e.activity}</div>
                   {e.rejected && <div className="mt-0.5 text-[11px] text-[var(--crit)]">✕ {e.rejected.note}</div>}
@@ -256,7 +270,6 @@ export function SiteActivity() {
                 <Td>
                   <div className="flex flex-col items-start gap-1"><ApprovalDots e={e} /><span className="text-[11px] font-semibold" style={{ color: `var(--${STAGE_TONE[st] === 'accent' ? 'accent' : STAGE_TONE[st]})` }}>{st}</span></div>
                 </Td>
-                <Td nowrap><span className="tnum">{date(e.date)}</span></Td>
                 <Td nowrap center>
                   <RowActions name={e.code} onOpen={() => setOpen(e)} onEdit={() => setEditing(e)}
                     disabled={st === 'Onaylandı'} onDelete={() => setEntries((l) => l.filter((x) => x.id !== e.id))} />
@@ -448,7 +461,7 @@ export function DailyManpower() {
   const [range, setRange] = useState<[string, string]>(PRESETS['Dün'])
   const [editing, setEditing] = useState<ManpowerRow | 'new' | null>(null)
   const inRange = rows.filter((r) => r.date >= range[0] && r.date <= range[1])
-  const { filtered, head } = useColumnFilters(inRange, {
+  const { filtered, head, active, reset } = useColumnFilters(inRange, {
     company: (r) => r.company, trade: (r) => r.trade, loc1: (r) => r.loc1, people: (r) => String(r.people),
     hours: (r) => String(r.hours), inxsa: (r) => num(r.people * r.hours), by: (r) => r.by, date: (r) => date(r.date),
   })
@@ -467,19 +480,20 @@ export function DailyManpower() {
         <Kpi label="Kendi personelimiz" value={filtered.filter((r) => r.company === 'ICCM Construction').reduce((a, r) => a + r.people, 0)} sub="ICCM Construction" />
         <Kpi label="Alt yüklenici personeli" value={filtered.filter((r) => r.company !== 'ICCM Construction').reduce((a, r) => a + r.people, 0)} sub="Taşeron ekipler" />
       </div>
-      <Card title={`Personel kayıtları (${filtered.length})`} pad={false}>
+      <Card title={`Personel kayıtları (${filtered.length})`} right={<FilterNote active={active} reset={reset} />} pad={false}>
         <Table dense head={<tr>
-          <Th>{head('company', 'Firma')}</Th><Th>{head('trade', 'Meslek')}</Th><Th>{head('loc1', 'Lokasyon')}</Th>
+          <Th>{head('date', 'Tarih')}</Th><Th>{head('company', 'Firma')}</Th><Th>{head('trade', 'Meslek')}</Th><Th>{head('loc1', 'Lokasyon')}</Th>
           <Th right>{head('people', 'Kişi')}</Th><Th right>{head('hours', 'Saat')}</Th><Th right>{head('inxsa', 'inxsa')}</Th>
-          <Th>Not</Th><Th>{head('by', 'Veri giren')}</Th><Th>{head('date', 'Tarih')}</Th><Th w={80} center>İşlem</Th>
+          <Th>Not</Th><Th>{head('by', 'Veri giren')}</Th><Th w={80} center>İşlem</Th>
         </tr>}>
           {filtered.map((r) => (
             <tr key={r.id} className="hover:bg-[var(--surface-2)]">
+              <Td nowrap><span className="tnum">{date(r.date)}</span></Td>
               <Td nowrap><span className="font-medium text-[var(--ink)]">{r.company}</span></Td>
               <Td nowrap>{r.trade}</Td><Td nowrap>{r.loc1}</Td>
               <Td right>{r.people}</Td><Td right>{r.hours}</Td><Td right>{num(r.people * r.hours)}</Td>
               <Td><span className="text-[12px] text-[var(--muted)]">{r.note ?? '—'}</span></Td>
-              <Td nowrap mono>{r.by}</Td><Td nowrap><span className="tnum">{date(r.date)}</span></Td>
+              <Td nowrap mono>{r.by}</Td>
               <Td nowrap center><RowActions name={`${r.company} · ${r.trade}`} onEdit={() => setEditing(r)} onDelete={() => setRows((l) => l.filter((x) => x.id !== r.id))} /></Td>
             </tr>
           ))}
@@ -508,7 +522,7 @@ export function DailyEquipment() {
   const [range, setRange] = useState<[string, string]>(PRESETS['Dün'])
   const [editing, setEditing] = useState<EquipmentRow | 'new' | null>(null)
   const inRange = rows.filter((r) => r.date >= range[0] && r.date <= range[1])
-  const { filtered, head } = useColumnFilters(inRange, {
+  const { filtered, head, active, reset } = useColumnFilters(inRange, {
     machine: (r) => r.machine, plate: (r) => r.plate, ownership: (r) => r.ownership, operator: (r) => r.operator,
     work: (r) => String(r.workHours), idle: (r) => String(r.idleHours), fuel: (r) => num(r.fuel), loc1: (r) => r.loc1,
     state: (r) => r.state, by: (r) => r.by, date: (r) => date(r.date),
@@ -529,23 +543,24 @@ export function DailyEquipment() {
         <Kpi label="Yakıt" value={`${num(filtered.reduce((a, r) => a + r.fuel, 0))} lt`} />
         <Kpi label="Arızalı" value={filtered.filter((r) => r.state === 'Arızalı').length} tone="crit" />
       </div>
-      <Card title={`Ekipman kayıtları (${filtered.length})`} pad={false}>
+      <Card title={`Ekipman kayıtları (${filtered.length})`} right={<FilterNote active={active} reset={reset} />} pad={false}>
         <Table dense head={<tr>
-          <Th>{head('machine', 'Makine')}</Th><Th>{head('plate', 'Plaka / no')}</Th><Th>{head('ownership', 'Mülkiyet')}</Th>
+          <Th>{head('plate', 'Plaka / no')}</Th><Th>{head('date', 'Tarih')}</Th><Th>{head('machine', 'Makine')}</Th><Th>{head('ownership', 'Mülkiyet')}</Th>
           <Th>{head('operator', 'Operatör')}</Th><Th right>{head('work', 'Çalışma sa.')}</Th><Th right>{head('idle', 'Bekleme sa.')}</Th>
           <Th right>{head('fuel', 'Yakıt (lt)')}</Th><Th>{head('loc1', 'Lokasyon')}</Th><Th>{head('state', 'Durum')}</Th>
-          <Th>{head('by', 'Veri giren')}</Th><Th>{head('date', 'Tarih')}</Th><Th w={80} center>İşlem</Th>
+          <Th>{head('by', 'Veri giren')}</Th><Th w={80} center>İşlem</Th>
         </tr>}>
           {filtered.map((r) => (
             <tr key={r.id} className="hover:bg-[var(--surface-2)]">
-              <Td nowrap><span className="font-medium text-[var(--ink)]">{r.machine}</span></Td>
               <Td nowrap mono>{r.plate}</Td>
+              <Td nowrap><span className="tnum">{date(r.date)}</span></Td>
+              <Td nowrap><span className="font-medium text-[var(--ink)]">{r.machine}</span></Td>
               <Td nowrap><Badge tone={r.ownership === 'Kira' ? 'warn' : 'ok'}>{r.ownership}</Badge></Td>
               <Td nowrap>{r.operator}</Td>
               <Td right>{r.workHours}</Td><Td right>{r.idleHours}</Td><Td right>{num(r.fuel)}</Td>
               <Td nowrap>{r.loc1}</Td>
               <Td nowrap><Badge tone={EQ_TONE[r.state]} dot>{r.state}</Badge></Td>
-              <Td nowrap mono>{r.by}</Td><Td nowrap><span className="tnum">{date(r.date)}</span></Td>
+              <Td nowrap mono>{r.by}</Td>
               <Td nowrap center><RowActions name={`${r.machine} · ${r.plate}`} onEdit={() => setEditing(r)} onDelete={() => setRows((l) => l.filter((x) => x.id !== r.id))} /></Td>
             </tr>
           ))}
@@ -597,8 +612,8 @@ export function ProgressDisruptions() {
   const [list, setList] = useState<SiteDisruption[]>(siteDisruptions)
   const [open, setOpen] = useState<SiteDisruption | null>(null)
   const [editing, setEditing] = useState<SiteDisruption | 'new' | null>(null)
-  const { filtered: rows, head } = useColumnFilters(list, {
-    title: (d) => d.title, activity: (d) => d.activity, category: (d) => d.category, days: (d) => String(d.effectDays),
+  const { filtered: rows, head, active, reset } = useColumnFilters(list, {
+    id: (d) => d.id, title: (d) => d.title, activity: (d) => d.activity, category: (d) => d.category, days: (d) => String(d.effectDays),
     critical: (d) => (d.critical ? 'Evet' : 'Hayır'), hours: (d) => num(d.lostHours), cost: (d) => moneyShort(d.cost, prj.currency),
     owner: (d) => d.owner, state: (d) => d.state, date: (d) => date(d.date),
   })
@@ -619,9 +634,11 @@ export function ProgressDisruptions() {
         <Kpi label="Maliyet etkisi" value={moneyShort(list.reduce((a, d) => a + d.cost, 0), prj.currency)} tone="crit" />
         <Kpi label="Kritik yola etki" value={`${list.filter((d) => d.critical).reduce((a, d) => a + d.effectDays, 0)} gün`} tone="crit" />
       </div>
-      <Card title={`Aksaklıklar (${rows.length})`} help="Kolonlar ayrık tutulur; her sütun başlığından filtrelenir. Tarih son sütundadır." pad={false}>
+      <Card title={`Aksaklıklar (${rows.length})`} help="Kolonlar ayrık tutulur; her sütun başlığından filtrelenir. Sıra: kod, tarih, açıklama." right={<FilterNote active={active} reset={reset} />} pad={false}>
         <Table dense head={
           <tr>
+            <Th>{head('id', 'Kod')}</Th>
+            <Th>{head('date', 'Tarih')}</Th>
             <Th w={120}>{head('title', 'Aksaklık')}</Th>
             <Th w={100}>{head('activity', 'Etkilenen aktivite')}</Th>
             <Th>{head('category', 'Sebep')}</Th>
@@ -633,12 +650,13 @@ export function ProgressDisruptions() {
             <Th w={130}>Çözüm</Th>
             <Th>{head('owner', 'Sorumlu')}</Th>
             <Th>{head('state', 'Durum')}</Th>
-            <Th>{head('date', 'Tarih')}</Th>
             <Th w={100} center>İşlem</Th>
           </tr>
         }>
           {rows.map((d) => (
             <tr key={d.id} onClick={() => setOpen(d)} className="cursor-pointer hover:bg-[var(--surface-2)]">
+              <Td mono nowrap><span className="font-semibold text-[var(--accent)]">{d.id}</span></Td>
+              <Td nowrap><span className="tnum">{date(d.date)}</span></Td>
               <Td><span className="text-[12.5px] font-medium text-[var(--ink)]">{d.title}</span></Td>
               <Td><span className="text-[12px] text-[var(--ink)]">{d.activity}</span></Td>
               <Td nowrap><Badge tone={CAT_TONE[d.category]}>{d.category}</Badge></Td>
@@ -653,7 +671,6 @@ export function ProgressDisruptions() {
                 <Badge tone={DIS_TONE[d.state]} dot>{d.state}</Badge>
                 {d.claim && <div className="mono mt-0.5 text-[11px] text-[var(--accent)]">{d.claim}</div>}
               </Td>
-              <Td nowrap><span className="tnum">{date(d.date)}</span></Td>
               <Td nowrap center>
                 <RowActions name={d.title} onOpen={() => setOpen(d)} onEdit={() => setEditing(d)}
                   onDelete={() => setList((l) => l.filter((x) => x.id !== d.id))} />

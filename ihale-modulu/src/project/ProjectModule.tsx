@@ -9,6 +9,7 @@ import { Placeholder } from './screens/Placeholder'
 import { BudgetDetail } from './screens/Budget'
 import { ReportViewer } from './screens/Reports'
 import { Sas, Stock } from './screens/Procurement'
+import { Communication } from './screens/Communication'
 import { CriticalPath, LookaheadSch, MicroSchedules, MitigationPlan, PlanningRisks, WorkSchedule } from './screens/Planning'
 import { DailyEquipment, DailyManpower, ProgressDashboard, ProgressDisruptions, SiteActivity, SitePhotos } from './screens/Progress'
 import {
@@ -170,6 +171,7 @@ function Screen({ page, onGo, persona }: { page: string; onGo: (k: string) => vo
       return <ReportViewer type={page} />
     case 'sas': return <Sas />
     case 'stock': return <Stock />
+    case 'communication': return <Communication />
     default: return <Placeholder page={page} />
   }
 }

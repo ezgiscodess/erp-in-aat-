@@ -226,21 +226,23 @@ export function Stock() {
 
       <div className="flex flex-col gap-4">
         <div>
-          <Card title={`Genel kayıt (${rows.length})`} help="Her malzeme ve hizmet alımının siparişten depodan çıkışa kadar kaydı. Tarihler son sütunlardadır." pad={false}>
+          <Card title={`Genel kayıt (${rows.length})`} help="Her malzeme ve hizmet alımının siparişten depodan çıkışa kadar kaydı. Sıra: kod, tarihler, açıklama." pad={false}>
             <Table dense head={<tr>
-              <Th>{head('code', 'Kod')}</Th><Th w={180}>{head('desc', 'Açıklama')}</Th><Th>{head('group', 'Grup')}</Th>
+              <Th>{head('code', 'Kod')}</Th><Th>{head('orderDate', 'Sipariş')}</Th><Th>{head('arrivalDate', 'Geliş')}</Th><Th>{head('exitDate', 'Çıkış')}</Th>
+              <Th w={180}>{head('desc', 'Açıklama')}</Th><Th>{head('group', 'Grup')}</Th>
               <Th right>{head('qty', 'Miktar')}</Th><Th>{head('unit', 'Birim')}</Th><Th right>{head('amount', 'Tutar')}</Th>
               <Th>{head('invoice', 'Fatura no')}</Th><Th>{head('supplier', 'Tedarikçi')}</Th><Th>{head('location', 'Yer')}</Th>
-              <Th>{head('orderDate', 'Sipariş')}</Th><Th>{head('arrivalDate', 'Geliş')}</Th><Th>{head('exitDate', 'Çıkış')}</Th><Th w={70} center>İşlem</Th>
+              <Th w={70} center>İşlem</Th>
             </tr>}>
               {rows.map((x) => (
                 <tr key={x.code + x.orderDate} className="hover:bg-[var(--surface-2)]">
-                  <Td mono nowrap>{x.code}</Td><Td>{x.desc}</Td>
+                  <Td mono nowrap>{x.code}</Td>
+                  <Td nowrap>{date(x.orderDate)}</Td><Td nowrap>{date(x.arrivalDate)}</Td><Td nowrap>{x.exitDate ? date(x.exitDate) : '—'}</Td>
+                  <Td>{x.desc}</Td>
                   <Td nowrap><span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm" style={{ background: GROUP_COLORS[x.group] }} />{x.group}</span></Td>
                   <Td right>{num(x.qty)}</Td><Td nowrap>{x.unit}</Td><Td right>{num(x.amount)}</Td>
                   <Td mono>{x.invoice}</Td><Td>{x.supplier}</Td>
                   <Td nowrap><Badge tone={x.location === 'Yolda' ? 'warn' : x.location === 'Saha' ? 'accent' : 'ok'}>{x.location}</Badge></Td>
-                  <Td nowrap>{date(x.orderDate)}</Td><Td nowrap>{date(x.arrivalDate)}</Td><Td nowrap>{x.exitDate ? date(x.exitDate) : '—'}</Td>
                   <Td nowrap center><RowActions name={x.code} onDelete={() => setMoves((l) => l.filter((y) => y !== x))} /></Td>
                 </tr>
               ))}

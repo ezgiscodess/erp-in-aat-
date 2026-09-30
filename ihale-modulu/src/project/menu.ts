@@ -5,7 +5,7 @@
  */
 
 export interface MenuItem { key: string; label: string; ready?: boolean; note?: string }
-export interface MenuGroup { key: string; label: string; items: MenuItem[]; note?: string }
+export interface MenuGroup { key: string; label: string; items: MenuItem[]; note?: string; ready?: boolean }
 
 export const menu: MenuGroup[] = [
   {
@@ -94,7 +94,7 @@ export const menu: MenuGroup[] = [
   },
   { key: 'sustainability', label: 'Sustainability', items: [], note: 'Kurgusu üzerinde çalışılıyor.' },
   { key: 'quality', label: 'Quality', items: [], note: 'Kurgusu üzerinde çalışılıyor.' },
-  { key: 'communication', label: 'Communication', items: [], note: 'Uygulama içi sohbet, görev atama ve akıllı not defteri: kişiye özel notlar, başkasına görev ve soru, birebir ve grup sohbeti.' },
+  { key: 'communication', label: 'Communication', items: [], ready: true, note: 'Uygulama içi sohbet, görev atama ve akıllı not defteri: kişiye özel notlar, başkasına görev ve soru, birebir ve grup sohbeti.' },
 ]
 
 /** Giriş tipine göre görünen menü: Admin Konsolu yalnızca patrona açıktır. */
