@@ -313,7 +313,7 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
       {editTask && (
         <ActivityModal task={editTask === 'new' ? null : editTask} tasks={tasks} onClose={() => setEditTask(null)}
           onSave={(t) => {
-            setTasks((l) => (l.some((x) => x.id === t.id) ? l.map((x) => (x.id === t.id ? t : x)) : [...l, t]))
+            setTasks((l) => (l.some((x) => x.id === t.id) ? l.map((x) => (x.id === t.id ? t : x)) : [...l, t]).sort((a, b) => a.wbs.localeCompare(b.wbs, 'tr', { numeric: true })))
             setSel(t); setEditTask(null)
           }} />
       )}

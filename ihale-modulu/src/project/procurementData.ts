@@ -40,19 +40,22 @@ export const sasItems: SasItem[] = [
 ]
 
 /**
- * Proje başından bugüne aylık kümülatif satın alma (EUR): sipariş verilen, depoya aktarılan
- * ve ay sonunda yolda olan tutar. Tarih aralığı seçilince bu diziden kesilir.
+ * Proje başından bugüne aylık satın alma (EUR): o ay sipariş verilen, ay sonunda yolda olan ve o ay depoya
+ * aktarılan tutar. Mobilizasyon aylarında ilk siparişler yüksektir; çelik ve kaba yapı döneminde artar.
+ * Kümülatif çizgiler seçilen tarih aralığında ekranda hesaplanır.
  */
 export const procurementFlow = (() => {
-  const total = 7_900_000
-  const cum = (t: number) => total / (1 + Math.exp(-0.3 * (t - 11)))
-  const base = cum(0)
-  return Array.from({ length: 21 }, (_, i) => {
+  const shape = [520, 410, 300, 260, 190, 170, 180, 240, 320, 400, 470, 520, 560, 570, 540, 500, 460, 410, 350, 280, 230]
+  const scale = 7_900_000 / shape.reduce((a, v) => a + v, 0)
+  const ordered = shape.map((v) => Math.round(v * scale))
+  return ordered.map((o, i) => {
     const month = new Date(2025, i, 1)
-    const ordered = Math.round(cum(i + 1) - base)
-    const depot = Math.round(cum(i + 1 - 1.1) - base)
-    const transit = Math.max(0, Math.round((cum(i + 1) - cum(i + 1 - 0.55)) * 0.9))
-    return { iso: `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}-01`, ordered, depot: Math.max(0, depot), transit }
+    return {
+      iso: `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}-01`,
+      ordered: o,
+      transit: Math.round(o * 0.3),
+      depot: Math.round(o * 0.35 + (ordered[i - 1] ?? 0) * 0.6),
+    }
   })
 })()
 

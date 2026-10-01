@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Badge, Btn, Card, ColumnFilter, ExportButtons, Field, IconBtn, Kpi, Modal, PageHead, RowActions, Table, Td, Th } from '../../components/ui'
 import type { Tone } from '../../components/ui'
 import { date, moneyShort, num } from '../../lib/format'
-import { Donut, Legend, MonthColumns, MultiLine } from '../charts'
+import { ComboChart, Donut, Legend, MonthColumns } from '../charts'
 import { prj } from '../data'
 import { procurementFlow, sasEvents, sasItems, stockFlow, stockHistory, stockMoves } from '../procurementData'
 import type { SasEvent, SasItem, SasStage } from '../procurementData'
@@ -34,7 +34,7 @@ export function Sas() {
     if (step) log(id, step, by)
   }
   const flow = procurementFlow.filter((f) => f.iso.slice(0, 7) >= range[0].slice(0, 7) && f.iso.slice(0, 7) <= range[1].slice(0, 7))
-  const flowMax = Math.ceil(Math.max(1, ...flow.map((f) => f.ordered)) / 1_000_000) * 1_000_000
+  const cumOf = (k: 'ordered' | 'depot') => { let run = 0; return flow.map((f) => (run += f[k])) }
   const byStage = (['Onay bekliyor', 'Sipariş verildi', 'Yolda', 'Sahada', 'Depoda'] as SasStage[]).map((st, i) => ({
     label: st, value: items.filter((x) => x.stage === st).reduce((a, x) => a + x.value, 0), color: ['#98A2B3', 'var(--series-1)', 'var(--series-2)', 'var(--series-3)', 'var(--series-4)'][i],
   })).filter((p) => p.value > 0)
@@ -63,14 +63,22 @@ export function Sas() {
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
         <div className="xl:col-span-8">
-          <Card title="Satın alma eğrisi" help="Seçilen tarih aralığında kümülatif sipariş verilen tutar, kümülatif depoya aktarılan tutar ve her ay sonunda yolda olan malzeme tutarı. Sipariş ile depo çizgisi arasındaki açıklık, sahaya gelmemiş ya da depoya aktarılmamış malzemedir."
-            right={<Legend items={[{ label: 'Sipariş (kümülatif)', color: 'var(--series-1)' }, { label: 'Depoya aktarılan', color: 'var(--series-3)' }, { label: 'Yolda', color: 'var(--series-2)', dashed: true }]} />}>
+          <Card title="Satın alma eğrisi" help="Çubuklar aylık tutarlardır (sol cetvel): o ay sipariş verilen, ay sonunda yolda olan ve o ay depoya aktarılan. Çizgiler seçilen aralıktaki kümülatif sipariş ve kümülatif depoya aktarılan tutardır (sağ cetvel). İki çizgi arasındaki açıklık henüz depoya girmemiş malzemedir."
+            right={<Legend items={[
+              { label: 'Sipariş', color: 'var(--series-1)' }, { label: 'Yolda', color: 'var(--series-2)' }, { label: 'Depoya aktarılan', color: 'var(--series-3)' },
+              { label: 'Kümülatif sipariş', color: 'var(--series-4)' }, { label: 'Kümülatif depo', color: 'var(--series-5)', dashed: true },
+            ]} />}>
             {flow.length > 1
-              ? <MultiLine height={220} max={flowMax} format={(v) => moneyShort(v, '').trim()} labels={flow.map((f) => new Intl.DateTimeFormat('tr-TR', { month: 'short', year: '2-digit' }).format(new Date(f.iso)))}
-                series={[
+              ? <ComboChart height={250} format={(v) => moneyShort(v, '').trim()}
+                labels={flow.map((f) => new Intl.DateTimeFormat('tr-TR', { month: 'short', year: '2-digit' }).format(new Date(f.iso)))}
+                bars={[
                   { label: 'Sipariş', color: 'var(--series-1)', values: flow.map((f) => f.ordered) },
+                  { label: 'Yolda', color: 'var(--series-2)', values: flow.map((f) => f.transit) },
                   { label: 'Depoya aktarılan', color: 'var(--series-3)', values: flow.map((f) => f.depot) },
-                  { label: 'Yolda', color: 'var(--series-2)', values: flow.map((f) => f.transit), dashed: true },
+                ]}
+                lines={[
+                  { label: 'Kümülatif sipariş', color: 'var(--series-4)', values: cumOf('ordered') },
+                  { label: 'Kümülatif depo', color: 'var(--series-5)', values: cumOf('depot'), dashed: true },
                 ]} />
               : <div className="py-10 text-center text-[12px] text-[var(--faint)]">Seçilen aralıkta en az iki ay olmalı.</div>}
           </Card>

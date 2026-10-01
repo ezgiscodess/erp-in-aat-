@@ -6,11 +6,13 @@ export type Tone = 'ok' | 'warn' | 'crit' | 'neutral' | 'accent' | 'gold'
 
 /* ---------------- Kart ---------------- */
 
-export function Card({ title, subtitle, right, children, pad = true, help }: {
+export function Card({ title, subtitle, right, children, pad = true, help, fill }: {
   title?: ReactNode; subtitle?: ReactNode; right?: ReactNode; children: ReactNode; pad?: boolean; help?: string
+  /** Kart bulunduğu hücrenin yüksekliğini doldurur — yan yana kartlar aynı boyda olur */
+  fill?: boolean
 }) {
   return (
-    <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)]">
+    <section className={`rounded-lg border border-[var(--border)] bg-[var(--surface)] ${fill ? 'flex h-full flex-col' : ''}`}>
       {(title || right) && (
         <header className="flex items-center gap-3 border-b border-[var(--border)] px-4 py-2.5">
           <div className="flex min-w-0 items-center gap-1.5">
@@ -20,7 +22,7 @@ export function Card({ title, subtitle, right, children, pad = true, help }: {
           <div className="ml-auto flex flex-shrink-0 items-center gap-2">{right}</div>
         </header>
       )}
-      <div className={pad ? 'p-4' : ''}>{children}</div>
+      <div className={`${pad ? 'p-4' : ''} ${fill ? 'flex flex-1 flex-col' : ''}`}>{children}</div>
     </section>
   )
 }

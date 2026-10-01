@@ -486,3 +486,71 @@ export function HistoLine({ plan, actual, labels, format, height = 130 }: {
     </div>
   )
 }
+
+/**
+ * Çubuk + kümülatif çizgi. Çubuklar aylık değerler (sol eksen), çizgiler kümülatif toplam (sağ eksen).
+ * Kümülatif değer aylıkların çok üstünde olduğu için iki ayrı cetvel kullanılır; her eksen kendi rengindeki
+ * seriyle etiketlenir ki hangi cetvelin hangi seriye ait olduğu karışmasın.
+ */
+export function ComboChart({ labels, bars, lines, format, height = 260 }: {
+  labels: string[]
+  bars: { label: string; color: string; values: number[] }[]
+  lines: { label: string; color: string; values: number[]; dashed?: boolean }[]
+  format: (v: number) => string
+  height?: number
+}) {
+  const [hover, setHover] = useState<number | null>(null)
+  const [ref, W] = useWidth()
+  const n = labels.length
+  const H = height
+  const pad = { l: 50, r: 64, t: 26, b: 24 }
+  const nice = (v: number) => { const p = 10 ** Math.floor(Math.log10(v || 1)); return Math.ceil(v / p / 0.5) * 0.5 * p }
+  const maxBar = nice(Math.max(1, ...bars.flatMap((b) => b.values)) * 1.05)
+  const maxLine = nice(Math.max(1, ...lines.flatMap((l) => l.values)) * 1.02)
+  const slot = (W - pad.l - pad.r) / n
+  const cx = (i: number) => pad.l + slot * (i + 0.5)
+  const yb = (v: number) => pad.t + (1 - v / maxBar) * (H - pad.t - pad.b)
+  const yl = (v: number) => pad.t + (1 - v / maxLine) * (H - pad.t - pad.b)
+  const bw = Math.max(2, Math.min(14, (slot - 4) / bars.length))
+  const step = Math.max(1, Math.ceil(n / Math.max(2, Math.floor((W - 100) / 52))))
+  return (
+    <div ref={ref} className="relative">
+      <svg width={W} height={H} className="block" onMouseLeave={() => setHover(null)}
+        onMouseMove={(e) => {
+          const r = (e.currentTarget as SVGSVGElement).getBoundingClientRect()
+          const i = Math.floor((((e.clientX - r.left) / r.width) * W - pad.l) / slot)
+          setHover(i >= 0 && i < n ? i : null)
+        }}>
+        {[0, 0.25, 0.5, 0.75, 1].map((f) => (
+          <g key={f}>
+            <line x1={pad.l} x2={W - pad.r} y1={yb(maxBar * f)} y2={yb(maxBar * f)} stroke="var(--border)" />
+            <text x={pad.l - 6} y={yb(maxBar * f) + 3} textAnchor="end" fontSize="10" fill="var(--faint)">{format(maxBar * f)}</text>
+            <text x={W - pad.r + 6} y={yl(maxLine * f) + 3} textAnchor="start" fontSize="10" fill="var(--faint)">{format(maxLine * f)}</text>
+          </g>
+        ))}
+        <text x={pad.l - 6} y={9} textAnchor="end" fontSize="9.5" fontWeight="600" fill="var(--muted)">aylık ▮</text>
+        <text x={W - pad.r + 6} y={9} textAnchor="start" fontSize="9.5" fontWeight="600" fill="var(--muted)">— kümülatif</text>
+        {hover != null && <rect x={pad.l + hover * slot} y={pad.t} width={slot} height={H - pad.t - pad.b} fill="var(--surface-2)" />}
+        {labels.map((_, i) => bars.map((b, j) => {
+          const v = b.values[i] ?? 0
+          const x = cx(i) - (bw * bars.length) / 2 + j * bw
+          return v > 0 && <rect key={`${i}-${j}`} x={x + 0.5} width={bw - 1} y={yb(v)} height={H - pad.b - yb(v)} rx={Math.min(2.5, bw / 3)} fill={b.color} />
+        }))}
+        {lines.map((l) => (
+          <path key={l.label} d={l.values.map((v, i) => `${i ? 'L' : 'M'}${cx(i)},${yl(v)}`).join(' ')} fill="none" stroke={l.color} strokeWidth="2.25"
+            strokeDasharray={l.dashed ? '5 4' : undefined} strokeLinejoin="round" />
+        ))}
+        {hover != null && lines.map((l) => <circle key={l.label} cx={cx(hover)} cy={yl(l.values[hover])} r="3.5" fill={l.color} stroke="var(--surface)" strokeWidth="2" />)}
+        {labels.map((l, i) => i % step === 0 && <text key={i} x={cx(i)} y={H - 6} textAnchor="middle" fontSize="10" fill="var(--faint)">{l}</text>)}
+      </svg>
+      {hover != null && (
+        <div className="pointer-events-none absolute top-0 z-10 whitespace-nowrap rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-[11.5px] shadow-md"
+          style={hover > n / 2 ? { right: `${100 - ((pad.l + hover * slot) / W) * 100}%` } : { left: `${((pad.l + (hover + 1) * slot) / W) * 100}%` }}>
+          <div className="font-semibold text-[var(--ink)]">{labels[hover]}</div>
+          {bars.map((b) => <div key={b.label} className="text-[var(--muted)]">{b.label} <b className="text-[var(--ink)] tnum">{format(b.values[hover] ?? 0)}</b></div>)}
+          {lines.map((l) => <div key={l.label} className="text-[var(--muted)]">{l.label} <b className="text-[var(--ink)] tnum">{format(l.values[hover])}</b></div>)}
+        </div>
+      )}
+    </div>
+  )
+}

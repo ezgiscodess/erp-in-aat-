@@ -24,6 +24,7 @@ const span = (acts: Activity[]) => ({
   finish: acts.reduce((m, a) => (a.finish > m ? a.finish : m), acts[0]?.finish ?? TODAY),
 })
 const toRows = (acts: Activity[]): GanttRow[] => acts.map((a) => ({ code: a.code, name: a.name, start: a.start, finish: a.finish, progress: a.progress, critical: a.critical }))
+const byCode = (acts: Activity[]) => [...acts].sort((a, b) => a.code.localeCompare(b.code, 'tr', { numeric: true }))
 const fmt2 = (v: number) => v.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 /** Genel çıktı seçenekleri */
@@ -39,7 +40,7 @@ function PrintButtons() {
 /** Bilgi panelinde satır */
 function Info({ n, label, value, tone }: { n?: number; label: string; value: ReactNode; tone?: Tone }) {
   return (
-    <div className="flex items-center gap-2 border-b border-[var(--border)] px-3 py-2 last:border-0">
+    <div className="flex items-center gap-2 border-b border-[var(--border)] px-3 py-[7px] last:border-0">
       {n != null && <span className="grid h-5 w-5 place-items-center rounded-full bg-[var(--surface-3)] text-[10.5px] font-bold text-[var(--muted)]">{n}</span>}
       <span className="text-[12px] text-[var(--muted)]">{label}</span>
       <span className="ml-auto text-[12.5px] font-semibold tnum" style={{ color: tone ? `var(--${tone})` : 'var(--ink)' }}>{value}</span>
@@ -141,8 +142,8 @@ function Counts({ acts }: { acts: Activity[] }) {
 
 function MiniCard({ title, help, children, legend = true }: { title: string; help: string; children: ReactNode; legend?: boolean }) {
   return (
-    <Card title={title} help={help}>
-      <div className="-mx-1 -my-1">{children}</div>
+    <Card title={title} help={help} fill>
+      <div className="-mx-1 -my-1 flex-1">{children}</div>
       {legend && <div className="mt-1.5"><Legend items={[{ label: 'Gerçekleşen', color: 'var(--series-1)' }, { label: 'Planlanan', color: 'var(--series-2)', dashed: true }]} /></div>}
     </Card>
   )
@@ -176,8 +177,8 @@ function ProgramCharts({ acts }: { acts: Activity[] }) {
         </MiniCard>
       </div>
       <div className="xl:col-span-3">
-        <Card title="Program ilerlemesi" help="Aktivitelerin ağırlıklı gerçekleşen ilerlemesi; altında bugün itibarıyla olması gereken değer.">
-          <div className="flex items-center gap-4">
+        <Card fill title="Program ilerlemesi" help="Aktivitelerin ağırlıklı gerçekleşen ilerlemesi; altında bugün itibarıyla olması gereken değer.">
+          <div className="flex flex-1 items-center justify-center gap-5">
             <svg width="92" height="92" viewBox="0 0 92 92" className="-rotate-90 flex-shrink-0">
               <circle cx="46" cy="46" r={r} fill="none" stroke="var(--surface-3)" strokeWidth="11" />
               <circle cx="46" cy="46" r={r} fill="none" stroke="var(--series-1)" strokeWidth="11" strokeLinecap="round"
@@ -194,7 +195,7 @@ function ProgramCharts({ acts }: { acts: Activity[] }) {
               </div>
             </div>
           </div>
-          <div className="mt-2"><Legend items={[{ label: 'Gerçekleşen', color: 'var(--series-1)' }, { label: 'Bugün planlanan', color: 'var(--series-2)' }]} /></div>
+          <div className="mt-2 flex justify-center"><Legend items={[{ label: 'Gerçekleşen', color: 'var(--series-1)' }, { label: 'Bugün planlanan', color: 'var(--series-2)' }]} /></div>
         </Card>
       </div>
     </>
@@ -235,13 +236,17 @@ function ProgramBlock({ program, info, onChange, onDelete, extra, n }: {
             <IconBtn icon="edit" title="Başlığı düzenle" onClick={() => setRenaming(true)} />
             <IconBtn icon="add" title="Aktivite ekle (tam ekran açılır)" onClick={() => setOpen(true)} />
             <RowActions name={program.title} onDelete={onDelete} />
-          </>} pad={false}>
-          <Gantt rows={toRows(program.activities).slice(0, 9)} from={start} to={finish} today={TODAY} compact />
-          {program.activities.length > 9 && <div className="border-t border-[var(--border)] px-3 py-1.5 text-[11px] text-[var(--faint)]">+{program.activities.length - 9} aktivite daha · tamamı için “Aç”</div>}
+          </>} pad={false} fill>
+          <Gantt rows={toRows(byCode(program.activities)).slice(0, 10)} from={start} to={finish} today={TODAY} compact />
+          {/* Kart yan paneldeki bilgi kartıyla aynı boyda; boş kalan alan çizelgenin devamı gibi görünür */}
+          <div className="flex min-h-0 flex-1" aria-hidden><div className="w-[260px] flex-shrink-0 border-r border-[var(--border)]" /><div className="flex-1" /></div>
+          <div className="mt-auto border-t border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-[11px] text-[var(--faint)]">
+            {program.activities.length > 10 ? `+${program.activities.length - 10} aktivite daha · tamamı için “Aç”` : `${program.activities.length} aktivite · ${date(start)} – ${date(finish)} · ekle / düzenle için “Aç”`}
+          </div>
         </Card>
       </div>
       <div className="xl:col-span-3">
-        <Card title="Program bilgisi" pad={false}>{info}</Card>
+        <Card title="Program bilgisi" pad={false} fill>{info}</Card>
       </div>
       <ProgramCharts acts={program.activities} />
       {open && <FullProgram program={program} onClose={() => setOpen(false)} onChange={onChange} />}
@@ -319,7 +324,9 @@ function FullProgram({ program, onClose, onChange }: { program: Program; onClose
         <ActivityForm act={editing === 'new' ? null : editing} codes={program.activities.map((a) => a.code)} onClose={() => setEditing(null)}
           onSave={(a) => {
             const exists = program.activities.some((x) => x.code === (editing === 'new' ? a.code : editing.code))
-            onChange({ ...program, activities: exists && editing !== 'new' ? program.activities.map((x) => (x.code === editing.code ? a : x)) : [...program.activities, a] })
+            /** Yeni ya da düzenlenen aktivite en alta değil, koduna göre araya girer */
+            const next = exists && editing !== 'new' ? program.activities.map((x) => (x.code === editing.code ? a : x)) : [...program.activities, a]
+            onChange({ ...program, activities: byCode(next) })
             note(`${a.code} ${editing === 'new' ? 'eklendi' : 'düzenlendi'}`)
             setEditing(null)
           }} />
