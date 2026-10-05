@@ -53,7 +53,7 @@ export function BilgiPaneli({ writable, role }: { writable: boolean; role: strin
         <Kpi label="Kritik şart" value={openTerms} sub="Aksiyonu devam ediyor" tone="crit"
           help="Kritik İhale Şartları sekmesinde 'karşılanmıyor' veya 'eksik' durumda olan şart sayısı." />
         <Kpi label="Metraj kalemi" value={boqItems.length} sub="Poz listesinden · ek paket" tone="accent"
-          help="İhale dokümanındaki poz sayısı. Metraj (BoQ / Take-off) ek pakete dâhildir; paket kapalıyken bu kutu pasif görünür. Birim fiyatlar Birim Fiyat Havuzu'ndan eşleşir." />
+          help="İhale dokümanındaki poz sayısı. Take-Offs ve BOQ ek pakete dâhildir; paket kapalıyken bu kutu pasif görünür. Birim fiyatlar Pool'dan eşleşir." />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">

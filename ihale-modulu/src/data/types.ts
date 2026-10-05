@@ -24,6 +24,7 @@ export type TabKey =
   | 'bilgi_paneli'
   | 'go_nogo'
   | 'kritik_sartlar'
+  | 'takeoff'
   | 'boq'
   | 'personel_ekipman'
   | 'birim_fiyat'

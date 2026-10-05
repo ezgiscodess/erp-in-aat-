@@ -792,7 +792,7 @@ export const staffPlan: StaffItem[] = [
   { id: 'P4', title: 'Planlama Mühendisi', duty: 'Program güncelleme, hakediş ve ilerleme raporları', count: 2, monthlyCost: 5_400, months: ay(0, 23) },
   { id: 'P5', title: 'Saha Mühendisi', duty: 'İmalat takibi, metraj ve şantiye günlüğü', count: 6, monthlyCost: 4_800, months: ay(2, 23) },
   { id: 'P6', title: 'Kalite (QA/QC) Mühendisi', duty: 'Malzeme onayı, test planı, kabul dosyası', count: 2, monthlyCost: 5_000, months: ay(2, 23) },
-  { id: 'P7', title: 'İSG Uzmanı (A sınıfı)', duty: 'İş güvenliği planı, saha denetimi, eğitimler', count: 2, monthlyCost: 5_200, months: ay(2, 23), note: 'Sertifikalar sekmesindeki İSG-A-2291 belgesine bağlı' },
+  { id: 'P7', title: 'İSG Uzmanı (A sınıfı)', duty: 'İş güvenliği planı, saha denetimi, eğitimler', count: 2, monthlyCost: 5_200, months: ay(2, 23), note: 'PQQ sekmesindeki İSG-A-2291 belgesine bağlı' },
   { id: 'P8', title: 'Sürveyan / Topograf', duty: 'Aplikasyon, kot kontrolü, as-built ölçümler', count: 3, monthlyCost: 3_900, months: ay(2, 22) },
   { id: 'P9', title: 'Mekanik & Elektrik Şefi', duty: 'Altyapı, OG hatları ve rıhtım donanımı montajı', count: 2, monthlyCost: 6_400, months: ay(11, 23) },
   { id: 'P10', title: 'Satınalma Sorumlusu', duty: 'Tedarikçi yönetimi, sipariş ve lojistik takibi', count: 2, monthlyCost: 4_600, months: ay(0, 20) },

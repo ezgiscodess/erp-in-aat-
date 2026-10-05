@@ -35,6 +35,10 @@ export function tabProgress(tab: TabKey): number {
     case 'go_nogo':
       return pct(goNoGoCriteria.filter((c) => c.score > 0).length, goNoGoCriteria.length)
 
+    case 'takeoff':
+      // Ölçüm güveni %80 ve üstü olan (BOQ'ya doğrudan geçebilen) kalemler
+      return pct(boqItems.filter((b) => b.confidence >= 80).length, boqItems.length)
+
     case 'boq':
       // Havuzdan fiyat eşleşen pozlar
       return pct(boqItems.filter((b) => b.unitPrice != null).length, boqItems.length)
@@ -65,7 +69,7 @@ export function tabProgress(tab: TabKey): number {
     case 'ozet': {
       // Özet, beslendiği sekmelerin ortalamasıdır
       const keys: TabKey[] = ['dokuman_analiz', 'bilgi_paneli', 'kritik_sartlar', 'teklif_riskleri',
-        'kontrat_analiz', 'go_nogo', 'boq', 'is_programi', 'sertifikalar']
+        'kontrat_analiz', 'go_nogo', 'takeoff', 'boq', 'is_programi', 'sertifikalar']
       return Math.round(keys.reduce((a, k) => a + tabProgress(k), 0) / keys.length)
     }
   }

@@ -96,7 +96,7 @@ export function Ozet({ onGo }: { onGo: (t: TabKey) => void }) {
             <Kpi label="Kritik bulgu" value={critFindings.length} sub={`${findings.length} bulgu içinde`} tone="crit" />
             <Kpi label="Açık kritik şart" value={openTerms.length} sub="Kapatılmalı" tone="crit" />
             <Kpi label="Belge durumu" value={`${certificates.filter((c) => c.owned).length}/${certificates.filter((c) => c.required).length}`} sub={`${missingCerts.length} eksik belge`} tone="warn"
-              help="Teklif dosyasında istenen belgelerden kaçının firmada hazır olduğu. Eksikler Sertifikalar sekmesinde listelenir." />
+              help="Teklif dosyasında istenen belgelerden kaçının firmada hazır olduğu. Eksikler PQQ sekmesinde listelenir." />
             <Kpi label="Hazırlık" value={pct(project.progress)} sub="Teklif dosyası tamamlanma" tone="warn" />
           </div>
         </div>
@@ -160,7 +160,7 @@ export function Ozet({ onGo }: { onGo: (t: TabKey) => void }) {
           </div>
         </SummaryCard>
 
-        <SummaryCard title="Metraj (BoQ / Take-off)" addon onGo={() => onGo('boq')}
+        <SummaryCard title="BOQ" addon onGo={() => onGo('boq')}
           lines={[
             [`${boqItems.length} poz`, moneyShort(boqTotal, project.currency)],
             ['Havuzda fiyatı yok', `${boqItems.filter((b) => b.poolMatch === 'Eşleşmedi').length} poz`],
@@ -217,7 +217,7 @@ export function Ozet({ onGo }: { onGo: (t: TabKey) => void }) {
           <Bar value={(contractSections.filter((s) => s.state === 'Taslak hazır' || s.state === 'Onaylandı').length / contractSections.length) * 100} tone="warn" />
         </SummaryCard>
 
-        <SummaryCard title="Sertifikalar" addon onGo={() => onGo('sertifikalar')}
+        <SummaryCard title="PQQ · Sertifikalar" addon onGo={() => onGo('sertifikalar')}
           lines={[
             ['İstenen', `${certificates.filter((c) => c.required).length} belge`],
             ['Eksik', `${missingCerts.length}`],

@@ -1,16 +1,23 @@
 import { useMemo, useState } from 'react'
 import { boqItems, unitPrices } from '../data/mock'
 import type { TabKey, UnitPrice } from '../data/types'
-import { Badge, Btn, Card, ExportButtons, Chips, Empty, Kpi, PageHead, ReadOnlyNote, RowActions, Search, Table, Td, Th } from '../components/ui'
+import { Badge, Btn, Card, ExportButtons, Chips, Dropzone, Empty, Kpi, PageHead, ReadOnlyNote, RowActions, Search, Table, Td, Th } from '../components/ui'
 import { date, num } from '../lib/format'
+import { codeFor, methodOf, methods } from '../lib/methods'
+import type { MethodKey } from '../lib/methods'
 
 type Filter = 'Tümü' | 'Analiz' | 'BCBS' | 'Piyasa teklifi' | 'Geçmiş proje'
 
 /**
- * Firmanın kendi birim fiyat havuzu. Projeye değil firmaya aittir; arka planda çalışır ve
- * metraj kalemleri poz numarası ile buradan fiyatlanır.
+ * Pool = firmanın birim fiyat havuzu. Projeye değil firmaya aittir.
+ * Üstte seçilen ölçüm standardı (RICS, CESMM4, Master Method, In-House, Import) Take-Offs'un kod kırılımını
+ * ve BOQ'daki fiyat eşleşmesini belirler.
  */
-export function BirimFiyatHavuzu({ writable, role, onGo }: { writable: boolean; role: string; onGo?: (t: TabKey) => void }) {
+export function BirimFiyatHavuzu({ writable, role, method, onMethod, onGo }: {
+  writable: boolean; role: string; method: MethodKey; onMethod: (m: MethodKey) => void; onGo?: (t: TabKey) => void
+}) {
+  const [imported, setImported] = useState<string[]>([])
+  const m = methodOf(method)
   const [prices, setPrices] = useState<UnitPrice[]>(unitPrices)
   const [filter, setFilter] = useState<Filter>('Tümü')
   const [q, setQ] = useState('')
@@ -38,10 +45,10 @@ export function BirimFiyatHavuzu({ writable, role, onGo }: { writable: boolean; 
   return (
     <>
       <PageHead
-        title="Birim Fiyat Havuzu"
-        note="Firmanın kendi poz numarası ve iş kalemi bazlı fiyat havuzu. Bu havuz projeye değil firmaya aittir: bir kez girilen fiyat bütün ihalelerde kullanılır. İhale dokümanındaki metraj kalemleri poz numarası ile buradan fiyatlanır."
+        title="Pool"
+        note="Firmanın birim fiyat havuzu ve ölçüm standardı. Havuz projeye değil firmaya aittir: bir kez girilen fiyat bütün ihalelerde kullanılır. Üstte seçilen standart, Take-Offs’taki kod kırılımını ve BOQ’daki fiyat eşleşmesini belirler."
         right={<>
-          {onGo && <Btn onClick={() => onGo('boq')} title="Havuz arka planda çalışır; buraya Metraj sekmesinden gelinir">← Metraja dön</Btn>}
+          {onGo && <Btn onClick={() => onGo('boq')}>← BOQ</Btn>}
           <Btn disabled={!writable}>BCBS Excel'i içe aktar</Btn>
           <ExportButtons />
           <Btn primary disabled={!writable} onClick={() => setDraft((v) => !v)}>+ Birim fiyat ekle</Btn>
@@ -49,6 +56,43 @@ export function BirimFiyatHavuzu({ writable, role, onGo }: { writable: boolean; 
       />
 
       {!writable && <ReadOnlyNote role={role} />}
+
+      {/* Ölçüm / birim fiyat standardı */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+        {methods.map((x) => {
+          const on = x.key === method
+          return (
+            <button key={x.key} disabled={!writable && !on} onClick={() => onMethod(x.key)}
+              className="flex flex-col items-start gap-1 rounded-lg border px-3 py-2.5 text-left transition-colors disabled:opacity-60"
+              style={on
+                ? { background: 'var(--accent-soft)', borderColor: 'var(--accent)' }
+                : { background: 'var(--surface)', borderColor: 'var(--border)' }}>
+              <span className="flex w-full items-center gap-2">
+                <span className="text-[13.5px] font-bold" style={{ color: on ? 'var(--accent)' : 'var(--ink)' }}>{x.label}</span>
+                {on && <span className="ml-auto"><Badge tone="accent">Seçili</Badge></span>}
+              </span>
+              <span className="mono text-[11.5px] text-[var(--muted)]">{x.pattern}</span>
+            </button>
+          )
+        })}
+      </div>
+
+      <Card title={`${m.label} — kod kırılımı`} help="Seçilen standart bütün ihalelerde varsayılan olur; ihale bazında değiştirilebilir. Değişince Take-Offs kalemleri yeni kırılımla yeniden kodlanır.">
+        <div className="flex flex-col gap-3">
+          <p className="text-[12.5px] leading-relaxed text-[var(--muted)]">{m.note}</p>
+          <div className="flex flex-wrap items-center gap-1.5 text-[12px]">
+            {m.levels.map((l, i) => (
+              <span key={l} className="flex items-center gap-1.5">
+                {i > 0 && <span className="text-[var(--faint)]">→</span>}
+                <span className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2 py-1 text-[var(--ink)]">{l}</span>
+              </span>
+            ))}
+          </div>
+          {method === 'import' && (
+            <Dropzone files={imported} onAdd={(n) => setImported((f) => [...f, ...n])} onRemove={(n) => setImported((f) => f.filter((x) => x !== n))} />
+          )}
+        </div>
+      </Card>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi label="Havuzdaki poz" value={prices.length} sub="Tüm projelerde ortak"
@@ -108,6 +152,7 @@ export function BirimFiyatHavuzu({ writable, role, onGo }: { writable: boolean; 
         <Table head={
           <tr>
             <Th w={90}>Poz no</Th>
+            <Th w={100}>Kod · {m.label}</Th>
             <Th w={320}>İş kalemi</Th>
             <Th w={70}>Birim</Th>
             <Th w={110} right>Birim fiyat</Th>
@@ -122,16 +167,16 @@ export function BirimFiyatHavuzu({ writable, role, onGo }: { writable: boolean; 
             <tr><Td className="text-center"><Empty>Bu filtrede kayıt yok.</Empty></Td></tr>
           )}
           {rows.map((u) => (
-            <Row key={u.id} u={u} writable={writable} onEdit={() => setDraft(true)}
+            <Row key={u.id} u={u} code={(() => { const b = boqItems.find((x) => x.no === u.no); return b ? codeFor(b, method) : u.no })()} writable={writable} onEdit={() => setDraft(true)}
               onDelete={() => setPrices((l) => l.filter((x) => x.id !== u.id))} />
           ))}
         </Table>
       </Card>
 
-      <Card title="Havuz nasıl çalışır?" help="Metraj ile havuz arasındaki bağın kuralları.">
+      <Card title="Havuz nasıl çalışır?" help="Take-Offs, BOQ ve havuz arasındaki bağın kuralları.">
         <ol className="flex list-decimal flex-col gap-1.5 pl-4 text-[12.5px] leading-relaxed text-[var(--muted)]">
-          <li>İhale dokümanından çıkarılan metraj kalemleri yalnızca <b className="text-[var(--ink)]">poz no, iş kalemi, birim ve miktar</b> içerir; birim fiyat içermez.</li>
-          <li>Sistem, poz numarasını havuzda arar. Birebir eşleşme varsa fiyat otomatik gelir.</li>
+          <li>Take-Offs’ta çıkarılan metraj kalemleri seçilen standardın koduyla gelir ve yalnızca <b className="text-[var(--ink)]">poz no, iş kalemi, birim ve miktar</b> içerir; birim fiyat içermez.</li>
+          <li>BOQ’da sistem bu kodu havuzda arar. Birebir eşleşme varsa fiyat otomatik gelir.</li>
           <li>Birebir eşleşme yoksa iş kalemi metnine göre <b className="text-[var(--ink)]">benzer poz</b> önerilir; teklif ekibi onaylar.</li>
           <li>Hiç eşleşme yoksa kalem “havuzda yok” olarak işaretlenir ve teklif tamamlanmadan önce fiyatlandırılması istenir.</li>
           <li>Havuz firmaya aittir: bir projede girilen fiyat diğer ihalelerde de kullanılır, fiyat geçmişi tutulur.</li>
@@ -141,12 +186,13 @@ export function BirimFiyatHavuzu({ writable, role, onGo }: { writable: boolean; 
   )
 }
 
-function Row({ u, writable, onEdit, onDelete }: { u: UnitPrice; writable: boolean; onEdit: () => void; onDelete: () => void }) {
+function Row({ u, code, writable, onEdit, onDelete }: { u: UnitPrice; code: string; writable: boolean; onEdit: () => void; onDelete: () => void }) {
   const old = new Date(u.updatedAt) < new Date('2026-06-01')
   const tone = u.source === 'BCBS' ? 'neutral' : u.source === 'Analiz' ? 'accent' : u.source === 'Piyasa teklifi' ? 'ok' : 'warn'
   return (
     <tr className="hover:bg-[var(--surface-2)]">
       <Td mono nowrap>{u.no}</Td>
+      <Td mono nowrap>{code}</Td>
       <Td><span className="text-[12.5px] text-[var(--ink)]">{u.description}</span></Td>
       <Td nowrap><span className="text-[var(--muted)]">{u.unit}</span></Td>
       <Td right><span className="font-semibold text-[var(--ink)]">{num(u.price, u.price < 100 ? 2 : 0)}</span></Td>

@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { library, project } from '../data/mock'
+import { certificates, library, project } from '../data/mock'
+import { pqqRows, pqqSections } from '../data/pqq'
+import type { PqqSection } from '../data/pqq'
 import type { LibraryItem, Period } from '../data/types'
 import { Badge, Bar, Btn, Chips, ColumnFilter, Field, Modal, RowActions, Search, StateBadge, Table, Td, Th } from '../components/ui'
 import { date, daysLabel, moneyShort } from '../lib/format'
@@ -52,6 +54,7 @@ export function Hub({ persona, onOpen, onLogout }: { persona: Persona; onOpen: (
     library.filter((i) => persona === 'patron' || (persona === 'ihale' ? i.kind === 'ihale' : i.kind === 'proje')),
   )
   const [uploading, setUploading] = useState(false)
+  const [pqq, setPqq] = useState(false)
   const [justAdded, setJustAdded] = useState<string | null>(null)
   const [cols, setCols] = useState<Record<ColKey, string>>(NO_FILTER)
 
@@ -123,6 +126,7 @@ export function Hub({ persona, onOpen, onLogout }: { persona: Persona; onOpen: (
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <Search value={q} onChange={setQ} placeholder="İş adı, işveren, kod…" />
             <Btn primary onClick={() => setUploading(true)}>+ Yükle</Btn>
+            {persona !== 'proje' && <Btn onClick={() => setPqq(true)} title="Firmanın ön yeterlilik (PQQ) dosyası">PQQ</Btn>}
           </div>
         </div>
 
@@ -238,8 +242,73 @@ export function Hub({ persona, onOpen, onLogout }: { persona: Persona; onOpen: (
         )}
       </main>
 
+      {pqq && <PqqModal onClose={() => setPqq(false)} />}
       {uploading && <UploadModal fixedKind={persona === 'patron' ? undefined : persona === 'ihale' ? 'ihale' : 'proje'} onClose={() => setUploading(false)} onDone={addItem} />}
     </div>
+  )
+}
+
+/**
+ * Firmanın PQQ (ön yeterlilik) dosyası. İhaleden bağımsızdır: bir kez hazırlanır,
+ * her ihalenin PQQ sekmesi istenen kısımları buradan çeker.
+ */
+function PqqModal({ onClose }: { onClose: () => void }) {
+  const [open, setOpen] = useState<PqqSection>('firma')
+  const certState = (c: typeof certificates[number]) =>
+    !c.owned ? 'Eksik' : c.daysLeft != null && c.daysLeft <= 60 ? 'Güncellenmeli' : 'Hazır'
+  const states = (k: PqqSection) => (k === 'sertifikalar'
+    ? certificates.map(certState)
+    : pqqRows.filter((r) => r.section === k).map((r) => r.state))
+  const rows = open === 'sertifikalar'
+    ? certificates.map((c) => ({ id: c.id, item: c.name, value: c.number ?? '—', state: certState(c) }))
+    : pqqRows.filter((r) => r.section === open)
+  const all = pqqSections.flatMap((s) => states(s.key))
+  const ready = Math.round((all.filter((x) => x === 'Hazır').length / all.length) * 100)
+  const tone = (s: string) => (s === 'Hazır' ? 'ok' : s === 'Güncellenmeli' ? 'warn' : 'crit')
+
+  return (
+    <Modal title="PQQ — Ön yeterlilik dosyası" wide onClose={onClose}
+      note="Firmanın ihalelerden bağımsız ön yeterlilik bilgileri. Bir kez hazırlanır; her ihalenin PQQ sekmesi istenen kısımları buradan çeker."
+      footer={<>
+        <span className="text-[11.5px] text-[var(--faint)]">Dosya hazırlığı %{ready}</span>
+        <span className="ml-auto flex gap-2">
+          <Btn title="İşverenin PQQ formunu yükleyin; AI soruları bu bilgilerle doldurur">PQQ formu yükle</Btn>
+          <Btn>PDF</Btn>
+          <Btn primary onClick={onClose}>Kapat</Btn>
+        </span>
+      </>}>
+      <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {pqqSections.map((s) => {
+            const st = states(s.key)
+            const bad = st.filter((x) => x !== 'Hazır').length
+            const on = s.key === open
+            return (
+              <button key={s.key} onClick={() => setOpen(s.key)}
+                className="flex flex-col items-start gap-1 rounded-lg border px-3 py-2 text-left transition-colors"
+                style={on ? { background: 'var(--accent-soft)', borderColor: 'var(--accent)' } : { background: 'var(--surface)', borderColor: 'var(--border)' }}>
+                <span className="text-[12.5px] font-semibold" style={{ color: on ? 'var(--accent)' : 'var(--ink)' }}>{s.label}</span>
+                <span className="flex items-center gap-1.5 text-[11px] text-[var(--muted)]">
+                  {st.length} kalem
+                  {bad > 0 ? <Badge tone={st.includes('Eksik') ? 'crit' : 'warn'}>{bad} eksik / eski</Badge> : <Badge tone="ok">hazır</Badge>}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+        <div className="flex max-h-[300px] flex-col overflow-y-auto rounded-md border border-[var(--border)]">
+          {rows.map((r) => (
+            <div key={r.id} className="flex items-center gap-3 border-b border-[var(--border)] px-3 py-2 text-[12.5px] last:border-0">
+              <span className="min-w-0 flex-1">
+                <span className="block text-[var(--ink)]">{r.item}</span>
+                <span className="block truncate text-[11px] text-[var(--muted)]">{r.value}</span>
+              </span>
+              <Badge tone={tone(r.state)} dot>{r.state}</Badge>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Modal>
   )
 }
 

@@ -225,7 +225,7 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
                 <p className="mt-0.5 leading-relaxed text-[var(--ink)]">{sel.assumption}</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Btn small onClick={() => onGo('boq')}>Metraj kalemine git →</Btn>
+                <Btn small onClick={() => onGo('takeoff')}>Take-Offs kalemine git →</Btn>
               </div>
             </div>
           </Card>

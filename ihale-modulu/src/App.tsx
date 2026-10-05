@@ -3,6 +3,7 @@ import type { LibraryItem, TabKey } from './data/types'
 import { library, project } from './data/mock'
 import { tabs, accessFor, canWrite, personaOf, roleLabel } from './lib/roles'
 import type { Persona } from './lib/roles'
+import type { MethodKey } from './lib/methods'
 import { progressTone, tabProgress } from './lib/progress'
 import { Badge } from './components/ui'
 import { Login } from './screens/Login'
@@ -12,6 +13,7 @@ import { BilgiPaneli } from './screens/BilgiPaneli'
 import { GoNoGo } from './screens/GoNoGo'
 import { KritikSartlar } from './screens/KritikSartlar'
 import { Boq } from './screens/Boq'
+import { TakeOff } from './screens/TakeOff'
 import { BirimFiyatHavuzu } from './screens/BirimFiyatHavuzu'
 import { IsProgrami } from './screens/IsProgrami'
 import { PersonelEkipman } from './screens/PersonelEkipman'
@@ -19,7 +21,7 @@ import { TeklifRiskleri } from './screens/TeklifRiskleri'
 import { KontratAnaliz } from './screens/KontratAnaliz'
 import { KontratHazirlama } from './screens/KontratHazirlama'
 import { AlternatifTeklif } from './screens/AlternatifTeklif'
-import { Sertifikalar } from './screens/Sertifikalar'
+import { Pqq } from './screens/Pqq'
 import { Ozet } from './screens/Ozet'
 import { ProjectModule } from './project/ProjectModule'
 
@@ -32,6 +34,8 @@ export default function App() {
   const [tab, setTab] = useState<TabKey>('dokuman_analiz')
   /** Girişte seçilen kullanıcı tipi: ihale ekibi, patron, proje ekibi */
   const [persona, setPersona] = useState<Persona>('ihale')
+  /** Pool'da seçilen ölçüm standardı — Take-Offs ve BOQ bu kod kırılımıyla çalışır */
+  const [method, setMethod] = useState<MethodKey>('inhouse')
 
   /**
    * Yetki, girişte seçilen tipten gelir: ihale ekibi veri girer, patron ihale ekranlarını yalnızca görür.
@@ -131,7 +135,7 @@ export default function App() {
                 Görsel prototip: ekrandaki veriler örnek ihale dosyasına ({project.code}) aittir.
               </div>
             )}
-            <Screen tab={tab} writable={writable} role={roleLabel(role)} onGo={setTab} />
+            <Screen tab={tab} writable={writable} role={roleLabel(role)} onGo={setTab} method={method} onMethod={setMethod} />
           </div>
         </main>
 
@@ -144,21 +148,24 @@ export default function App() {
   )
 }
 
-function Screen({ tab, writable, role, onGo }: { tab: TabKey; writable: boolean; role: string; onGo: (t: TabKey) => void }) {
+function Screen({ tab, writable, role, onGo, method, onMethod }: {
+  tab: TabKey; writable: boolean; role: string; onGo: (t: TabKey) => void; method: MethodKey; onMethod: (m: MethodKey) => void
+}) {
   switch (tab) {
     case 'dokuman_analiz': return <DokumanAnaliz writable={writable} role={role} />
     case 'bilgi_paneli': return <BilgiPaneli writable={writable} role={role} />
     case 'go_nogo': return <GoNoGo writable={writable} role={role} />
     case 'kritik_sartlar': return <KritikSartlar writable={writable} role={role} />
-    case 'boq': return <Boq writable={writable} role={role} onGo={onGo} />
-    case 'birim_fiyat': return <BirimFiyatHavuzu writable={writable} role={role} onGo={onGo} />
+    case 'takeoff': return <TakeOff writable={writable} role={role} method={method} onGo={onGo} />
+    case 'boq': return <Boq writable={writable} role={role} method={method} onGo={onGo} />
+    case 'birim_fiyat': return <BirimFiyatHavuzu writable={writable} role={role} method={method} onMethod={onMethod} onGo={onGo} />
     case 'is_programi': return <IsProgrami writable={writable} role={role} onGo={onGo} />
     case 'personel_ekipman': return <PersonelEkipman writable={writable} role={role} />
     case 'teklif_riskleri': return <TeklifRiskleri writable={writable} role={role} />
     case 'kontrat_analiz': return <KontratAnaliz writable={writable} role={role} />
     case 'kontrat_hazirlama': return <KontratHazirlama writable={writable} role={role} />
     case 'alternatif_teklif': return <AlternatifTeklif writable={writable} role={role} />
-    case 'sertifikalar': return <Sertifikalar writable={writable} role={role} />
+    case 'sertifikalar': return <Pqq writable={writable} role={role} />
     case 'ozet': return <Ozet onGo={onGo} />
   }
 }

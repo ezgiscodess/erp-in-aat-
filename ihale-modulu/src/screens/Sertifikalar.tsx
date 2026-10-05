@@ -6,8 +6,11 @@ import { date, daysLabel } from '../lib/format'
 
 type Filter = 'Tümü' | 'Eksik' | 'Süresi yaklaşan' | 'Geçerli'
 
-/** İhale dosyasında istenen belgeler ile firmanın elindeki belgelerin karşılaştırması. */
-export function Sertifikalar({ writable, role }: { writable: boolean; role: string }) {
+/**
+ * İhale dosyasında istenen belgeler ile firmanın elindeki belgelerin karşılaştırması.
+ * PQQ sekmesinin alt sekmesi olarak açılır (`embedded`): başlık ve çıktı düğmeleri PQQ'da durur.
+ */
+export function Sertifikalar({ writable, role, embedded }: { writable: boolean; role: string; embedded?: boolean }) {
   const [filter, setFilter] = useState<Filter>('Tümü')
   const [certs, setCerts] = useState<Certificate[]>(certificates)
   const [editing, setEditing] = useState<Certificate | 'new' | null>(null)
@@ -25,16 +28,17 @@ export function Sertifikalar({ writable, role }: { writable: boolean; role: stri
 
   return (
     <>
-      <PageHead
-        title="Sertifikalar"
-        note="İhale dokümanında istenen belgeler otomatik çıkarılır ve firmanın belge havuzuyla karşılaştırılır."
-        right={<>
-          <AddonBadge />
-          <ExportButtons />
-        </>}
-      />
-
-      {!writable && <ReadOnlyNote role={role} />}
+      {!embedded && <>
+        <PageHead
+          title="Sertifikalar"
+          note="İhale dokümanında istenen belgeler otomatik çıkarılır ve firmanın belge havuzuyla karşılaştırılır."
+          right={<>
+            <AddonBadge />
+            <ExportButtons />
+          </>}
+        />
+        {!writable && <ReadOnlyNote role={role} />}
+      </>}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Kpi label="İstenen belge" value={certs.filter((c) => c.required).length} sub="İdari Şartname 7. madde" />

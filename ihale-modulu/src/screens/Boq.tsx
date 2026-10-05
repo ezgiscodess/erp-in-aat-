@@ -1,231 +1,148 @@
 import { useState } from 'react'
 import { boqItems, project, workGroups } from '../data/mock'
-import type { BoqItem, TabKey, WorkGroup } from '../data/types'
+import type { BoqItem, TabKey } from '../data/types'
 import {
-  Badge, Btn, Card, Chips, ExportButtons, Field, IconBtn, Kpi, Modal, PageHead, PreviewPane, ReadOnlyNote,
-  RowActions, Search, StickyPane, Table, Td, Th,
+  Badge, Btn, Card, ColumnFilter, ExportButtons, Field, Kpi, Modal, PageHead, ReadOnlyNote, Search, Table, Td, Th,
 } from '../components/ui'
-import { num } from '../lib/format'
+import { money, num } from '../lib/format'
+import { codeFor, methodOf } from '../lib/methods'
+import type { MethodKey } from '../lib/methods'
 
 /**
- * Metraj = ihale dokümanındaki poz listesi ve miktarlar.
- * İhale dokümanında birim fiyat bulunmaz; fiyat, firmanın Birim Fiyat Havuzu'ndan eşleşir.
+ * BOQ = Take-Offs'ta çıkan yalın metrajların birim fiyatlarla birleştiği keşif cetveli.
+ * İhale dokümanında birim fiyat bulunmaz; fiyat, Pool'daki firma havuzundan aynı kodla eşleşir.
  */
-export function Boq({ writable, role, onGo }: { writable: boolean; role: string; onGo: (t: TabKey) => void }) {
-  const [group, setGroup] = useState<'Tümü' | WorkGroup>('Tümü')
+export function Boq({ writable, role, method, onGo }: { writable: boolean; role: string; method: MethodKey; onGo: (t: TabKey) => void }) {
   const [q, setQ] = useState('')
-  const [items, setItems] = useState<BoqItem[]>(boqItems)
-  const [sel, setSel] = useState<BoqItem>(boqItems[5])
-  const [editPoz, setEditPoz] = useState<BoqItem | 'new' | null>(null)
-  /** Önizleme üstündeki pop-up'lar: take-off durumu ve havuz eşleşmesi */
-  const [popup, setPopup] = useState<'takeoff' | 'havuz' | null>(null)
+  const [fGroup, setFGroup] = useState('Tümü')
+  const [fMatch, setFMatch] = useState('Tümü')
   /** Elle girilen birim fiyatlar — havuzdan gelenlerden ayrı renkte görünür. */
   const [manual, setManual] = useState<Record<string, number>>({})
   /** Elle girilen fiyat havuza da işlendi mi */
   const [toPool, setToPool] = useState<Record<string, boolean>>({})
   const [editItem, setEditItem] = useState<BoqItem | null>(null)
+  const m = methodOf(method)
 
   /** Bir kalemin geçerli birim fiyatı: elle girildiyse o, yoksa havuzdan gelen. */
   const priceOf = (b: BoqItem) => manual[b.id] ?? b.unitPrice
+  const matchOf = (b: BoqItem) => (manual[b.id] != null ? 'Elle girildi' : b.poolMatch)
 
-  /** Çipler sabit iş grubu listesinden gelir: kalemi olmayan grup da görünür. */
-  const chips = [
-    { key: 'Tümü' as const, label: 'Tümü', count: items.length },
-    ...workGroups.map((g) => ({ key: g, label: g, count: items.filter((b) => b.group === g).length })),
-  ]
-
-  const rows = items.filter((b) => {
-    if (group !== 'Tümü' && b.group !== group) return false
+  const rows = boqItems.filter((b) => {
+    if (fGroup !== 'Tümü' && b.group !== fGroup) return false
+    if (fMatch !== 'Tümü' && matchOf(b) !== fMatch) return false
     if (q.trim()) {
       const s = q.toLocaleLowerCase('tr')
-      return [b.no, b.description, b.source].some((v) => v.toLocaleLowerCase('tr').includes(s))
+      return [codeFor(b, method), b.description].some((v) => v.toLocaleLowerCase('tr').includes(s))
     }
     return true
   })
 
-  const unmatched = items.filter((b) => b.poolMatch === 'Eşleşmedi')
-  const lowConf = items.filter((b) => b.confidence < 80)
+  const amount = (b: BoqItem) => (priceOf(b) ?? 0) * b.qty
+  const total = boqItems.reduce((a, b) => a + amount(b), 0)
+  const unpriced = boqItems.filter((b) => priceOf(b) == null)
+  const similar = boqItems.filter((b) => manual[b.id] == null && b.poolMatch === 'Benzer poz')
+  const groups = workGroups.filter((g) => rows.some((b) => b.group === g))
 
   return (
     <>
       <PageHead
-        title="Metraj (BoQ / Take-off)"
-        note="İhale dokümanındaki poz listesi ve metrajlar. İhale dokümanlarında genellikle birim fiyat bulunmaz; fiyatı teklif ekibi girer. Buradaki fiyatlar firmanın Birim Fiyat Havuzu'ndan poz numarası ile eşleşir."
+        title="BOQ"
+        note={`Take-Offs’ta çıkan yalın metrajlar (duvar 50 m², beton 150 m³…) burada birim fiyatlarla birleşir. Fiyatlar Pool’daki firma havuzundan ${m.label} koduyla eşleşir; havuzda olmayan kalemlere fiyat elle girilir.`}
         right={<>
           <ExportButtons />
-          <Btn disabled={!writable}>Çizimden metraj çıkar</Btn>
+          <Btn onClick={() => onGo('takeoff')}>← Take-Offs</Btn>
+          <Btn onClick={() => onGo('birim_fiyat')}>Pool’u aç</Btn>
         </>}
       />
 
       {!writable && <ReadOnlyNote role={role} />}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi label="Poz sayısı" value={items.length} sub="İhale cetveli + çizimden çıkarılan"
-          help="İhale dokümanındaki iş kalemi sayısı. Poz numarası, idarenin cetvelinden veya firmanın kendi kırılımından gelir." />
-        <Kpi label="Havuzda fiyatı yok" value={unmatched.length} sub="Birim fiyat girilmeli" tone="crit"
-          help="Bu pozlar Birim Fiyat Havuzu'nda bulunamadı. Teklif verilmeden önce fiyatlarının havuza girilmesi gerekir." />
-        <Kpi label="Düşük güvenli metraj" value={lowConf.length} sub="Ölçüm güveni %80 altı" tone="warn"
-          help="Metraj AI ile çizimden çıkarıldığında bir güven yüzdesi üretilir. %80 altındaki kalemler elle kontrol edilmeden teklife girmez." />
-        <Kpi label="Take-off tamamlanan" value="3 / 5" sub="Çizim seti"
-          help="Metrajı çıkarılmış çizim sayısı. Eksik çizimlerde metraj geçici olarak idare cetvelinden alınır." />
+        <Kpi label="BOQ toplamı" value={money(total, project.currency)} sub={`${boqItems.length} kalem · fiyatı olanlar`} tone="accent"
+          help="Metraj × birim fiyat toplamı. Fiyatı girilmemiş kalemler toplama girmez." />
+        <Kpi label="Fiyatı yok" value={unpriced.length} sub="Havuzda eşleşmedi" tone="crit"
+          help="Pool’da karşılığı bulunmayan kalemler. Teklif verilmeden önce fiyatları girilmeli." />
+        <Kpi label="Benzer kalem" value={similar.length} sub="Önerilen fiyat onay bekliyor" tone="warn"
+          help="Kod birebir eşleşmedi; iş kalemi metnine göre benzer kalemin fiyatı önerildi." />
+        <Kpi label="Elle fiyatlanan" value={Object.keys(manual).length}
+          sub={`${Object.values(toPool).filter(Boolean).length} tanesi havuza işlendi`}
+          help="Teklif ekibinin elle girdiği fiyatlar sarı görünür." />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <div>
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <Chips<'Tümü' | WorkGroup> value={group} onChange={setGroup} items={chips} />
-            <div className="ml-auto"><Search value={q} onChange={setQ} placeholder="Poz ara…" /></div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-[11.5px] text-[var(--muted)]">
-            <span className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-sm" style={{ background: 'var(--ink)' }} /> Havuzdan gelen fiyat
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-sm" style={{ background: 'var(--gold)' }} /> Elle girilen fiyat
-            </span>
-            <span className="ml-auto">
-              {Object.keys(manual).length > 0
-                ? `${Object.keys(manual).length} kalem elle fiyatlandı · ${Object.values(toPool).filter(Boolean).length} tanesi havuza işlendi`
-                : 'Bütün fiyatlar havuzdan geliyor'}
-            </span>
-          </div>
-
-          <Card
-            title={`Poz listesi (${rows.length})`}
-            help="Satıra tıklayınca metrajın çıkarıldığı çizim veya cetvel sağdaki önizlemede açılır. Sarı satırlar düşük ölçüm güvenine sahiptir. Fiyata tıklayınca birim fiyat düzenlenir; kalem simgesi poz ve metrajı düzenler."
-            right={<IconBtn icon="add" primary title="Poz ekle" disabled={!writable} onClick={() => setEditPoz('new')} />}
-            pad={false}
-          >
-            <Table head={
-              <tr>
-                <Th w={72}>Poz no</Th>
-                <Th w={210}>İş kalemi ve metraj kaynağı</Th>
-                <Th w={46}>Birim</Th>
-                <Th w={76} right>Metraj</Th>
-                <Th w={104}>Havuz fiyatı</Th>
-                <Th w={64} center>İşlem</Th>
-              </tr>
-            }>
-              {rows.map((b) => {
-                const low = b.confidence < 80
+      <Card
+        title={`Keşif cetveli (${rows.length})`}
+        help="Metraj Take-Offs’tan gelir ve burada değiştirilmez. Fiyata tıklayınca birim fiyat düzenlenir. Siyah fiyatlar havuzdan, sarılar elle girilmiştir."
+        right={<Search value={q} onChange={setQ} placeholder="Kod veya kalem ara…" />}
+        pad={false}
+      >
+        <Table head={
+          <tr>
+            <Th w={90}>Kod · {m.label}</Th>
+            <Th w={300}>
+              <span className="flex items-center gap-1.5">İş kalemi
+                <ColumnFilter value={fGroup} onChange={setFGroup} values={workGroups.filter((g) => boqItems.some((b) => b.group === g))} />
+              </span>
+            </Th>
+            <Th w={56}>Birim</Th>
+            <Th w={90} right>Metraj</Th>
+            <Th w={130}>
+              <span className="flex items-center gap-1.5">Birim fiyat
+                <ColumnFilter value={fMatch} onChange={setFMatch} values={['Eşleşti', 'Benzer poz', 'Eşleşmedi', 'Elle girildi']} />
+              </span>
+            </Th>
+            <Th w={130} right>Tutar ({project.currency})</Th>
+          </tr>
+        }>
+          {groups.map((g) => {
+            const list = rows.filter((b) => b.group === g)
+            return [
+              <tr key={g} className="bg-[var(--surface-2)]">
+                <Td><span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">{g}</span></Td>
+                <Td><span className="text-[11px] text-[var(--faint)]">{list.length} kalem</span></Td>
+                <Td>{''}</Td><Td>{''}</Td><Td>{''}</Td>
+                <Td right><span className="text-[12px] font-semibold text-[var(--ink)]">{num(list.reduce((a, b) => a + amount(b), 0))}</span></Td>
+              </tr>,
+              ...list.map((b) => {
+                const price = priceOf(b)
+                const byHand = manual[b.id] != null
                 return (
-                  <tr key={b.id} onClick={() => setSel(b)} className="cursor-pointer hover:bg-[var(--surface-2)]"
-                    style={sel.id === b.id
-                      ? { background: 'var(--accent-soft)' }
-                      : low ? { background: 'color-mix(in srgb, var(--warn-bg) 45%, transparent)' } : undefined}>
-                    <Td mono nowrap>{b.no}</Td>
-                    <Td>
-                      <div className="text-[12.5px] text-[var(--ink)]">{b.description}</div>
-                      <div className="mt-0.5 text-[11px] text-[var(--faint)]">{b.source}</div>
-                      {b.note && <div className="mt-0.5 text-[11px] text-[var(--warn)]">⚠ {b.note}</div>}
-                      {low && !b.note && <div className="mt-0.5 text-[11px] text-[var(--warn)]">⚠ Ölçüm güveni %{b.confidence} — elle kontrol edilmeli</div>}
-                    </Td>
+                  <tr key={b.id} className="hover:bg-[var(--surface-2)]">
+                    <Td mono nowrap>{codeFor(b, method)}</Td>
+                    <Td><span className="text-[12.5px] text-[var(--ink)]">{b.description}</span></Td>
                     <Td nowrap><span className="text-[var(--muted)]">{b.unit}</span></Td>
                     <Td right>{num(b.qty)}</Td>
                     <Td nowrap>
-                      {(() => {
-                        const price = priceOf(b)
-                        const byHand = manual[b.id] != null
-                        if (price == null) {
-                          return (
-                            <button disabled={!writable} onClick={(e) => { e.stopPropagation(); setEditItem(b) }} title="Birim fiyat gir">
-                              <Badge tone="crit">havuzda yok · gir</Badge>
-                            </button>
-                          )
-                        }
-                        return (
-                          <span className="flex items-center gap-1.5">
-                            <button disabled={!writable} onClick={(e) => { e.stopPropagation(); setEditItem(b) }}
-                              className="tnum text-[12.5px] font-medium underline decoration-dotted underline-offset-2"
-                              style={{ color: byHand ? 'var(--gold)' : 'var(--ink)' }}
-                              title={byHand ? 'Elle girilen fiyat' : 'Birim Fiyat Havuzu’ndan geldi'}>
-                              {num(price, price < 100 ? 2 : 0)}
-                            </button>
-                            <span className="text-[11px] text-[var(--faint)]">{project.currency}</span>
-                            {byHand && <Badge tone="gold">elle</Badge>}
-                            {!byHand && b.poolMatch === 'Benzer poz' && <Badge tone="warn">≈</Badge>}
-                          </span>
-                        )
-                      })()}
+                      {price == null ? (
+                        <button disabled={!writable} onClick={() => setEditItem(b)} title="Birim fiyat gir">
+                          <Badge tone="crit">havuzda yok · gir</Badge>
+                        </button>
+                      ) : (
+                        <span className="flex items-center gap-1.5">
+                          <button disabled={!writable} onClick={() => setEditItem(b)}
+                            className="tnum text-[12.5px] font-medium underline decoration-dotted underline-offset-2"
+                            style={{ color: byHand ? 'var(--gold)' : 'var(--ink)' }}
+                            title={byHand ? 'Elle girilen fiyat' : 'Pool’dan geldi'}>
+                            {num(price, price < 100 ? 2 : 0)}
+                          </button>
+                          {byHand && <Badge tone="gold">elle</Badge>}
+                          {!byHand && b.poolMatch === 'Benzer poz' && <Badge tone="warn">≈</Badge>}
+                        </span>
+                      )}
                     </Td>
-                    <Td nowrap center>
-                      <RowActions name={`Poz ${b.no}`} disabled={!writable} onEdit={() => setEditPoz(b)}
-                        onDelete={() => {
-                          const rest = items.filter((x) => x.id !== b.id)
-                          setItems(rest)
-                          if (sel.id === b.id && rest[0]) setSel(rest[0])
-                        }} />
-                    </Td>
+                    <Td right>{price == null ? <span className="text-[var(--faint)]">—</span> : num(amount(b))}</Td>
                   </tr>
                 )
-              })}
-            </Table>
-          </Card>
-        </div>
-
-        <StickyPane>
-          <PreviewPane
-            title="Metraj kaynağı"
-            headerExtra={<>
-              <Btn small onClick={() => setPopup('takeoff')} title="Çizimlerden metraj çıkarma durumu">Take-off</Btn>
-              <Btn small onClick={() => setPopup('havuz')} title="Pozların birim fiyat havuzuyla eşleşmesi">Havuz</Btn>
-            </>}
-            preview={{
-              doc: sel.source,
-              page: 1,
-              pages: 1,
-              clause: sel.no,
-              body: `${sel.description}\n\nMetraj: ${num(sel.qty)} ${sel.unit}\nKaynak: ${sel.source}\nÖlçüm güveni: %${sel.confidence}\n\n${sel.note ?? 'Bu kalemin metrajı çizimden otomatik çıkarılmıştır. Ölçüm güveni %80 ve üzerindeyse teklife doğrudan girebilir.'}`,
-            }}
-            paper
-          />
-        </StickyPane>
-      </div>
-
-      {popup === 'takeoff' && (
-        <Modal title="Take-off durumu" note="Çizimlerden metraj çıkarma işinin durumu. Eksik çizimler tamamlanmadan metraj kesinleşmez." onClose={() => setPopup(null)}>
-          <div className="flex flex-col gap-2 text-[12.5px]">
-            {[
-              { l: 'P-102 Saha genel yerleşim', s: 'Tamamlandı', t: 'ok' as const },
-              { l: 'D-204 Kazık planı', s: 'Kısmi — doğu uç eksik', t: 'warn' as const },
-              { l: 'D-211 Tabliye kirişleri', s: 'Tamamlandı', t: 'ok' as const },
-              { l: 'E-412 RTG besleme', s: 'Bekliyor', t: 'warn' as const },
-              { l: 'A-301 Drenaj', s: 'Tamamlandı', t: 'ok' as const },
-            ].map((r) => (
-              <div key={r.l} className="flex items-center gap-2 border-b border-[var(--border)] pb-2 last:border-0">
-                <span className="mono text-[11.5px] text-[var(--muted)]">{r.l}</span>
-                <span className="ml-auto"><Badge tone={r.t}>{r.s}</Badge></span>
-              </div>
-            ))}
-          </div>
-        </Modal>
-      )}
-
-      {popup === 'havuz' && (
-        <Modal title="Havuz eşleşmesi" note="Poz numarası havuzdaki kayıtla birebir eşleşirse fiyat otomatik gelir. Benzer poz eşleşmesinde fiyat önerilir ama onay gerekir." onClose={() => setPopup(null)}>
-          <div className="flex flex-col gap-2 text-[12.5px]">
-            {(['Eşleşti', 'Benzer poz', 'Eşleşmedi'] as const).map((m) => {
-              const n = items.filter((b) => b.poolMatch === m).length
-              return (
-                <div key={m} className="flex items-center gap-2 border-b border-[var(--border)] pb-2 last:border-0">
-                  <span className="text-[var(--ink)]">{m}</span>
-                  <span className="ml-auto"><Badge tone={m === 'Eşleşti' ? 'ok' : m === 'Benzer poz' ? 'warn' : 'crit'}>{n} poz</Badge></span>
-                </div>
-              )
-            })}
-            <Btn small onClick={() => { setPopup(null); onGo('birim_fiyat') }}>Birim Fiyat Havuzu’nu aç →</Btn>
-          </div>
-        </Modal>
-      )}
-
-      {editPoz && (
-        <PozModal item={editPoz === 'new' ? null : editPoz} onClose={() => setEditPoz(null)}
-          onSave={(b) => {
-            setItems((l) => (l.some((x) => x.id === b.id) ? l.map((x) => (x.id === b.id ? b : x)) : [...l, b]))
-            setSel(b); setEditPoz(null)
-          }} />
-      )}
+              }),
+            ]
+          })}
+          <tr style={{ background: 'var(--accent-soft)' }}>
+            <Td><span className="text-[12px] font-bold text-[var(--ink)]">Toplam</span></Td>
+            <Td><span className="text-[11px] text-[var(--muted)]">{rows.length} kalem</span></Td>
+            <Td>{''}</Td><Td>{''}</Td><Td>{''}</Td>
+            <Td right><span className="text-[13px] font-bold text-[var(--ink)]">{num(rows.reduce((a, b) => a + amount(b), 0))}</span></Td>
+          </tr>
+        </Table>
+      </Card>
 
       {editItem && (
         <PriceModal
@@ -233,7 +150,7 @@ export function Boq({ writable, role, onGo }: { writable: boolean; role: string;
           current={priceOf(editItem)}
           onClose={() => setEditItem(null)}
           onSave={(price, updatePool) => {
-            setManual((m) => ({ ...m, [editItem.id]: price }))
+            setManual((x) => ({ ...x, [editItem.id]: price }))
             setToPool((t) => ({ ...t, [editItem.id]: updatePool }))
             setEditItem(null)
           }}
@@ -284,7 +201,7 @@ function PriceModal({ item, current, onClose, onSave }: {
             )}
           </div>
           <p className="text-[var(--muted)]">
-            <b className="text-[var(--ink)]">Evet:</b> Birim Fiyat Havuzu’ndaki {item.no} pozunun fiyatı güncellenir ve
+            <b className="text-[var(--ink)]">Evet:</b> Pool’daki {item.no} pozunun fiyatı güncellenir ve
             bundan sonraki bütün ihalelerde bu fiyat kullanılır.
           </p>
           <p className="text-[var(--muted)]">
@@ -323,7 +240,7 @@ function PriceModal({ item, current, onClose, onSave }: {
           </div>
         </div>
         <p className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[11.5px] leading-relaxed text-[var(--muted)]">
-          Havuzdan gelen fiyatlar standart renkte, elle girilenler sarı görünür. Böylece teklif kapanışında
+          Pool’dan gelen fiyatlar standart renkte, elle girilenler sarı görünür. Böylece teklif kapanışında
           hangi kalemlerin elle fiyatlandığı bir bakışta ayırt edilir.
         </p>
       </div>
@@ -331,48 +248,3 @@ function PriceModal({ item, current, onClose, onSave }: {
   )
 }
 
-/* ---------------- Poz ekleme / düzenleme ---------------- */
-
-function PozModal({ item, onClose, onSave }: { item: BoqItem | null; onClose: () => void; onSave: (b: BoqItem) => void }) {
-  const [no, setNo] = useState(item?.no ?? '')
-  const [description, setDescription] = useState(item?.description ?? '')
-  const [unit, setUnit] = useState(item?.unit ?? 'm³')
-  const [qty, setQty] = useState(String(item?.qty ?? ''))
-  const [group, setGroup] = useState<WorkGroup>(item?.group ?? workGroups[0])
-  const [source, setSource] = useState(item?.source ?? '')
-  const ready = no.trim().length > 2 && description.trim().length > 2 && Number(qty) > 0
-
-  return (
-    <Modal
-      title={item ? `Poz ${item.no} düzenle` : 'Poz ekle'}
-      note="Poz numarası havuzdaki kayıtla eşleşirse birim fiyat otomatik gelir. Elle değiştirilen metraj 'elle düzeltildi' olarak işaretlenir."
-      onClose={onClose}
-      wide
-      footer={<>
-        <span className="text-[11.5px] text-[var(--faint)]">{ready ? 'Kaydedilmeye hazır' : 'Poz no, iş kalemi ve metraj zorunlu'}</span>
-        <span className="ml-auto flex gap-2">
-          <Btn onClick={onClose}>Vazgeç</Btn>
-          <Btn primary disabled={!ready} onClick={() => onSave({
-            ...(item ?? { id: `B${Date.now()}`, poolMatch: 'Eşleşmedi' as const, confidence: 100 }),
-            no: no.trim(), description: description.trim(), unit, qty: Number(qty), group, source: source.trim() || 'Elle eklendi',
-          })}>Kaydet</Btn>
-        </span>
-      </>}
-    >
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Field label="Poz no" value={no} onChange={setNo} placeholder="Ör. 1000487" />
-        <label className="flex flex-col gap-1">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">İş grubu</span>
-          <select value={group} onChange={(e) => setGroup(e.target.value as WorkGroup)}
-            className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-2 text-[13px] text-[var(--ink)] outline-none focus:border-[var(--accent)]">
-            {workGroups.map((g) => <option key={g} value={g}>{g}</option>)}
-          </select>
-        </label>
-        <div className="sm:col-span-2"><Field label="İş kalemi" value={description} onChange={setDescription} /></div>
-        <Field label="Birim" value={unit} onChange={setUnit} />
-        <Field label="Metraj" value={qty} onChange={setQty} type="number" />
-        <div className="sm:col-span-2"><Field label="Metraj kaynağı" value={source} onChange={setSource} placeholder="Ör. Çizim D-204" /></div>
-      </div>
-    </Modal>
-  )
-}
