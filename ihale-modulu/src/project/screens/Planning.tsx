@@ -636,9 +636,9 @@ function WeekRing({ acts, snap, prev, prevTitle }: { acts: Activity[]; snap: Rec
     ? [
       { label: 'Önceki haftaya kadar', value: before, color: 'var(--series-1)' },
       { label: 'Bu hafta', value: now - before, color: 'var(--ok)' },
-      { label: 'Kalan', value: 100 - now, color: '#98A2B3' },
+      { label: 'Kalan', value: 100 - now, color: 'var(--chart-rest)' },
     ]
-    : [{ label: 'Tamamlanan', value: now, color: 'var(--series-1)' }, { label: 'Kalan', value: 100 - now, color: '#98A2B3' }]
+    : [{ label: 'Tamamlanan', value: now, color: 'var(--series-1)' }, { label: 'Kalan', value: 100 - now, color: 'var(--chart-rest)' }]
   return (
     <div className="flex flex-col gap-1.5">
       <Ring size={104} parts={parts} format={(v) => `${Math.round(v)}`}

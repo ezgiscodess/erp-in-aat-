@@ -76,7 +76,7 @@ const RISKS: ProjectRisk[] = [
 
 const TYPES: RiskType[] = ['İşveren', 'Tasarım', 'Tedarik', 'Kaynak', 'Hava', 'Kurum']
 const TYPE_COLOR: Record<RiskType, string> = {
-  İşveren: 'var(--series-1)', Tasarım: 'var(--series-2)', Tedarik: 'var(--series-3)', Kaynak: 'var(--series-4)', Hava: 'var(--series-5)', Kurum: '#667085',
+  İşveren: 'var(--series-1)', Tasarım: 'var(--series-2)', Tedarik: 'var(--series-3)', Kaynak: 'var(--series-4)', Hava: 'var(--series-5)', Kurum: 'var(--neutral)',
 }
 const ORIGIN_COLOR: Record<Origin, string> = { Saha: 'var(--series-1)', Yönetim: 'var(--series-2)' }
 

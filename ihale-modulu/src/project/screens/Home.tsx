@@ -43,7 +43,7 @@ function evmVerdict(spi: number, cpi: number): { text: string; todo: string; ton
 }
 
 const MS_COLOR: Record<Milestone['state'], string> = {
-  Tamamlandı: 'var(--ok)', Geride: 'var(--warn)', İptal: '#475467', Planlandı: 'var(--accent)',
+  Tamamlandı: 'var(--ok)', Geride: 'var(--warn)', İptal: 'var(--neutral)', Planlandı: 'var(--accent)',
 }
 
 /**
@@ -144,7 +144,7 @@ export function Home({ onGo, persona }: { onGo: (k: string) => void; persona: Pe
                 parts={[
                   { label: 'Gerçekleşti', value: spent, color: 'var(--series-1)' },
                   { label: 'Devam ediyor', value: committed - spent, color: 'var(--series-2)' },
-                  { label: 'Kalan', value: Math.max(0, eac - committed), color: '#98A2B3' },
+                  { label: 'Kalan', value: Math.max(0, eac - committed), color: 'var(--chart-rest)' },
                 ]}
                 note={`Harcanan ${moneyShort(spent, prj.currency)}; siparişi verilip henüz gerçekleşmeyen ${moneyShort(committed - spent, prj.currency)}. Öngörülen maliyet bütçeyi ${moneyShort(eac - costLines.reduce((a, c) => a + c.budget, 0), prj.currency)} aşıyor.`}
                 onClick={() => onGo('budget_detail')} />

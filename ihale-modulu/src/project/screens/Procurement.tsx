@@ -36,7 +36,7 @@ export function Sas() {
   const flow = procurementFlow.filter((f) => f.iso.slice(0, 7) >= range[0].slice(0, 7) && f.iso.slice(0, 7) <= range[1].slice(0, 7))
   const cumOf = (k: 'ordered' | 'depot') => { let run = 0; return flow.map((f) => (run += f[k])) }
   const byStage = (['Onay bekliyor', 'Sipariş verildi', 'Yolda', 'Sahada', 'Depoda'] as SasStage[]).map((st, i) => ({
-    label: st, value: items.filter((x) => x.stage === st).reduce((a, x) => a + x.value, 0), color: ['#98A2B3', 'var(--series-1)', 'var(--series-2)', 'var(--series-3)', 'var(--series-4)'][i],
+    label: st, value: items.filter((x) => x.stage === st).reduce((a, x) => a + x.value, 0), color: ['var(--chart-rest)', 'var(--series-1)', 'var(--series-2)', 'var(--series-3)', 'var(--series-4)'][i],
   })).filter((p) => p.value > 0)
 
   const req = items.filter((i) => i.stage === 'Onay bekliyor')

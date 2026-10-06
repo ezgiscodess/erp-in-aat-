@@ -933,7 +933,7 @@ function ClaimTile({ tone, label, count, amount, days, sub, featured }: {
 }) {
   if (featured) {
     return (
-      <div className="card lift relative overflow-hidden px-4 py-3 text-white" style={{ background: 'linear-gradient(135deg, #16A34A, #15803D)', borderColor: '#15803D' }}>
+      <div className="card lift relative overflow-hidden px-4 py-3 text-white" style={{ background: 'var(--ok-grad)', borderColor: 'var(--ok-ink)' }}>
         <span className="absolute -right-3 -top-3 grid h-16 w-16 place-items-center rounded-full bg-white/15 text-[26px]">✓</span>
         <div className="text-[11px] font-semibold uppercase tracking-wide text-white/85">{label}</div>
         <div className="mt-1 flex items-baseline gap-2">
