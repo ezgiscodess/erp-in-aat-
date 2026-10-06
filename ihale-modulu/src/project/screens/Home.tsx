@@ -86,9 +86,9 @@ export function Home({ onGo, persona }: { onGo: (k: string) => void; persona: Pe
     no: changeOrders.filter((c) => c.state === 'Reddedildi'),
   }
   const clGroups = {
-    ok: claims.filter((c) => c.state === 'Kısmen kabul'),
-    open: claims.filter((c) => c.state !== 'Kısmen kabul'),
-    no: [] as typeof claims,
+    ok: claims.filter((c) => c.state === 'Onaylandı'),
+    open: claims.filter((c) => c.state === 'Devam ediyor'),
+    no: claims.filter((c) => c.state === 'Reddedildi'),
   }
 
   /* 6 — yapılacaklar: bana atanan ya da benim açtığım açık görevler */
@@ -257,7 +257,7 @@ export function Home({ onGo, persona }: { onGo: (k: string) => void; persona: Pe
               total={changeOrders.reduce((a, c) => a + c.amount, 0)} approved={coGroups.ok.reduce((a, c) => a + c.amount, 0)}
               counts={[coGroups.ok.length, coGroups.open.length, coGroups.no.length]} />
             <StatusBox title="Claim" onClick={() => go('claim')}
-              total={claims.reduce((a, c) => a + c.amount, 0)} approved={clGroups.ok.reduce((a, c) => a + c.amount * 0.6, 0)}
+              total={claims.reduce((a, c) => a + c.amount, 0)} approved={clGroups.ok.reduce((a, c) => a + (c.approvedAmount ?? 0), 0)}
               counts={[clGroups.ok.length, clGroups.open.length, clGroups.no.length]} />
           </div>
         </Card>

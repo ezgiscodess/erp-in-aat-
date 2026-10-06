@@ -541,13 +541,18 @@ export function HistoLine({ plan, actual, labels, format, height = 130 }: {
  * Kümülatif değer aylıkların çok üstünde olduğu için iki ayrı cetvel kullanılır; her eksen kendi rengindeki
  * seriyle etiketlenir ki hangi cetvelin hangi seriye ait olduğu karışmasın.
  */
-export function ComboChart({ labels, bars, lines, format, height = 260 }: {
+export function ComboChart({ labels, bars, lines, format, lineFormat, lineMax, height = 260 }: {
   labels: string[]
   bars: { label: string; color: string; values: number[] }[]
   lines: { label: string; color: string; values: number[]; dashed?: boolean }[]
   format: (v: number) => string
+  /** Sağ eksen (çizgiler) için ayrı biçim — ör. kümülatif yüzde */
+  lineFormat?: (v: number) => string
+  /** Sağ eksenin üst değeri sabitse (ör. %100) */
+  lineMax?: number
   height?: number
 }) {
+  const lf = lineFormat ?? format
   const [hover, setHover] = useState<number | null>(null)
   const [ref, W] = useWidth()
   const n = labels.length
@@ -555,7 +560,7 @@ export function ComboChart({ labels, bars, lines, format, height = 260 }: {
   const pad = { l: 50, r: 64, t: 26, b: 24 }
   const nice = (v: number) => { const p = 10 ** Math.floor(Math.log10(v || 1)); return Math.ceil(v / p / 0.5) * 0.5 * p }
   const maxBar = nice(Math.max(1, ...bars.flatMap((b) => b.values)) * 1.05)
-  const maxLine = nice(Math.max(1, ...lines.flatMap((l) => l.values)) * 1.02)
+  const maxLine = lineMax ?? nice(Math.max(1, ...lines.flatMap((l) => l.values)) * 1.02)
   const slot = (W - pad.l - pad.r) / n
   const cx = (i: number) => pad.l + slot * (i + 0.5)
   const yb = (v: number) => pad.t + (1 - v / maxBar) * (H - pad.t - pad.b)
@@ -574,7 +579,7 @@ export function ComboChart({ labels, bars, lines, format, height = 260 }: {
           <g key={f}>
             <line x1={pad.l} x2={W - pad.r} y1={yb(maxBar * f)} y2={yb(maxBar * f)} stroke="var(--border)" />
             <text x={pad.l - 6} y={yb(maxBar * f) + 3} textAnchor="end" fontSize="10" fill="var(--faint)">{format(maxBar * f)}</text>
-            <text x={W - pad.r + 6} y={yl(maxLine * f) + 3} textAnchor="start" fontSize="10" fill="var(--faint)">{format(maxLine * f)}</text>
+            <text x={W - pad.r + 6} y={yl(maxLine * f) + 3} textAnchor="start" fontSize="10" fill="var(--faint)">{lf(maxLine * f)}</text>
           </g>
         ))}
         <text x={pad.l - 6} y={9} textAnchor="end" fontSize="9.5" fontWeight="600" fill="var(--muted)">aylık ▮</text>
@@ -603,3 +608,50 @@ export function ComboChart({ labels, bars, lines, format, height = 260 }: {
     </div>
   )
 }
+
+/**
+ * Pasta grafik: dilimler toplamın payı kadar; yanında lejant (etiket, değer, yüzde).
+ * Üzerine gelinen dilim hafifçe dışarı çıkar ve ortadaki değer kutusu güncellenir.
+ */
+export function Pie({ parts, size = 140, format = (v: number) => tr(v, 0) }: {
+  parts: { label: string; value: number; color: string }[]; size?: number; format?: (v: number) => string
+}) {
+  const [hover, setHover] = useState<number | null>(null)
+  const total = parts.reduce((a, p) => a + p.value, 0) || 1
+  const r = size / 2 - 6
+  const cx = size / 2
+  let a0 = -Math.PI / 2
+  const slices = parts.map((p, i) => {
+    const ang = (p.value / total) * Math.PI * 2
+    const a1 = a0 + ang
+    const mid = (a0 + a1) / 2
+    const off = hover === i ? 5 : 0
+    const ox = Math.cos(mid) * off, oy = Math.sin(mid) * off
+    const large = ang > Math.PI ? 1 : 0
+    const d = parts.length === 1
+      ? `M ${cx} ${cx - r} A ${r} ${r} 0 1 1 ${cx - 0.01} ${cx - r} Z`
+      : `M ${cx + ox} ${cx + oy} L ${cx + ox + r * Math.cos(a0)} ${cx + oy + r * Math.sin(a0)} A ${r} ${r} 0 ${large} 1 ${cx + ox + r * Math.cos(a1)} ${cx + oy + r * Math.sin(a1)} Z`
+    a0 = a1
+    return <path key={p.label} d={d} fill={p.color} stroke="var(--surface)" strokeWidth="1.5"
+      onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)} style={{ transition: 'all 150ms ease-out' }} />
+  })
+  return (
+    <div className="flex flex-wrap items-center gap-4">
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="flex-shrink-0">{slices}</svg>
+      <div className="flex min-w-[140px] flex-1 flex-col gap-2">
+        {parts.map((p, i) => (
+          <div key={p.label} className="flex items-center gap-2 rounded-md px-1 text-[12px]" onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}
+            style={hover === i ? { background: 'var(--surface-2)' } : undefined}>
+            <span className="h-2.5 w-2.5 flex-shrink-0 rounded-sm" style={{ background: p.color }} />
+            <span className="min-w-0 flex-1 truncate text-[var(--ink)]">{p.label}</span>
+            <span className="text-[var(--muted)] tnum">{format(p.value)}</span>
+            <span className="w-9 text-right font-semibold text-[var(--ink)] tnum">%{Math.round((p.value / total) * 100)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/** Pasta grafikler için sabit sıra renkleri */
+export const PIE_COLORS = ['var(--series-1)', 'var(--series-2)', 'var(--series-3)', 'var(--series-4)', 'var(--series-5)', 'var(--border-strong)']

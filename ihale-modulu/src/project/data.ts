@@ -234,6 +234,9 @@ export const disruptions: Disruption[] = [
 
 /* ---------------- Değişiklik emirleri ve hak talepleri ---------------- */
 
+/** Değişikliğin ya da talebin etkisi — birden çok olabilir */
+export type Impact = 'Süre' | 'Dizayn' | 'Maliyet' | 'Personel'
+
 export interface ChangeOrder {
   no: string
   title: string
@@ -241,35 +244,124 @@ export interface ChangeOrder {
   days: number
   state: 'Onaylandı' | 'İmalatta' | 'Tamamlandı' | 'İşveren onayında' | 'Reddedildi'
   requestedBy: string
+  impact: Impact[]
+  /** İşveren talebi: yazı no, tarih ve talep metni */
+  request: { ref: string; date: string; text: string }
 }
 
 export const changeOrders: ChangeOrder[] = [
-  { no: 'CO-01', title: 'Ofis bloğuna ek kat (idari ofisler)', amount: 520_000, days: 20, state: 'Tamamlandı', requestedBy: 'İşveren' },
-  { no: 'CO-02', title: 'Rampa sayısının 12’den 16’ya çıkarılması', amount: 310_000, days: 8, state: 'İmalatta', requestedBy: 'İşveren' },
-  { no: 'CO-03', title: 'Sprinkler sisteminde ESFR başlık değişimi', amount: 180_000, days: 0, state: 'Onaylandı', requestedBy: 'İşveren' },
-  { no: 'CO-04', title: 'Saha aydınlatmasında LED armatür yükseltmesi', amount: 130_000, days: 0, state: 'Tamamlandı', requestedBy: 'İşveren' },
-  { no: 'CO-05', title: 'Güvenlik kulübesi ve turnike sistemi', amount: 95_000, days: 5, state: 'İşveren onayında', requestedBy: 'İşveren' },
-  { no: 'CO-06', title: 'Cephede ek güneş paneli taşıyıcıları', amount: 240_000, days: 12, state: 'İşveren onayında', requestedBy: 'Yüklenici önerisi' },
-  { no: 'CO-07', title: 'Depo A zemin kotunun yükseltilmesi', amount: 70_000, days: 0, state: 'Reddedildi', requestedBy: 'Yüklenici önerisi' },
+  { no: 'CO-01', title: 'Ofis bloğuna ek kat (idari ofisler)', amount: 520_000, days: 20, state: 'Tamamlandı', requestedBy: 'İşveren', impact: ['Dizayn', 'Maliyet', 'Süre', 'Personel'],
+    request: { ref: 'İY-2025-044', date: '2025-03-12', text: 'İdari personel artışı nedeniyle ofis bloğuna bir kat ilavesi; mimari ve statik projeler işverence revize edilecek.' } },
+  { no: 'CO-02', title: 'Rampa sayısının 12’den 16’ya çıkarılması', amount: 310_000, days: 8, state: 'İmalatta', requestedBy: 'İşveren', impact: ['Dizayn', 'Maliyet', 'Süre'],
+    request: { ref: 'İY-2026-011', date: '2026-02-04', text: 'Kiracı lojistik firmasının talebiyle Depo B yükleme rampalarının 16 adede çıkarılması.' } },
+  { no: 'CO-03', title: 'Sprinkler sisteminde ESFR başlık değişimi', amount: 180_000, days: 0, state: 'Onaylandı', requestedBy: 'İşveren', impact: ['Dizayn', 'Maliyet'],
+    request: { ref: 'İY-2026-019', date: '2026-04-22', text: 'Sigorta şirketinin şartı: yüksek raflı depolama için ESFR tip sprinkler başlıkları.' } },
+  { no: 'CO-04', title: 'Saha aydınlatmasında LED armatür yükseltmesi', amount: 130_000, days: 0, state: 'Tamamlandı', requestedBy: 'İşveren', impact: ['Maliyet'],
+    request: { ref: 'İY-2025-102', date: '2025-11-05', text: 'Enerji verimliliği hedefi kapsamında saha aydınlatmasının LED armatürlerle yapılması.' } },
+  { no: 'CO-05', title: 'Güvenlik kulübesi ve turnike sistemi', amount: 95_000, days: 5, state: 'İşveren onayında', requestedBy: 'İşveren', impact: ['Maliyet', 'Süre'],
+    request: { ref: 'İY-2026-037', date: '2026-08-18', text: 'Ana girişe güvenlik kulübesi, araç bariyeri ve personel turnikesi eklenmesi.' } },
+  { no: 'CO-06', title: 'Cephede ek güneş paneli taşıyıcıları', amount: 240_000, days: 12, state: 'İşveren onayında', requestedBy: 'Yüklenici önerisi', impact: ['Dizayn', 'Maliyet', 'Süre'],
+    request: { ref: 'YT-2026-008', date: '2026-08-02', text: 'Yüklenici önerisi: güney cephesine GES taşıyıcı konstrüksiyonu; işveren enerji danışmanı inceliyor.' } },
+  { no: 'CO-07', title: 'Depo A zemin kotunun yükseltilmesi', amount: 70_000, days: 0, state: 'Reddedildi', requestedBy: 'Yüklenici önerisi', impact: ['Dizayn', 'Maliyet'],
+    request: { ref: 'YT-2026-003', date: '2026-03-15', text: 'Yüklenici önerisi: taşkın riskine karşı zemin kotunun 15 cm yükseltilmesi. İşveren mevcut drenajı yeterli buldu.' } },
 ]
 
 export interface Claim {
   no: string
   title: string
   basis: string
+  /** Talep edilen bedel ve süre */
   amount: number
   days: number
+  /** Onaylananda işverenin kabul ettiği bedel ve süre */
+  approvedAmount?: number
+  approvedDays?: number
   /** Olay tarihi ve bildirim son günü (time-bar) */
   eventDate: string
   noticeDue: string
   noticed: boolean
-  state: 'Bildirim bekliyor' | 'Bildirildi' | 'Değerlendirmede' | 'Kısmen kabul'
+  state: 'Onaylandı' | 'Reddedildi' | 'Devam ediyor'
+  impact: Impact[]
 }
 
 export const claims: Claim[] = [
-  { no: 'CL-01', title: 'Parsel B yer tesliminin 21 gün gecikmesi', basis: 'Sözleşme md. 2.1 — saha erişimi', amount: 310_000, days: 21, eventDate: '2026-03-02', noticeDue: '2026-03-30', noticed: true, state: 'Kısmen kabul' },
-  { no: 'CL-02', title: 'Depo C çatı makası tasarım revizyonu', basis: 'Sözleşme md. 13.1 — değişiklik', amount: 240_000, days: 18, eventDate: '2026-06-15', noticeDue: '2026-07-13', noticed: true, state: 'Değerlendirmede' },
-  { no: 'CL-03', title: 'Elektrik bağlantı izninin gecikmesi', basis: 'Sözleşme md. 8.5 — kamu kurumu gecikmesi', amount: 140_000, days: 12, eventDate: '2026-09-08', noticeDue: '2026-10-06', noticed: false, state: 'Bildirim bekliyor' },
+  { no: 'CL-01', title: 'Parsel B yer tesliminin gecikmesi', basis: 'Sözleşme md. 2.1 — saha erişimi', amount: 110_000, days: 12, approvedAmount: 106_500, approvedDays: 12, eventDate: '2026-03-02', noticeDue: '2026-03-30', noticed: true, state: 'Onaylandı', impact: ['Süre', 'Maliyet'] },
+  { no: 'CL-02', title: 'Depo C çatı makası tasarım revizyonu', basis: 'Sözleşme md. 13.1 — değişiklik', amount: 96_400, days: 10, approvedAmount: 93_600, approvedDays: 9, eventDate: '2026-06-15', noticeDue: '2026-07-13', noticed: true, state: 'Onaylandı', impact: ['Dizayn', 'Süre', 'Maliyet'] },
+  { no: 'CL-03', title: 'Elektrik bağlantı izninin gecikmesi', basis: 'Sözleşme md. 8.5 — kamu kurumu gecikmesi', amount: 44_250, days: 28, eventDate: '2026-09-08', noticeDue: '2026-10-06', noticed: false, state: 'Devam ediyor', impact: ['Süre', 'Maliyet'] },
+  { no: 'CL-04', title: 'Zemin etüdü farkı nedeniyle temel derinleşmesi', basis: 'Sözleşme md. 4.12 — öngörülemeyen zemin', amount: 68_250, days: 8, approvedAmount: 66_100, approvedDays: 8, eventDate: '2025-03-20', noticeDue: '2025-04-17', noticed: true, state: 'Onaylandı', impact: ['Dizayn', 'Maliyet'] },
+  { no: 'CL-05', title: 'İşveren kaynaklı uygulama projesi onay gecikmesi', basis: 'Sözleşme md. 1.9 — gecikmiş çizimler', amount: 61_513, days: 6, approvedAmount: 59_400, approvedDays: 6, eventDate: '2025-06-10', noticeDue: '2025-07-08', noticed: true, state: 'Onaylandı', impact: ['Süre'] },
+  { no: 'CL-06', title: 'Ek kat için uzayan şantiye genel gideri', basis: 'Sözleşme md. 13.3 — değişiklik usulü', amount: 54_000, days: 5, approvedAmount: 52_300, approvedDays: 5, eventDate: '2025-05-02', noticeDue: '2025-05-30', noticed: true, state: 'Onaylandı', impact: ['Maliyet', 'Personel'] },
+  { no: 'CL-07', title: 'İtfaiye ek talebi: ilave hidrant hattı', basis: 'Sözleşme md. 13.7 — mevzuat değişikliği', amount: 42_000, days: 3, approvedAmount: 40_569, approvedDays: 2, eventDate: '2026-05-14', noticeDue: '2026-06-11', noticed: true, state: 'Onaylandı', impact: ['Dizayn', 'Maliyet'] },
+  { no: 'CL-08', title: 'Rampa değişikliğinde ekip bekleme süresi', basis: 'Sözleşme md. 8.4 — işveren kaynaklı gecikme', amount: 35_000, days: 2, approvedAmount: 33_900, approvedDays: 2, eventDate: '2026-02-20', noticeDue: '2026-03-20', noticed: true, state: 'Onaylandı', impact: ['Personel', 'Süre'] },
+  { no: 'CL-09', title: 'Mart ayı yoğun yağış için süre uzatımı', basis: 'Sözleşme md. 8.4 — olağanüstü iklim', amount: 98_500, days: 21, eventDate: '2026-03-28', noticeDue: '2026-04-25', noticed: true, state: 'Reddedildi', impact: ['Süre'] },
+  { no: 'CL-10', title: 'Çelik fiyat artışı farkı', basis: 'Sözleşme md. 13.8 — fiyat ayarlaması', amount: 72_589, days: 17, eventDate: '2025-11-03', noticeDue: '2025-12-01', noticed: true, state: 'Reddedildi', impact: ['Maliyet'] },
+  { no: 'CL-11', title: 'Kule vinç arızası kaynaklı bekleme', basis: 'Sözleşme md. 8.4 — gecikme', amount: 40_000, days: 12, eventDate: '2026-01-15', noticeDue: '2026-02-12', noticed: true, state: 'Reddedildi', impact: ['Personel', 'Süre'] },
+]
+
+/* ---------------- Puantaj ve kadro yapısı ---------------- */
+
+/** Son 7 günün puantajı: meslek grubu başına günlük kişi; ana firma / taşeron ve direkt / endirekt ayrımı */
+export const timesheet = [
+  { group: 'Teknik ofis ve mühendis', employer: 'Ana firma', kind: 'Endirekt', days: [16, 16, 16, 15, 16, 8, 0] },
+  { group: 'Kalıpçı', employer: 'Taşeron', kind: 'Direkt', days: [34, 34, 33, 34, 32, 30, 0] },
+  { group: 'Demirci', employer: 'Taşeron', kind: 'Direkt', days: [28, 28, 27, 28, 28, 24, 0] },
+  { group: 'Duvarcı', employer: 'Taşeron', kind: 'Direkt', days: [31, 31, 30, 31, 31, 28, 0] },
+  { group: 'Çelik montajcı', employer: 'Taşeron', kind: 'Direkt', days: [30, 30, 30, 29, 30, 30, 18] },
+  { group: 'Elektrikçi', employer: 'Taşeron', kind: 'Direkt', days: [18, 18, 17, 18, 18, 12, 0] },
+  { group: 'Tesisatçı', employer: 'Taşeron', kind: 'Direkt', days: [19, 19, 19, 18, 19, 14, 0] },
+  { group: 'Düz işçi', employer: 'Ana firma', kind: 'Direkt', days: [66, 64, 66, 65, 66, 50, 12] },
+  { group: 'İSG ve güvenlik', employer: 'Ana firma', kind: 'Endirekt', days: [12, 12, 12, 12, 12, 12, 12] },
+  { group: 'İdari işler ve depo', employer: 'Ana firma', kind: 'Endirekt', days: [9, 9, 9, 9, 9, 5, 0] },
+]
+export const timesheetDays = ['21 Eyl Pzt', '22 Eyl Sal', '23 Eyl Çar', '24 Eyl Per', '25 Eyl Cum', '26 Eyl Cmt', '27 Eyl Paz']
+
+/** Makine-ekipman: ana firma / taşeron ve direkt (imalatta) / endirekt (genel hizmet) ayrımı ve son 7 gün çalışma saati */
+export const machineLog = [
+  { name: 'Mobil vinç 100 t', employer: 'Taşeron', kind: 'Direkt', days: [18, 20, 16, 20, 18, 10, 0] },
+  { name: 'Kule vinç', employer: 'Ana firma', kind: 'Direkt', days: [20, 20, 20, 19, 20, 16, 8] },
+  { name: 'Ekskavatör (paletli)', employer: 'Ana firma', kind: 'Direkt', days: [32, 30, 32, 31, 32, 20, 0] },
+  { name: 'Telehandler', employer: 'Taşeron', kind: 'Direkt', days: [36, 38, 35, 38, 36, 24, 0] },
+  { name: 'Beton pompası', employer: 'Taşeron', kind: 'Direkt', days: [8, 0, 10, 0, 9, 0, 0] },
+  { name: 'Forklift', employer: 'Ana firma', kind: 'Endirekt', days: [24, 24, 22, 24, 24, 12, 0] },
+  { name: 'Jeneratör', employer: 'Ana firma', kind: 'Endirekt', days: [96, 96, 96, 96, 96, 96, 96] },
+]
+
+/** inxsa harcama logu: hangi gün hangi kaleme kaç kişi, kaç saat harcandı ve ne kadar imalat çıktı */
+export const phrsLog = [
+  { date: '2026-09-26', item: 'Tuğla bölme duvar', zone: 'Ofis bloğu 2. kat', crew: 'Öz Duvar · 8 kişi', hours: 64, qty: 24, unit: 'm²', planRate: 2.0, by: 'b.yildiz' },
+  { date: '2026-09-26', item: 'Sandviç panel montajı', zone: 'Depo B batı cephe', crew: 'Panelsan · 12 kişi', hours: 96, qty: 92, unit: 'm²', planRate: 0.9, by: 'm.aydin' },
+  { date: '2026-09-26', item: 'Çelik montaj', zone: 'Depo C aks 4–7', crew: 'Kuzey Çelik · 14 kişi', hours: 140, qty: 5.4, unit: 'ton', planRate: 22, by: 'm.aydin' },
+  { date: '2026-09-25', item: 'Epoksi zemin', zone: 'Depo A kuzey', crew: 'Zemin Pro · 10 kişi', hours: 220, qty: 650, unit: 'm²', planRate: 0.35, by: 'o.kara' },
+  { date: '2026-09-25', item: 'Tuğla bölme duvar', zone: 'Ofis bloğu 2. kat', crew: 'Öz Duvar · 8 kişi', hours: 64, qty: 26, unit: 'm²', planRate: 2.0, by: 'b.yildiz' },
+  { date: '2026-09-25', item: 'Sıva ve boya', zone: 'Ofis bloğu 1. kat', crew: 'Ana firma · 6 kişi', hours: 48, qty: 78, unit: 'm²', planRate: 0.6, by: 'b.yildiz' },
+  { date: '2026-09-24', item: 'Betonarme (kalıp + donatı + beton)', zone: 'Pompa dairesi', crew: 'Marmara Yapı · 16 kişi', hours: 128, qty: 12, unit: 'm³', planRate: 9.5, by: 'o.kara' },
+  { date: '2026-09-24', item: 'Sandviç panel montajı', zone: 'Depo B batı cephe', crew: 'Panelsan · 12 kişi', hours: 96, qty: 88, unit: 'm²', planRate: 0.9, by: 'm.aydin' },
+]
+
+/* ---------------- Verimsizlik takibi (imalat, malzeme, makine, personel) ---------------- */
+
+export const materialWaste = [
+  { item: 'Hazır beton C30/37', unit: 'm³', plan: 9_200, used: 9_610, normal: 2, cost: 88_000, reason: 'Kalıp sızıntısı ve fazla döküm' },
+  { item: 'İnşaat demiri', unit: 'ton', plan: 1_140, used: 1_186, normal: 3, cost: 24_500, reason: 'Kesim firesi — kesim planı yok' },
+  { item: 'Tuğla (19 luk)', unit: 'ad', plan: 66_000, used: 71_300, normal: 5, cost: 6_200, reason: 'Taşımada kırılma' },
+  { item: 'Sandviç panel', unit: 'm²', plan: 23_100, used: 23_480, normal: 1, cost: 13_300, reason: 'Ölçü hatası — 18 panel yeniden sipariş' },
+  { item: 'Epoksi kaplama', unit: 'kg', plan: 21_600, used: 22_150, normal: 2, cost: 7_900, reason: 'Nemli zeminde ikinci kat' },
+]
+
+export const machineWaste = [
+  { cause: 'Arıza ve bakım', hours: 1_240 },
+  { cause: 'Malzeme bekleme', hours: 980 },
+  { cause: 'Hava koşulları', hours: 610 },
+  { cause: 'Operatör yok / vardiya', hours: 470 },
+  { cause: 'İş cephesi hazır değil', hours: 300 },
+]
+
+export const staffWaste = [
+  { cause: 'Ekip verimi düşük', hours: 5_400 },
+  { cause: 'Malzeme / ekipman bekleme', hours: 3_900 },
+  { cause: 'Revizyon ve söküm', hours: 2_800 },
+  { cause: 'Hava koşulları', hours: 1_500 },
+  { cause: 'İş cephesi çakışması', hours: 936 },
 ]
 
 /* ---------------- Günlük rapor ---------------- */
