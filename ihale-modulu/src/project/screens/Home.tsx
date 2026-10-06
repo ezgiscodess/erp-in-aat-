@@ -102,7 +102,7 @@ export function Home({ onGo, persona }: { onGo: (k: string) => void; persona: Pe
         right={<Btn onClick={() => setShowDocs(true)} title="İhale ve proje dönemi doküman setleri">Doküman setleri</Btn>}
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <Kpi label="Fiziksel ilerleme" value={pct(actual)} sub={`Planlanan ${pct(planned, 1)}`} tone="accent"
           help="Sahada onaylanan imalat miktarlarının metraj ağırlığıyla toplamı. Planlanan değer işverenle mutabık programdan gelir." />
         <Kpi label="Sözleşme bedeli" value={moneyShort(prj.contractValue + prj.approvedChange, prj.currency)}
@@ -185,13 +185,13 @@ export function Home({ onGo, persona }: { onGo: (k: string) => void; persona: Pe
               ].map((x) => (
                 <div key={x.l} className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1.5">
                   <div className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--faint)]">{x.l}</div>
-                  <div className="text-[18px] font-bold tnum" style={{ color: `var(--${x.tone})` }}>{x.v}</div>
+                  <div className="text-[18px] font-bold tnum" style={{ color: `var(--${x.tone}-ink)` }}>{x.v}</div>
                 </div>
               ))}
             </div>
             <div className="mt-2 flex gap-2 rounded-md px-2.5 py-1.5 text-[12px]" style={{ background: `var(--${verdict.tone}-bg)` }}>
-              <span className="font-bold" style={{ color: `var(--${verdict.tone})` }}>{verdict.tone === 'crit' ? '✕' : verdict.tone === 'warn' ? '!' : '✓'}</span>
-              <span className="leading-snug text-[var(--ink)]">{verdict.text}<b className="block" style={{ color: `var(--${verdict.tone})` }}>→ {verdict.todo}</b></span>
+              <span className="font-bold" style={{ color: `var(--${verdict.tone}-ink)` }}>{verdict.tone === 'crit' ? '✕' : verdict.tone === 'warn' ? '!' : '✓'}</span>
+              <span className="leading-snug text-[var(--ink)]">{verdict.text}<b className="block" style={{ color: `var(--${verdict.tone}-ink)` }}>→ {verdict.todo}</b></span>
             </div>
             <div className="mt-3">
               <MultiLine height={150} today={prj.today - 1} labels={plannedCum.map((_, i) => monthName(i + 1))}
@@ -203,7 +203,7 @@ export function Home({ onGo, persona }: { onGo: (k: string) => void; persona: Pe
             </div>
             <div className="mt-2 flex flex-col gap-1.5">
               <Legend items={[{ label: 'EV kazanılan', color: 'var(--series-1)' }, { label: 'PV planlanan', color: 'var(--series-2)', dashed: true }, { label: 'AC maliyet', color: 'var(--series-3)', dashed: true }]} />
-              <span className="text-[11px] text-[var(--muted)]">Öngörülen bitiş <b style={{ color: 'var(--warn)' }}>{date(prj.forecastFinish)} (+{slip} gün)</b></span>
+              <span className="text-[11px] text-[var(--muted)]">Öngörülen bitiş <b style={{ color: 'var(--warn-ink)' }}>{date(prj.forecastFinish)} (+{slip} gün)</b></span>
             </div>
           </Card>
         </div>
@@ -219,14 +219,14 @@ export function Home({ onGo, persona }: { onGo: (k: string) => void; persona: Pe
               return (
                 <div key={r.id} className="flex items-center gap-3 border-b border-[var(--border)] px-4 py-2 last:border-0">
                   <span className="w-4 text-[12px] font-bold text-[var(--faint)] tnum">{i + 1}</span>
-                  <span className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-md text-[13px] font-bold tnum" style={{ background: `var(--${tone}-bg)`, color: `var(--${tone})` }}
+                  <span className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-md text-[13px] font-bold tnum" style={{ background: `var(--${tone}-bg)`, color: `var(--${tone}-ink)` }}
                     title={`Olasılık ${r.p} × Etki ${r.i}`}>{score}</span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[12.5px] font-semibold text-[var(--ink)]">{r.title}</div>
                     <div className="truncate text-[11.5px] text-[var(--muted)]"><span className="mono">{r.id}</span> · {r.owner} · {r.action}</div>
                   </div>
                   <span className="text-[13px] font-bold" title={r.trend === 'up' ? 'Artıyor' : r.trend === 'down' ? 'Azalıyor' : 'Değişmedi'}
-                    style={{ color: r.trend === 'up' ? 'var(--crit)' : r.trend === 'down' ? 'var(--ok)' : 'var(--faint)' }}>{r.trend === 'up' ? '↑' : r.trend === 'down' ? '↓' : '→'}</span>
+                    style={{ color: r.trend === 'up' ? 'var(--crit-ink)' : r.trend === 'down' ? 'var(--ok-ink)' : 'var(--faint)' }}>{r.trend === 'up' ? '↑' : r.trend === 'down' ? '↓' : '→'}</span>
                 </div>
               )
             })}
@@ -327,7 +327,7 @@ function StatusBox({ title, total, approved, counts, onClick }: { title: string;
       <span className="mt-2.5 grid grid-cols-3 gap-1.5">
         {([['Onaylandı', 'ok'], ['Devam ediyor', 'warn'], ['Reddedildi', 'crit']] as const).map(([l, t], i) => (
           <span key={l} className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5 text-center">
-            <span className="block text-[18px] font-bold leading-tight tnum" style={{ color: `var(--${t})` }}>{counts[i]}</span>
+            <span className="block text-[18px] font-bold leading-tight tnum" style={{ color: `var(--${t}-ink)` }}>{counts[i]}</span>
             <span className="block text-[10.5px] text-[var(--muted)]">{l}</span>
           </span>
         ))}

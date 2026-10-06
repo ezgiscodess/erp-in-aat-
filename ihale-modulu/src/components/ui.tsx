@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { Severity } from '../data/types'
 
-export type Tone = 'ok' | 'warn' | 'crit' | 'neutral' | 'accent' | 'gold'
+export type Tone = 'ok' | 'warn' | 'crit' | 'info' | 'neutral' | 'accent' | 'gold'
 
 /* ---------------- Kart ---------------- */
 
@@ -12,11 +12,11 @@ export function Card({ title, subtitle, right, children, pad = true, help, fill 
   fill?: boolean
 }) {
   return (
-    <section className={`rounded-lg border border-[var(--border)] bg-[var(--surface)] ${fill ? 'flex h-full flex-col' : ''}`}>
+    <section className={`card ${fill ? 'flex h-full flex-col' : ''}`}>
       {(title || right) && (
-        <header className="flex items-center gap-3 border-b border-[var(--border)] px-4 py-2.5">
+        <header className="flex min-h-[52px] items-center gap-3 border-b border-[var(--border)] px-4 py-2">
           <div className="flex min-w-0 items-center gap-1.5">
-            {title && <h3 className="truncate text-[13.5px] font-semibold text-[var(--ink)]">{title}</h3>}
+            {title && <h3 className="truncate text-[14px] font-semibold text-[var(--ink)]">{title}</h3>}
             {help ? <Help text={help} /> : subtitle ? <span className="truncate text-[12px] text-[var(--muted)]">· {subtitle}</span> : null}
           </div>
           <div className="ml-auto flex flex-shrink-0 items-center gap-2">{right}</div>
@@ -29,8 +29,11 @@ export function Card({ title, subtitle, right, children, pad = true, help, fill 
 
 /* ---------------- Buton ---------------- */
 
-export function Btn({ children, primary, disabled, onClick, title, small, minW }: {
-  children: ReactNode; primary?: boolean; disabled?: boolean; onClick?: () => void; title?: string; small?: boolean
+export function Btn({ children, primary, danger, disabled, onClick, title, small, minW }: {
+  children: ReactNode; primary?: boolean
+  /** Yıkıcı işlem (sil, iptal et) — yalnızca bu durumda kırmızı */
+  danger?: boolean
+  disabled?: boolean; onClick?: () => void; title?: string; small?: boolean
   /** Aynı sütundaki düğmelerin eşit genişlikte durması için */
   minW?: number
 }) {
@@ -39,13 +42,8 @@ export function Btn({ children, primary, disabled, onClick, title, small, minW }
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className={`rounded-md border text-center font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${small ? 'px-2 py-1 text-[12px]' : 'px-3 py-1.5 text-[12.5px]'}`}
-      style={{
-        minWidth: minW,
-        ...(primary
-          ? { background: 'var(--accent)', color: '#fff', borderColor: 'var(--accent)' }
-          : { background: 'var(--surface-2)', color: 'var(--muted)', borderColor: 'var(--border)' }),
-      }}
+      className={`btn ${primary ? 'btn-primary' : danger ? 'btn-danger' : ''} inline-flex items-center justify-center gap-1.5 whitespace-nowrap border text-center font-medium disabled:cursor-not-allowed disabled:opacity-45 ${small ? 'h-8 px-3 text-[12px]' : 'h-9 px-4 text-[13px]'}`}
+      style={{ minWidth: minW }}
     >
       {children}
     </button>
@@ -55,7 +53,7 @@ export function Btn({ children, primary, disabled, onClick, title, small, minW }
 /* ---------------- Rozetler ---------------- */
 
 export function Badge({ children, tone = 'neutral', dot }: { children: ReactNode; tone?: Tone; dot?: boolean }) {
-  const fg = tone === 'accent' ? 'var(--accent)' : `var(--${tone})`
+  const fg = `var(--${tone}-ink)`
   const bg = tone === 'accent' ? 'var(--accent-soft)' : `var(--${tone}-bg)`
   return (
     <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: bg, color: fg }}>
@@ -99,12 +97,14 @@ export function AddonBadge({ children = 'Ek Paket' }: { children?: ReactNode }) 
 
 /* ---------------- KPI kutusu ---------------- */
 
-export function Kpi({ label, value, sub, tone = 'neutral', wide, help }: {
+export function Kpi({ label, value, sub, tone = 'neutral', wide, help, onClick }: {
   label: string; value: ReactNode; sub?: ReactNode; tone?: Tone; wide?: boolean; help?: string
+  /** Verilirse kutu tıklanabilir olur (ör. ilgili listeye iner) */
+  onClick?: () => void
 }) {
-  const fg = tone === 'accent' ? 'var(--accent)' : tone === 'neutral' ? 'var(--ink)' : `var(--${tone})`
+  const fg = tone === 'neutral' ? 'var(--ink)' : `var(--${tone}-ink)`
   return (
-    <div className={`rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3.5 py-3 ${wide ? 'col-span-2' : ''}`}>
+    <div onClick={onClick} className={`card lift px-4 py-3 ${wide ? 'sm:col-span-2' : ''} ${onClick ? 'cursor-pointer hover:border-[var(--accent)]' : ''}`}>
       <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">
         {label}{help && <Help text={help} title={label} />}
       </div>
@@ -129,7 +129,7 @@ export function Bar({ value, tone = 'accent', height = 6 }: { value: number; ton
 
 export function Table({ children, head, dense }: { children: ReactNode; head: ReactNode; dense?: boolean }) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-[var(--border)] bg-[var(--surface)]">
+    <div className="tbl-wrap overflow-x-auto card">
       <table className={`w-full border-collapse text-[13px] ${dense ? 'dense-table' : ''}`}>
         <thead>{head}</thead>
         <tbody>{children}</tbody>
@@ -140,7 +140,7 @@ export function Table({ children, head, dense }: { children: ReactNode; head: Re
 
 export function Th({ children, w, right, center }: { children: ReactNode; w?: number; right?: boolean; center?: boolean }) {
   return (
-    <th className={`whitespace-nowrap border-b border-r border-[var(--border)] bg-[var(--surface-3)] px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-[var(--muted)] ${right ? 'text-right' : center ? 'text-center' : 'text-left'}`}
+    <th className={`h-10 whitespace-nowrap border-b border-r border-[var(--border)] bg-[var(--surface-3)] px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)] ${right ? 'text-right' : center ? 'text-center' : 'text-left'}`}
       style={{ minWidth: w }}>
       {children}
     </th>
@@ -154,7 +154,7 @@ export function Td({ children, right, mono, nowrap, center, className = '' }: {
   className?: string
 }) {
   return (
-    <td className={`border-b border-r border-[var(--border)] px-3 py-1.5 align-top ${center ? 'text-center' : ''} ${right ? 'text-right tnum' : ''} ${mono ? 'mono text-[12px]' : ''} ${nowrap ? 'whitespace-nowrap' : ''} ${className}`}>
+    <td className={`border-b border-r border-[var(--border)] px-3 py-2 align-middle ${center ? 'text-center' : ''} ${right ? 'text-right tnum' : ''} ${mono ? 'mono text-[12px]' : ''} ${nowrap ? 'whitespace-nowrap' : ''} ${className}`}>
       {children}
     </td>
   )
@@ -221,13 +221,18 @@ export function SectionTitle({ children, right }: { children: ReactNode; right?:
 }
 
 /** Sayfa başlığı + "?" bilgi balonu + sağdaki aksiyonlar */
-export function PageHead({ title, note, right }: { title: string; note: string; right?: ReactNode }) {
+export function PageHead({ title, note, right, left }: {
+  title: string; note: string; right?: ReactNode
+  /** Başlığın hemen yanındaki düğmeler (ör. seçili standart) */
+  left?: ReactNode
+}) {
   return (
     <div className="flex flex-wrap items-center gap-3 border-b border-[var(--border)] pb-3">
       <div className="flex min-w-0 items-center gap-1.5">
         <h1 className="text-[16px] font-bold tracking-tight text-[var(--ink)]">{title}</h1>
         <Help text={note} />
       </div>
+      {left && <div className="flex items-center gap-2">{left}</div>}
       <div className="ml-auto flex flex-wrap items-center gap-2">{right}</div>
     </div>
   )
@@ -368,7 +373,7 @@ export function PreviewPane({ title, preview, editable, user = 'e.yilmaz', log =
 
   return (
     <div className="flex flex-col gap-3">
-      <section className="flex flex-col rounded-lg border border-[var(--border)] bg-[var(--surface)]">
+      <section className="flex flex-col card">
         <header className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
           <span className="text-[12.5px] font-semibold text-[var(--ink)]">{title ?? 'Önizleme'}</span>
           <span className="mono text-[11.5px] text-[var(--muted)]">{preview.doc}</span>
@@ -569,7 +574,7 @@ export function DocViewer({ title = 'Kaynak', doc, page, pages, clause, body, hi
   const list = Array.from({ length: range.to - range.from + 1 }, (_, i) => range.from + i)
 
   return (
-    <section className="flex flex-col rounded-lg border border-[var(--border)] bg-[var(--surface)]">
+    <section className="flex flex-col card">
       <header className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
         <span className="text-[12.5px] font-semibold text-[var(--ink)]">{title}</span>
         <span className="mono truncate text-[11.5px] text-[var(--muted)]">{doc}</span>
@@ -695,16 +700,20 @@ export function StickyPane({ children }: { children: ReactNode }) {
 
 /* ---------------- Form alanı ---------------- */
 
-export function Field({ label, value, onChange, placeholder, type = 'text', hint }: {
+export function Field({ label, value, onChange, placeholder, type = 'text', hint, required }: {
   label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; hint?: string
+  /** Zorunlu alan — etiketin yanında kırmızı yıldız */
+  required?: boolean
 }) {
   return (
-    <label className="flex flex-col gap-1">
-      <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">{label}</span>
+    <label className="flex flex-col gap-1.5">
+      <span className="text-[12px] font-medium text-[var(--ink)]">
+        {label}{required && <span className="ml-0.5 text-[var(--crit-ink)]" aria-label="zorunlu">*</span>}
+      </span>
       <input
-        type={type} value={value} placeholder={placeholder}
+        type={type} value={value} placeholder={placeholder} required={required}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-2 text-[13px] text-[var(--ink)] outline-none focus:border-[var(--accent)]"
+        className="h-10 rounded-md border border-[var(--border-strong)] bg-[var(--surface)] px-3 text-[13px] text-[var(--ink)] outline-none placeholder:text-[var(--faint)]"
       />
       {hint && <span className="text-[11px] text-[var(--faint)]">{hint}</span>}
     </label>
@@ -718,10 +727,10 @@ export function Modal({ title, note, onClose, children, footer, wide }: {
   title: string; note?: string; onClose: () => void; children: ReactNode; footer?: ReactNode; wide?: boolean
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[rgba(16,24,40,0.45)] p-6" onClick={onClose}>
+    <div className="backdrop fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[rgba(15,23,42,0.40)] p-4 sm:p-6" onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`mt-10 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl ${wide ? 'max-w-3xl' : 'max-w-xl'}`}
+        className={`pop mt-10 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl ${wide ? 'max-w-3xl' : 'max-w-xl'}`}
       >
         <header className="flex items-start gap-3 border-b border-[var(--border)] px-5 py-3.5">
           <div className="min-w-0">
@@ -741,19 +750,21 @@ export function Modal({ title, note, onClose, children, footer, wide }: {
 /* ---------------- Dosya bırakma alanı ---------------- */
 
 /** Görsel prototipte gerçek yükleme yapılmaz; seçilen dosyalar listelenir. */
-export function Dropzone({ files, onAdd, onRemove }: {
+export function Dropzone({ files, onAdd, onRemove, samples = [
+  'Idari Sartname.pdf', 'Sozlesme Tasarisi.pdf', 'Teknik Sartname.pdf',
+  'Birim Fiyat Teklif Cetveli.xlsx', 'Cizimler.pdf', 'Zeyilname-01.pdf',
+], hint = 'PDF, Word, Excel ve çizim dosyaları · taranmış belgeler OCR ile okunur' }: {
   files: string[]; onAdd: (names: string[]) => void; onRemove: (name: string) => void
+  /** Prototipte tek tıkla eklenebilen örnek dosya adları */
+  samples?: string[]
+  hint?: string
 }) {
-  const samples = [
-    'Idari Sartname.pdf', 'Sozlesme Tasarisi.pdf', 'Teknik Sartname.pdf',
-    'Birim Fiyat Teklif Cetveli.xlsx', 'Cizimler.pdf', 'Zeyilname-01.pdf',
-  ]
   return (
     <div className="flex flex-col gap-2">
       <div className="rounded-lg border-2 border-dashed border-[var(--border-strong)] bg-[var(--surface-2)] px-4 py-6 text-center">
         <div className="text-[20px]">📄</div>
         <div className="mt-1 text-[13px] font-medium text-[var(--ink)]">Dosyaları buraya sürükleyin</div>
-        <div className="mt-0.5 text-[11.5px] text-[var(--muted)]">PDF, Word, Excel ve çizim dosyaları · taranmış belgeler OCR ile okunur</div>
+        <div className="mt-0.5 text-[11.5px] text-[var(--muted)]">{hint}</div>
         <div className="mt-3 flex flex-wrap justify-center gap-1.5">
           {samples.filter((s) => !files.includes(s)).slice(0, 3).map((s) => (
             <button key={s} onClick={() => onAdd([s])}
@@ -769,7 +780,7 @@ export function Dropzone({ files, onAdd, onRemove }: {
             <li key={f} className="flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-[12.5px]">
               <span className="text-[var(--ink)]">{f}</span>
               <Badge tone="warn">yüklenecek</Badge>
-              <button onClick={() => onRemove(f)} className="ml-auto text-[12px] text-[var(--faint)] hover:text-[var(--crit)]">kaldır</button>
+              <button onClick={() => onRemove(f)} className="ml-auto text-[12px] text-[var(--faint)] hover:text-[var(--crit-ink)]">kaldır</button>
             </li>
           ))}
         </ul>
@@ -824,10 +835,8 @@ export function IconBtn({ icon, title, onClick, disabled, primary }: {
       disabled={disabled}
       title={title ?? ICON_TITLE[icon]}
       aria-label={title ?? ICON_TITLE[icon]}
-      className={`group inline-grid h-[26px] w-[26px] flex-shrink-0 place-items-center rounded-md border transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${danger ? 'hover:border-[var(--crit)] hover:text-[var(--crit)]' : 'hover:border-[var(--accent)] hover:text-[var(--accent)]'}`}
-      style={primary
-        ? { background: 'var(--accent)', borderColor: 'var(--accent)', color: '#fff' }
-        : { background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--muted)' }}
+      className={`group inline-grid h-8 w-8 flex-shrink-0 place-items-center rounded-md border transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${primary ? 'btn-primary' : danger ? 'hover:border-[var(--crit)] hover:bg-[var(--crit-bg)] hover:text-[var(--crit-ink)]' : 'hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]'}`}
+      style={primary ? undefined : { background: 'var(--surface)', borderColor: 'var(--border-strong)', color: 'var(--muted)' }}
     >
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
         {ICON_PATH[icon]}
@@ -857,15 +866,13 @@ export function RowActions({ onOpen, onEdit, onDelete, disabled, name, openDisab
       {onEdit && <IconBtn icon="edit" onClick={onEdit} disabled={disabled} />}
       {onDelete && <IconBtn icon="delete" onClick={() => setAsking(true)} disabled={disabled} />}
       {asking && (
-        <span className="absolute right-0 top-[30px] z-50 flex w-56 flex-col gap-2 rounded-md border border-[var(--border)] bg-[var(--surface)] p-2.5 text-left text-[12px] font-normal normal-case tracking-normal shadow-lg">
+        <span className="pop absolute right-0 top-9 z-50 flex w-56 flex-col gap-2 rounded-md border border-[var(--border)] bg-[var(--surface)] p-2.5 text-left text-[12px] font-normal normal-case tracking-normal shadow-lg">
           <span className="whitespace-normal text-[var(--ink)]">
             {name ? <><b>{name}</b> silinsin mi?</> : 'Bu kayıt silinsin mi?'}
           </span>
           <span className="flex justify-end gap-1.5">
             <Btn small onClick={() => setAsking(false)}>Vazgeç</Btn>
-            <button onClick={() => { setAsking(false); onDelete?.() }}
-              className="rounded-md border px-2 py-1 text-[12px] font-medium text-white"
-              style={{ background: 'var(--crit)', borderColor: 'var(--crit)' }}>Sil</button>
+            <Btn small danger onClick={() => { setAsking(false); onDelete?.() }}>Sil</Btn>
           </span>
         </span>
       )}
@@ -1057,7 +1064,7 @@ export function RedlineText({ body, edits }: { body: string; edits: Redline[] })
             <div key={e.at} className="mb-2 text-[10.5px] leading-snug text-[var(--muted)]">
               <div className="font-semibold text-[var(--ink)]">{e.by}</div>
               <div>{e.at}</div>
-              <div style={{ color: e.added ? 'var(--gold)' : 'var(--crit)' }}>{e.added ? 'ekledi' : 'çıkardı'}</div>
+              <div style={{ color: e.added ? 'var(--gold)' : 'var(--crit-ink)' }}>{e.added ? 'ekledi' : 'çıkardı'}</div>
             </div>
           ))}
         </div>

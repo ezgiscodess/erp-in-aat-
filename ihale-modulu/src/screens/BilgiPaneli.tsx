@@ -43,7 +43,7 @@ export function BilgiPaneli({ writable, role }: { writable: boolean; role: strin
 
       {!writable && <ReadOnlyNote role={role} />}
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <Kpi label="Teklife kalan" value={`${project.daysLeft} gün`} sub={date(project.bidDueAt)} tone={project.daysLeft < 30 ? 'warn' : 'neutral'}
           help="Teklif teslim tarihine kalan takvim günü. Zeyilname ile tarih değişirse buradan güncellenir." />
         <Kpi label="Yaklaşık bedel" value={money(project.estimatedValue, project.currency)} sub="İdare tahmini"

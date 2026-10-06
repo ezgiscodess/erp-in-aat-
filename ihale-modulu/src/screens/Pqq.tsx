@@ -40,7 +40,7 @@ export function Pqq({ writable, role }: { writable: boolean; role: string }) {
         <Sertifikalar writable={writable} role={role} embedded />
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Kpi label={def.label} value={list.length} sub={def.note} />
             <Kpi label="Hazır" value={list.filter((r) => r.state === 'Hazır').length} sub="Teklife eklenebilir" tone="ok" />
             <Kpi label="Güncellenmeli" value={list.filter((r) => r.state === 'Güncellenmeli').length} sub="Eski tarihli" tone="warn" />

@@ -7,6 +7,29 @@ import type { ReactNode } from 'react'
  * Her grafik üzerine gelince değer gösterir; lejant her zaman vardır.
  */
 
+/**
+ * Noktalardan yumuşak eğri (monoton kübik): kümülatif seriler kırık çizgi gibi değil, S eğrisi gibi akar.
+ * Monoton olduğu için eğri hiçbir noktada geri dönmez ya da veriyi aşmaz.
+ */
+export function smoothPath(pts: [number, number][]): string {
+  const n = pts.length
+  if (n === 0) return ''
+  if (n < 3) return pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x},${y}`).join(' ')
+  const dx = pts.slice(1).map((p, i) => p[0] - pts[i][0])
+  const sl = pts.slice(1).map((p, i) => (p[1] - pts[i][1]) / (dx[i] || 1))
+  const m = pts.map((_, i) => {
+    if (i === 0) return sl[0]
+    if (i === n - 1) return sl[n - 2]
+    return sl[i - 1] * sl[i] <= 0 ? 0 : (2 * sl[i - 1] * sl[i]) / (sl[i - 1] + sl[i])
+  })
+  let d = `M${pts[0][0]},${pts[0][1]}`
+  for (let i = 0; i < n - 1; i++) {
+    const h = dx[i] / 3
+    d += ` C${pts[i][0] + h},${pts[i][1] + m[i] * h} ${pts[i + 1][0] - h},${pts[i + 1][1] - m[i + 1] * h} ${pts[i + 1][0]},${pts[i + 1][1]}`
+  }
+  return d
+}
+
 const tr = (v: number, d: number) => v.toLocaleString('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d })
 
 export function Legend({ items }: { items: { label: string; color: string; dashed?: boolean }[] }) {
@@ -52,7 +75,7 @@ export function SCurve({ plan, actual, labels, today, height = 220 }: {
   const pad = { l: 34, r: 12, t: 10, b: 24 }
   const x = (i: number) => pad.l + (i / (n - 1)) * (W - pad.l - pad.r)
   const y = (v: number) => pad.t + (1 - v / 100) * (H - pad.t - pad.b)
-  const path = (arr: number[]) => arr.map((v, i) => `${i ? 'L' : 'M'}${x(i)},${y(v)}`).join(' ')
+  const path = (arr: number[]) => smoothPath(arr.map((v, i) => [x(i), y(v)]))
 
   return (
     <div ref={ref} className="relative">
@@ -97,7 +120,7 @@ export function SCurve({ plan, actual, labels, today, height = 220 }: {
           <div className="text-[var(--muted)]">Planlanan <b className="text-[var(--ink)] tnum">%{plan[hover]}</b></div>
           <div className="text-[var(--muted)]">Gerçekleşen <b className="text-[var(--ink)] tnum">{actual[hover] != null ? `%${actual[hover]}` : '—'}</b></div>
           {actual[hover] != null && (
-            <div className="text-[var(--muted)]">Sapma <b className="tnum" style={{ color: actual[hover] < plan[hover] ? 'var(--crit)' : 'var(--ok)' }}>
+            <div className="text-[var(--muted)]">Sapma <b className="tnum" style={{ color: actual[hover] < plan[hover] ? 'var(--crit-ink)' : 'var(--ok-ink)' }}>
               {tr(actual[hover] - plan[hover], 1)} puan</b></div>
           )}
         </div>
@@ -134,7 +157,7 @@ export function PairBars({ rows, format, worseWhen = 'higher' }: {
               <span className="text-[var(--ink)]">{format(r.actual)}</span>
               <span className="text-[var(--faint)]"> / {format(r.plan)}</span>
               {diff !== 0 && (
-                <span className="ml-1 font-semibold" style={{ color: bad ? 'var(--crit)' : 'var(--ok)' }}>
+                <span className="ml-1 font-semibold" style={{ color: bad ? 'var(--crit-ink)' : 'var(--ok-ink)' }}>
                   {diff > 0 ? '▲' : '▼'}
                 </span>
               )}
@@ -198,10 +221,10 @@ export function StackBar({ parts, height = 14 }: {
 export function Gauge({ label, value, good = 1, help }: { label: string; value: number; good?: number; help?: string }) {
   const tone = value >= good ? 'ok' : value >= good * 0.95 ? 'warn' : 'crit'
   return (
-    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3.5 py-3" title={help}>
+    <div className="card px-3.5 py-3" title={help}>
       <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">{label}</div>
       <div className="mt-1 flex items-baseline gap-2">
-        <span className="text-[21px] font-bold leading-tight tnum" style={{ color: `var(--${tone})` }}>{tr(value, 2)}</span>
+        <span className="text-[21px] font-bold leading-tight tnum" style={{ color: `var(--${tone}-ink)` }}>{tr(value, 2)}</span>
         <span className="text-[11.5px] text-[var(--muted)]">hedef ≥ {tr(good, 2)}</span>
       </div>
       <div className="relative mt-2 h-[6px] rounded-full bg-[var(--surface-3)]">
@@ -233,7 +256,12 @@ export function MultiLine({ series, labels, height = 180, today, max = 100, form
   const pad = { l: format ? 52 : 34, r: 10, t: 8, b: 22 }
   const x = (i: number) => pad.l + (i / (n - 1)) * (W - pad.l - pad.r)
   const y = (v: number) => pad.t + (1 - v / max) * (H - pad.t - pad.b)
-  const path = (arr: (number | null)[]) => arr.map((v, i) => (v == null ? '' : `${i && arr[i - 1] != null ? 'L' : 'M'}${x(i)},${y(v)}`)).join(' ')
+  /** Boşluklu seriler parça parça çizilir; her parça yumuşak eğridir */
+  const path = (arr: (number | null)[]) => {
+    const parts: [number, number][][] = [[]]
+    arr.forEach((v, i) => (v == null ? parts.push([]) : parts[parts.length - 1].push([x(i), y(v)])))
+    return parts.filter((p) => p.length).map(smoothPath).join(' ')
+  }
   return (
     <div ref={ref} className="relative">
       <svg width={W} height={H} className="block" onMouseLeave={() => setHover(null)}
@@ -334,9 +362,21 @@ const day = (iso: string) => new Date(iso).getTime() / 86_400_000
  * Tarihe dayalı zaman çizelgesi. Çubuğun koyu kısmı gerçekleşen ilerlemedir; kırmızı çubuk kritik yoldadır.
  * `ghost` verilirse aynı satırda ince gri çubukla karşılaştırma (plan / önceki sürüm) gösterilir.
  */
+/** Gantt'ın sol tablosundaki tarih sütunlarının toplam genişliği (başlangıç + bitiş + gün) */
+export const GANTT_DATE_W = 64 + 64 + 40
+
+const ganttDate = (iso: string) => {
+  const [y, m, d] = iso.split('-')
+  return `${d}.${m}.${y.slice(2)}`
+}
+
 export function Gantt({ rows, from, to, today, compact, labelW = 260, onRow }: {
-  rows: GanttRow[]; from: string; to: string; today?: string; compact?: boolean; labelW?: number; onRow?: (r: GanttRow) => void
+  rows: GanttRow[]; from: string; to: string; today?: string; compact?: boolean
+  /** Kod + aktivite sütunlarının genişliği; tarih sütunları (başlangıç, bitiş, gün) bunun sağına eklenir */
+  labelW?: number
+  onRow?: (r: GanttRow) => void
 }) {
+  const LW = labelW + GANTT_DATE_W
   const a = day(from)
   const b = day(to)
   const pos = (iso: string) => Math.max(0, Math.min(100, ((day(iso) - a) / (b - a)) * 100))
@@ -350,9 +390,15 @@ export function Gantt({ rows, from, to, today, compact, labelW = 260, onRow }: {
   const rowH = compact ? 22 : 28
   return (
     <div className="overflow-x-auto">
-      <div className="min-w-[760px]">
+      <div style={{ minWidth: 600 + GANTT_DATE_W }}>
         <div className="flex border-b border-[var(--border)] bg-[var(--surface-3)] text-[10px] text-[var(--muted)]">
-          <div className="flex-shrink-0 border-r border-[var(--border)] px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide" style={{ width: labelW }}>Aktivite</div>
+          <div className="flex flex-shrink-0 items-center border-r border-[var(--border)] text-[10.5px] font-bold uppercase tracking-wide" style={{ width: LW }}>
+            <span className="w-[64px] flex-shrink-0 px-3">Kod</span>
+            <span className="min-w-0 flex-1">Aktivite</span>
+            <span className="w-[64px] flex-shrink-0 text-center">Başlangıç</span>
+            <span className="w-[64px] flex-shrink-0 text-center">Bitiş</span>
+            <span className="w-[40px] flex-shrink-0 pr-2 text-right">Gün</span>
+          </div>
           <div className="relative h-7 flex-1">
             {months.map((m, i) => i % step === 0 && (
               <span key={i} className="absolute top-1.5 -translate-x-1/2 whitespace-nowrap" style={{ left: `${m.left}%` }}>{m.label}</span>
@@ -364,9 +410,12 @@ export function Gantt({ rows, from, to, today, compact, labelW = 260, onRow }: {
           const w = Math.max(0.6, pos(r.finish) - l)
           return (
             <div key={r.code} onClick={() => onRow?.(r)} className={`flex border-b border-[var(--border)] last:border-0 ${onRow ? 'cursor-pointer hover:bg-[var(--surface-2)]' : ''}`} style={{ height: rowH }}>
-              <div className="flex flex-shrink-0 items-center gap-2 border-r border-[var(--border)] px-3" style={{ width: labelW }}>
-                <span className="mono w-[52px] flex-shrink-0 text-[10.5px] text-[var(--faint)]">{r.code}</span>
-                <span className="min-w-0 flex-1 truncate text-[12px] text-[var(--ink)]" title={r.name}>{r.name}</span>
+              <div className="flex flex-shrink-0 items-center border-r border-[var(--border)]" style={{ width: LW }}>
+                <span className="mono w-[64px] flex-shrink-0 px-3 text-[10.5px] text-[var(--muted)]">{r.code}</span>
+                <span className="min-w-0 flex-1 truncate pr-1 text-[12px] text-[var(--ink)]" title={r.name}>{r.name}</span>
+                <span className="w-[64px] flex-shrink-0 text-center text-[10.5px] text-[var(--muted)] tnum">{ganttDate(r.start)}</span>
+                <span className="w-[64px] flex-shrink-0 text-center text-[10.5px] text-[var(--muted)] tnum">{ganttDate(r.finish)}</span>
+                <span className="w-[40px] flex-shrink-0 pr-2 text-right text-[10.5px] font-semibold text-[var(--ink)] tnum">{Math.round(day(r.finish) - day(r.start))}</span>
               </div>
               <div className="relative flex-1">
                 {months.map((m, i) => <span key={i} className="absolute inset-y-0 w-px bg-[var(--border)] opacity-60" style={{ left: `${m.left}%` }} />)}
@@ -537,7 +586,7 @@ export function ComboChart({ labels, bars, lines, format, height = 260 }: {
           return v > 0 && <rect key={`${i}-${j}`} x={x + 0.5} width={bw - 1} y={yb(v)} height={H - pad.b - yb(v)} rx={Math.min(2.5, bw / 3)} fill={b.color} />
         }))}
         {lines.map((l) => (
-          <path key={l.label} d={l.values.map((v, i) => `${i ? 'L' : 'M'}${cx(i)},${yl(v)}`).join(' ')} fill="none" stroke={l.color} strokeWidth="2.25"
+          <path key={l.label} d={smoothPath(l.values.map((v, i) => [cx(i), yl(v)]))} fill="none" stroke={l.color} strokeWidth="2.25"
             strokeDasharray={l.dashed ? '5 4' : undefined} strokeLinejoin="round" />
         ))}
         {hover != null && lines.map((l) => <circle key={l.label} cx={cx(hover)} cy={yl(l.values[hover])} r="3.5" fill={l.color} stroke="var(--surface)" strokeWidth="2" />)}

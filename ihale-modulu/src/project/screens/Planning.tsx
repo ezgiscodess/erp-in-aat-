@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { Badge, Btn, Card, Field, Help, IconBtn, Kpi, Modal, PageHead, RowActions, Table, Td, Th } from '../../components/ui'
 import type { Tone } from '../../components/ui'
 import { date, num } from '../../lib/format'
-import { Donut, Gantt, HistoLine, Legend, MonthColumns, MultiLine, Ring, SCurve } from '../charts'
+import { Donut, Gantt, GANTT_DATE_W, HistoLine, Legend, MonthColumns, MultiLine, Ring, SCurve } from '../charts'
 import type { GanttRow } from '../charts'
 import { actualCum, evm, monthName, plannedCum } from '../data'
 import {
@@ -99,7 +99,16 @@ function analyse(acts: Activity[]) {
   const planMach = months.map((m) => acts.reduce((t, a) => t + machinesOf(a) * (overlap(a, m.from, m.to) / days(m.from, m.to)), 0))
   const planMh = months.map((m) => acts.reduce((t, a) => t + crewOf(a) * overlap(a, m.from, m.to) * HOURS_PER_DAY, 0))
   const planCost = planMh.map((h) => h * COST_PER_HOUR)
-  const planW = months.map((m) => acts.reduce((t, a) => t + wOf(a) * (overlap(a, m.from, m.to) / (days(a.start, a.finish) || 1)), 0))
+  /**
+   * Her aktivitenin işi süresine eşit değil, çan biçiminde dağılır: başta mobilizasyon, ortada tam tempo,
+   * sonda toparlama. Kümülatif payı F(u) = u − sin(2πu)/2π; toplamı gerçek bir S eğrisi verir.
+   */
+  const elapsed = (a: Activity, d: string) => {
+    const t0 = Date.parse(a.start), t1 = Date.parse(a.finish)
+    return Math.min(1, Math.max(0, (Date.parse(d) - t0) / ((t1 - t0) || 1)))
+  }
+  const F = (u: number) => u - Math.sin(2 * Math.PI * u) / (2 * Math.PI)
+  const planW = months.map((m) => acts.reduce((t, a) => t + wOf(a) * (F(elapsed(a, m.to)) - F(elapsed(a, m.from))), 0))
   let run = 0
   const planCum = planW.map((h) => Math.min(100, Math.round(((run += h) / totalW) * 1000) / 10))
 
@@ -133,7 +142,7 @@ function Counts({ acts }: { acts: Activity[] }) {
       {[['Total activity', acts.length, 'ink'], ['Completed', done, 'ok'], ['Delayed', late, late ? 'crit' : 'ink']].map(([l, v, t]) => (
         <div key={l as string} className="border-r border-[var(--border)] px-2.5 py-2 last:border-0">
           <div className="whitespace-nowrap text-[9.5px] font-semibold uppercase tracking-tight text-[var(--faint)]">{l}</div>
-          <div className="text-[17px] font-bold tnum" style={{ color: `var(--${t})` }}>{v}</div>
+          <div className="text-[17px] font-bold tnum" style={{ color: `var(--${t}-ink)` }}>{v}</div>
         </div>
       ))}
     </div>
@@ -190,7 +199,7 @@ function ProgramCharts({ acts }: { acts: Activity[] }) {
             <div>
               <div className="text-[28px] font-bold leading-none text-[var(--ink)] tnum">%{Math.round(d.earned)}</div>
               <div className="mt-1 text-[11.5px] text-[var(--muted)]">Planlanan <b className="text-[var(--ink)] tnum">%{Math.round(d.plannedNow)}</b></div>
-              <div className="text-[11.5px] font-semibold tnum" style={{ color: `var(--${tone})` }}>
+              <div className="text-[11.5px] font-semibold tnum" style={{ color: `var(--${tone}-ink)` }}>
                 {d.earned - d.plannedNow >= 0 ? '+' : '−'}{Math.abs(d.earned - d.plannedNow).toLocaleString('tr-TR', { maximumFractionDigits: 1 })} puan
               </div>
             </div>
@@ -239,7 +248,7 @@ function ProgramBlock({ program, info, onChange, onDelete, extra, n }: {
           </>} pad={false} fill>
           <Gantt rows={toRows(byCode(program.activities)).slice(0, 10)} from={start} to={finish} today={TODAY} compact />
           {/* Kart yan paneldeki bilgi kartıyla aynı boyda; boş kalan alan çizelgenin devamı gibi görünür */}
-          <div className="flex min-h-0 flex-1" aria-hidden><div className="w-[260px] flex-shrink-0 border-r border-[var(--border)]" /><div className="flex-1" /></div>
+          <div className="flex min-h-0 flex-1" aria-hidden><div className="flex-shrink-0 border-r border-[var(--border)]" style={{ width: 260 + GANTT_DATE_W }} /><div className="flex-1" /></div>
           <div className="mt-auto border-t border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-[11px] text-[var(--faint)]">
             {program.activities.length > 10 ? `+${program.activities.length - 10} aktivite daha · tamamı için “Aç”` : `${program.activities.length} aktivite · ${date(start)} – ${date(finish)} · ekle / düzenle için “Aç”`}
           </div>
@@ -421,7 +430,7 @@ export function WorkSchedule() {
                 {[['CPI', cpi], ['SPI', p.id === 'WS-2' ? spi + 0.02 : spi]].map(([l, v]) => (
                   <div key={l as string} className="border-r border-[var(--border)] px-2.5 py-2 last:border-0">
                     <div className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--faint)]">{l}</div>
-                    <div className="text-[18px] font-bold tnum" style={{ color: (v as number) >= 1 ? 'var(--ok)' : 'var(--crit)' }}>{fmt2(v as number)}</div>
+                    <div className="text-[18px] font-bold tnum" style={{ color: (v as number) >= 1 ? 'var(--ok-ink)' : 'var(--crit-ink)' }}>{fmt2(v as number)}</div>
                   </div>
                 ))}
               </div>
@@ -636,7 +645,7 @@ function WeekRing({ acts, snap, prev, prevTitle }: { acts: Activity[]; snap: Rec
         center={<div><div className="text-[17px] font-bold text-[var(--ink)] tnum">%{Math.round(now)}</div><div className="text-[10px] text-[var(--muted)]">tamamlandı</div></div>} />
       <div className="text-center text-[11px] text-[var(--muted)]">
         {before != null
-          ? <>Önceki kesite göre <b style={{ color: 'var(--ok)' }}>+{(now - before).toLocaleString('tr-TR', { maximumFractionDigits: 1 })} puan</b><br /><span className="text-[var(--faint)]">{prevTitle}</span></>
+          ? <>Önceki kesite göre <b style={{ color: 'var(--ok-ink)' }}>+{(now - before).toLocaleString('tr-TR', { maximumFractionDigits: 1 })} puan</b><br /><span className="text-[var(--faint)]">{prevTitle}</span></>
           : 'Karşılaştırılacak önceki kesit yok'}
       </div>
     </div>
@@ -764,7 +773,7 @@ function OverlayModal({ base, list, onClose }: { base: Lookahead; list: Lookahea
                   <Td mono nowrap>{a.code}</Td><Td>{a.name}</Td>
                   <Td right>{prev != null ? `%${prev}` : '—'}</Td>
                   <Td right>%{cur}</Td>
-                  <Td right>{d != null ? <b style={{ color: d >= 5 ? 'var(--ok)' : d > 0 ? 'var(--warn)' : 'var(--crit)' }}>+{d} puan</b> : 'yeni'}</Td>
+                  <Td right>{d != null ? <b style={{ color: d >= 5 ? 'var(--ok-ink)' : d > 0 ? 'var(--warn-ink)' : 'var(--crit-ink)' }}>+{d} puan</b> : 'yeni'}</Td>
                   <Td nowrap><Badge tone={st.tone} dot>{st.label}</Badge></Td>
                 </tr>
               )
@@ -882,12 +891,12 @@ export function CriticalPath() {
                   return (
                     <span key={a.code} className="flex flex-shrink-0 items-center gap-1.5">
                       <span className="w-[150px] rounded-md border px-2.5 py-1.5 text-[12px]" style={{ borderColor: `var(--${tone})`, background: tone === 'accent' ? 'var(--surface-2)' : `var(--${tone}-bg)` }}>
-                        <span className="mono block text-[10.5px]" style={{ color: `var(--${tone})` }}>{a.code}</span>
+                        <span className="mono block text-[10.5px]" style={{ color: `var(--${tone}-ink)` }}>{a.code}</span>
                         <span className="block truncate text-[var(--ink)]" title={a.name}>{a.name}</span>
                         <span className="block text-[10.5px] text-[var(--muted)]">{date(a.finish)} · %{a.progress}</span>
-                        <span className="block text-[10.5px] font-semibold" style={{ color: late ? 'var(--crit)' : 'var(--muted)' }}>Bolluk {late ? '−18' : '0'} gün</span>
+                        <span className="block text-[10.5px] font-semibold" style={{ color: late ? 'var(--crit-ink)' : 'var(--muted)' }}>Bolluk {late ? '−18' : '0'} gün</span>
                       </span>
-                      {i < chain.length - 1 && <span className="text-[var(--crit)]">→</span>}
+                      {i < chain.length - 1 && <span className="text-[var(--crit-ink)]">→</span>}
                     </span>
                   )
                 })}
@@ -912,8 +921,8 @@ export function CriticalPath() {
                       <Td right nowrap>{days(a.start, a.finish)} gün</Td>
                       <Td right nowrap>{a.progress >= 100 ? '—' : `${Math.max(0, days(TODAY, a.finish))} gün`}</Td>
                       <Td right>%{exp}</Td><Td right>%{a.progress}</Td>
-                      <Td right nowrap><span style={{ color: gap < -2 ? 'var(--crit)' : gap > 2 ? 'var(--ok)' : 'var(--muted)' }}>{gap > 0 ? '+' : ''}{gap} puan</span></Td>
-                      <Td right nowrap>{late ? <b className="text-[var(--crit)]">−18 gün</b> : '0 gün'}</Td>
+                      <Td right nowrap><span style={{ color: gap < -2 ? 'var(--crit-ink)' : gap > 2 ? 'var(--ok-ink)' : 'var(--muted)' }}>{gap > 0 ? '+' : ''}{gap} puan</span></Td>
+                      <Td right nowrap>{late ? <b className="text-[var(--crit-ink)]">−18 gün</b> : '0 gün'}</Td>
                       <Td nowrap><span className="text-[12px] text-[var(--muted)]">{crewOf(a)} kişi · {machinesOf(a)} makine</span></Td>
                       <Td nowrap><Badge tone={st.tone} dot>{st.label}</Badge></Td>
                     </tr>
@@ -969,7 +978,7 @@ function ExtraResources({ actions, adj, onAdj }: { actions: RecoveryAction[]; ad
               <div className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--faint)]">{r.label}</div>
               <div className="mt-1 flex items-center gap-1.5">
                 <button onClick={() => onAdj(r.k, -r.step)} disabled={total <= 0} aria-label={`${r.label} azalt`}
-                  className="grid h-6 w-6 place-items-center rounded-md border border-[var(--border)] bg-[var(--surface-2)] text-[14px] font-bold text-[var(--muted)] hover:border-[var(--crit)] hover:text-[var(--crit)] disabled:opacity-40">−</button>
+                  className="grid h-6 w-6 place-items-center rounded-md border border-[var(--border)] bg-[var(--surface-2)] text-[14px] font-bold text-[var(--muted)] hover:border-[var(--crit)] hover:text-[var(--crit-ink)] disabled:opacity-40">−</button>
                 <span className="min-w-0 flex-1 text-center text-[15px] font-bold text-[var(--ink)] tnum">+{r.fmt(total)}</span>
                 <button onClick={() => onAdj(r.k, r.step)} aria-label={`${r.label} artır`}
                   className="grid h-6 w-6 place-items-center rounded-md border border-[var(--border)] bg-[var(--surface-2)] text-[14px] font-bold text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]">+</button>
@@ -1014,7 +1023,7 @@ export function MitigationPlan() {
               <Btn small onClick={() => setPlans((l) => l.map((x) => (x.id === rp.id ? { ...x, rev: x.rev + 1 } : x)))}>Rev et</Btn>
               <RowActions name={rp.id} onDelete={() => setPlans((l) => l.filter((x) => x.id !== rp.id))} />
             </>}>
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <Kpi label="Mevcut gecikme" value={`${delay} gün`} sub="Sözleşme bitişine göre" tone="crit" />
               <Kpi label="Önerilerle kazanılan" value={`${gain} gün`} sub={`${rp.actions.filter((a) => a.include).length} öneri seçili`} tone="ok" />
               <Kpi label="Kalan gecikme" value={`${Math.max(0, delay - gain)} gün`} tone={delay - gain > 7 ? 'warn' : 'ok'} />
@@ -1034,7 +1043,7 @@ export function MitigationPlan() {
                         <span className="block text-[12.5px] font-medium text-[var(--ink)]">{a.title}</span>
                         <span className="block text-[11px] text-[var(--muted)]"><span className="mono">{a.activity}</span> · {a.resource}</span>
                       </span>
-                      <span className="text-[12.5px] font-bold text-[var(--ok)] tnum">−{a.gain} gün</span>
+                      <span className="text-[12.5px] font-bold text-[var(--ok-ink)] tnum">−{a.gain} gün</span>
                     </label>
                   ))}
                 </div>
@@ -1069,6 +1078,9 @@ export function MitigationPlan() {
 
 const CAT_COLORS = ['var(--series-1)', 'var(--series-2)', 'var(--series-3)', 'var(--series-4)', 'var(--series-5)']
 
+/** S eğrisinin kuyruğu: iş sona yaklaştıkça yavaşlar (doğrusal değil) */
+const tail = (u: number) => 1 - (1 - u) ** 2.2
+
 /** Plan · mevcut · recovery eğrileri — kaynak türüne göre küçük farklarla */
 function curves(scale: number) {
   const n = 24
@@ -1077,9 +1089,9 @@ function curves(scale: number) {
   const current: (number | null)[] = plannedCum.map((_, i) => {
     if (i <= now) return Math.min(100, actualCum[i] * scale)
     const last = actualCum[now] * scale
-    return Math.min(100, last + ((i - now) / (n - 1 - now)) * (96 - last))
+    return Math.min(100, last + tail((i - now) / (n - 1 - now)) * (96 - last))
   })
-  const recovery: (number | null)[] = plannedCum.map((_, i) => (i < now ? null : i === now ? current[now] : Math.min(100, (current[now] as number) + ((i - now) / (n - 1 - now)) * (100 - (current[now] as number)) * 1.02)))
+  const recovery: (number | null)[] = plannedCum.map((_, i) => (i < now ? null : i === now ? current[now] : Math.min(100, (current[now] as number) + tail((i - now) / (n - 1 - now)) * (100 - (current[now] as number)))))
   return { plan, current, recovery }
 }
 
@@ -1123,7 +1135,7 @@ export function PlanningRisks() {
           {finishForecast.map((f) => (
             <div key={f.label} className="flex items-center gap-2 border-b border-[var(--border)] px-3 py-1.5 last:border-0">
               <span className="text-[12px] text-[var(--muted)]">{f.label}</span>
-              <span className="ml-auto text-[12.5px] font-semibold tnum" style={{ color: f.delay > 7 ? 'var(--crit)' : f.delay > 0 ? 'var(--warn)' : 'var(--ok)' }}>
+              <span className="ml-auto text-[12.5px] font-semibold tnum" style={{ color: f.delay > 7 ? 'var(--crit-ink)' : f.delay > 0 ? 'var(--warn-ink)' : 'var(--ok-ink)' }}>
                 {date(f.date)}{f.delay ? ` (+${f.delay})` : ''}
               </span>
             </div>
@@ -1137,8 +1149,8 @@ export function PlanningRisks() {
               <div className="mt-0.5 flex gap-3 text-[11.5px] text-[var(--muted)] tnum">
                 <span>Plan <b className="text-[var(--ink)]">%{Math.round(r.plan[20])}</b></span>
                 <span>Mevcut <b className="text-[var(--ink)]">%{Math.round(r.current[20] as number)}</b></span>
-                <span>Bitişte mevcut <b className="text-[var(--crit)]">%{Math.round(r.current[23] as number)}</b></span>
-                <span>Recovery <b className="text-[var(--ok)]">%100</b></span>
+                <span>Bitişte mevcut <b className="text-[var(--crit-ink)]">%{Math.round(r.current[23] as number)}</b></span>
+                <span>Recovery <b className="text-[var(--ok-ink)]">%100</b></span>
               </div>
             </div>
           ))}
@@ -1166,7 +1178,7 @@ export function PlanningRisks() {
         <Card title="Risk dağılımı">
           <div className="grid h-full place-items-center">
             <Donut size={170} parts={riskTypes.map((r, i) => ({ label: r.label, value: r.value, color: CAT_COLORS[i] }))}
-              center={<div><div className="text-[18px] font-bold text-[var(--crit)] tnum">+28</div><div className="text-[10.5px] text-[var(--muted)]">gün (P50)</div></div>} />
+              center={<div><div className="text-[18px] font-bold text-[var(--crit-ink)] tnum">+28</div><div className="text-[10.5px] text-[var(--muted)]">gün (P50)</div></div>} />
           </div>
         </Card>
         <Card title="Personel yüklemesi" help="Önümüzdeki 6 ayda programın gerektirdiği personel ve saha kapasitesi. Kapasiteyi aşan aylar program riskidir."

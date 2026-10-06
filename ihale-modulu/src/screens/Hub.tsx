@@ -97,20 +97,20 @@ export function Hub({ persona, onOpen, onLogout }: { persona: Persona; onOpen: (
   }
 
   return (
-    <div className="min-h-screen bg-[var(--surface-2)]">
+    <div className="min-h-screen bg-[var(--bg)]">
       {/* Üst şerit */}
       <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-6 py-2.5">
         <span className="grid h-6 w-6 place-items-center rounded-md text-[12px] font-extrabold text-white" style={{ background: 'var(--accent)' }}>IC</span>
         <span className="text-[13.5px] font-bold tracking-tight text-[var(--ink)]">ICCM Ecosystem</span>
-        <span className="text-[11.5px] text-[var(--muted)]">{project.company}</span>
+        <span className="hidden text-[11.5px] text-[var(--muted)] sm:inline">{project.company}</span>
         <div className="ml-auto flex items-center gap-3">
-          <span className="text-[12px] text-[var(--muted)]">e.yilmaz</span>
+          <span className="hidden text-[12px] text-[var(--muted)] sm:inline">e.yilmaz</span>
           <Badge tone="accent">{personaOf(persona).label}</Badge>
           <Btn small onClick={onLogout}>Çıkış</Btn>
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-[1400px] flex-col gap-5 px-6 pb-16 pt-6">
+      <main className="page-in mx-auto flex max-w-[1400px] flex-col gap-6 px-4 pb-12 pt-6 sm:px-6">
         <div className="flex flex-wrap items-end gap-3">
           <div>
             <h1 className="text-[19px] font-bold tracking-tight text-[var(--ink)]">
@@ -131,14 +131,19 @@ export function Hub({ persona, onOpen, onLogout }: { persona: Persona; onOpen: (
         </div>
 
         {/* Özet şerit — giriş tipine göre */}
-        <div className={`grid grid-cols-1 gap-3 ${persona === 'proje' ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-3'}`}>
+        <div className={`grid grid-cols-1 gap-3 ${persona === 'patron' ? 'sm:grid-cols-3' : 'sm:grid-cols-2 lg:grid-cols-4'}`}>
           {persona !== 'proje' && (
             <Summary label="Devam eden ihaleler" value={tenders.filter((t) => t.daysLeft >= 0).length}
               sub={nearest ? `En yakını ${nearest.code} · ${daysLabel(nearest.daysLeft)}` : 'Devam eden ihale yok'} tone="accent" />
           )}
           {persona === 'ihale' && <>
-            <Summary label="Hazırlanan teklif bedeli" value={moneyShort(tenders.filter((t) => t.daysLeft >= 0).reduce((a, t) => a + t.value, 0))} sub="Devam eden ihalelerin yaklaşık bedeli" tone="neutral" />
-            <Summary label="Kazanılan / kaybedilen" value={`${tenders.filter((t) => t.status === 'Kazanıldı').length} / ${tenders.filter((t) => t.status === 'Kaybedildi').length}`} sub="Sonuçlanan ihaleler" tone="neutral" />
+            <Summary label="Toplam ihale" value={tenders.length}
+              sub={`${tenders.filter((t) => t.daysLeft >= 0).length} devam ediyor · ${tenders.filter((t) => t.daysLeft < 0).length} teklifi verildi`} tone="neutral" />
+            <Summary label="Teklif bedeli" value={moneyShort(tenders.reduce((a, t) => a + t.value, 0))}
+              sub="Toplam hazırlanan" tone="neutral"
+              second={{ label: 'Sunulan', value: moneyShort(tenders.filter((t) => SUBMITTED.includes(t.status)).reduce((a, t) => a + t.value, 0)) }} />
+            <Summary label="Kazanılan / toplam" value={`${tenders.filter((t) => t.status === 'Kazanıldı').length} / ${tenders.length}`}
+              sub={`${tenders.filter((t) => t.status === 'Kaybedildi').length} kaybedildi · ${tenders.filter((t) => t.status === 'Teklif Verildi').length} sonuç bekliyor`} tone="ok" />
           </>}
           {persona !== 'ihale' && (
             <Summary label="Devam eden projeler" value={projects.length} sub={persona === 'proje' ? 'Sözleşmesi imzalanmış işler' : `Toplam sözleşme ${moneyShort(projects.reduce((a, p) => a + p.value, 0))}`} tone="ok" />
@@ -328,7 +333,7 @@ function Attention({ items, onOpen }: { items: LibraryItem[]; onOpen: (i: Librar
   const rows = all.filter((r) => find(r.code))
   if (!rows.length) return null
   return (
-    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)]">
+    <div className="card">
       <div className="border-b border-[var(--border)] px-4 py-2.5 text-[13.5px] font-semibold text-[var(--ink)]">Dikkat isteyen konular ({rows.length})</div>
       <div className="grid grid-cols-1 md:grid-cols-2">
         {rows.map((r, i) => (
@@ -346,13 +351,30 @@ function Attention({ items, onOpen }: { items: LibraryItem[]; onOpen: (i: Librar
   )
 }
 
-function Summary({ label, value, sub, tone }: { label: string; value: number | string; sub: string; tone: 'accent' | 'ok' | 'neutral' }) {
+/** Teklifi verilmiş (sunulmuş) ihale durumları */
+const SUBMITTED = ['Teklif Verildi', 'Kazanıldı', 'Kaybedildi']
+
+/** Özet kutusu. `second` verilirse kutu ikiye bölünür: solda ana değer, sağda ikinci değer. */
+function Summary({ label, value, sub, tone, second }: {
+  label: string; value: number | string; sub: string; tone: 'accent' | 'ok' | 'neutral'
+  second?: { label: string; value: string }
+}) {
   const fg = tone === 'accent' ? 'var(--accent)' : tone === 'ok' ? 'var(--ok)' : 'var(--ink)'
   return (
-    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+    <div className="lift card px-4 py-3">
       <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">{label}</div>
-      <div className="mt-0.5 text-[22px] font-bold leading-tight tnum" style={{ color: fg }}>{value}</div>
-      <div className="mt-0.5 text-[11.5px] text-[var(--muted)]">{sub}</div>
+      <div className="flex items-end gap-4">
+        <div className="min-w-0">
+          <div className={`mt-0.5 whitespace-nowrap font-bold leading-tight tnum ${second ? 'text-[19px]' : 'text-[22px]'}`} style={{ color: fg }}>{value}</div>
+          <div className="mt-0.5 text-[11.5px] text-[var(--muted)]">{sub}</div>
+        </div>
+        {second && (
+          <div className="ml-auto min-w-0 border-l border-[var(--border)] pl-4 text-right">
+            <div className="mt-0.5 whitespace-nowrap text-[19px] font-bold leading-tight tnum text-[var(--accent)]">{second.value}</div>
+            <div className="mt-0.5 text-[11.5px] text-[var(--muted)]">{second.label}</div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -361,7 +383,7 @@ function ItemCard({ item, fresh, onOpen, onManage, onDelete }: { item: LibraryIt
   const urgent = item.kind === 'ihale' && item.daysLeft >= 0 && item.daysLeft <= 30
   return (
     <article
-      className="flex flex-col gap-3 rounded-lg border bg-[var(--surface)] p-4 transition-shadow hover:shadow-md"
+      className="card lift flex flex-col gap-3 p-4"
       style={{ borderColor: fresh ? 'var(--accent)' : 'var(--border)' }}
     >
       <div className="flex items-center gap-2">

@@ -109,7 +109,7 @@ export function RiskRegister({ title, note, risks: initial, writable, role, kpis
 
       {!writable && <ReadOnlyNote role={role} />}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">{kpis(totals)}</div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">{kpis(totals)}</div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         {/* ---------- Sol: kayıtlar, altında seçili riskin hesabı ---------- */}
@@ -226,7 +226,7 @@ export function RiskRegister({ title, note, risks: initial, writable, role, kpis
                 <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Bedelin hesabı</div>
                 <p className="mt-1 leading-relaxed text-[var(--ink)]">{sel.basis}</p>
                 <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                  <span className="text-[13px] font-bold text-[var(--warn)] tnum">{sel.costImpact ? money(sel.costImpact, project.currency) : '—'}</span>
+                  <span className="text-[13px] font-bold text-[var(--warn-ink)] tnum">{sel.costImpact ? money(sel.costImpact, project.currency) : '—'}</span>
                   {sel.basisRef && <span className="text-[11px] text-[var(--muted)]">📎 {sel.basisRef}</span>}
                 </div>
               </div>

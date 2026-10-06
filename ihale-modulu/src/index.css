@@ -2,29 +2,87 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Tasarım tokenları — referans ERP projesiyle aynı dil: ince çizgiler, yoğun tablo, mavi vurgu. */
+/* ================= Tasarım sistemi =================
+ * Bütün renk, gölge, köşe, boşluk ve hareket değerleri burada tanımlanır; bileşenler yalnızca bu
+ * değişkenleri kullanır. Köşe ve boşluk ölçeği tailwind.config.js'te aynı değerlere bağlıdır.
+ * Boşluk: yalnızca 4px katları (4, 8, 12, 16, 24, 32, 48).
+ */
 :root{
-  --bg:#FFFFFF;
-  --surface:#FFFFFF;
-  --surface-2:#F7F8FA;
-  --surface-3:#EEF1F4;
-  --border:#E4E7EC;
-  --border-strong:#D0D5DD;
-  --ink:#1F2733;
-  --muted:#667085;
-  --faint:#98A2B3;
+  /* Zeminler */
+  --bg:#F3F4F6;               /* sayfa arka planı — açık soğuk gri */
+  --surface:#FFFFFF;          /* kart, modal, tablo */
+  --surface-2:#F9FAFB;        /* kart içi ikincil alan */
+  --surface-3:#F3F4F6;        /* tablo başlığı */
+  --row-hover:#F4F7FB;        /* satır üzerine gelme — çok hafif mavi-gri */
+
+  /* Çizgiler */
+  --border:#E5E7EB;
+  --border-strong:#D1D5DB;
+
+  /* Metin — başlık antrasit, açıklama gri; ikisi de AA kontrastını geçer */
+  --ink:#111827;
+  --muted:#6B7280;
+  --faint:#737B88;
+
+  /* Birincil renk */
   --accent:#2563EB;
-  --accent-soft:#EAF1FE;
-  --ok:#15803D; --ok-bg:#E7F5EC;
-  --warn:#B45309; --warn-bg:#FCF0DD;
-  --crit:#C81E1E; --crit-bg:#FBE7E7;
-  --neutral:#475467; --neutral-bg:#EDF0F3;
-  /* Ek Paket vurgusu — gereksinim tablosundaki sarı satırlarla aynı his */
-  --gold:#8A6100; --gold-bg:#FDF0CE; --gold-border:#F0D48A;
-  /* Grafik serileri — sabit sıra: 1 gerçekleşen, 2 planlanan (doğrulandı: CVD ve kontrast geçer) */
+  --accent-strong:#1D4ED8;
+  --accent-soft:#EFF4FF;
+  --accent-ink:#2563EB;
+  --accent-grad:linear-gradient(135deg,#2563EB,#1D4ED8);
+  --focus-ring:0 0 0 3px rgba(37,99,235,.16);
+
+  /* Durum renkleri. *-ink: küçük metinde kullanılan, kontrastı yeterli koyu tonu */
+  --ok:#16A34A;   --ok-bg:#EAF7EE;   --ok-ink:#15803D;
+  --warn:#D97706; --warn-bg:#FEF3E2; --warn-ink:#B45309;
+  --crit:#DC2626; --crit-bg:#FDECEC; --crit-ink:#B91C1C;
+  --info:#0284C7; --info-bg:#E6F4FB; --info-ink:#0369A1;
+  --neutral:#4B5563; --neutral-bg:#F1F2F4; --neutral-ink:#4B5563;
+  /* Ek Paket vurgusu */
+  --gold:#8A6100; --gold-bg:#FDF0CE; --gold-border:#F0D48A; --gold-ink:#8A6100;
+
+  /* Gölgeler — çok hafif ve yumuşak */
+  --shadow-card:0 2px 8px rgba(15,23,42,.06);
+  --shadow-hover:0 6px 18px rgba(15,23,42,.10);
+  --shadow-pop:0 12px 32px rgba(15,23,42,.14);
+
+  /* Köşeler */
+  --radius-card:12px;
+  --radius-ctl:8px;
+
+  /* Hareket */
+  --dur:180ms;
+  --ease:cubic-bezier(.2,.8,.2,1);
+
+  /* Yan menü — koyu, sakin */
+  --sidebar:#111827;
+  --sidebar-2:#1F2937;
+
+  /* Grafik serileri — sabit sıra: 1 gerçekleşen, 2 planlanan */
   --series-1:#2563EB; --series-2:#D97706; --series-3:#0E9F6E; --series-4:#9333EA; --series-5:#DB2777;
   --mono:ui-monospace,"SF Mono",SFMono-Regular,"Cascadia Mono","Roboto Mono",Menlo,Consolas,monospace;
 }
+
+/* Yan menü: aynı değişkenler koyu zemin için yeniden tanımlanır; menü bileşenleri değişmeden koyu görünür */
+.sidebar{
+  --surface:var(--sidebar);
+  --surface-2:var(--sidebar-2);
+  --surface-3:var(--sidebar-2);
+  --row-hover:rgba(255,255,255,.05);
+  --border:#1F2937;
+  --border-strong:#374151;
+  --ink:#F9FAFB;
+  --muted:#9CA3AF;
+  --faint:#8B93A1;
+  --accent:#93B4FB;
+  --accent-soft:rgba(37,99,235,.22);
+  --ok-ink:#4ADE80; --warn-ink:#FBBF24; --crit-ink:#F87171; --accent-ink:#93B4FB;
+  --gold-bg:rgba(240,212,138,.14); --gold-border:rgba(240,212,138,.35); --gold:#F0D48A;
+  background:var(--sidebar);
+  color:var(--ink);
+}
+/* Aktif menü öğesi: hafif mavi zemin + solda vurgu çizgisi */
+.nav-active{box-shadow:inset 3px 0 0 #3B82F6}
 
 *{box-sizing:border-box}
 html,body,#root{height:100%}
@@ -38,6 +96,19 @@ body{margin:0;background:var(--bg);color:var(--ink);
 ::-webkit-scrollbar-track{background:transparent}
 :focus-visible{outline:2px solid var(--accent);outline-offset:-1px}
 
+/* Form alanları: açık gri sınır, odakta mavi çerçeve ve hafif mavi parlama */
+input:not([type=checkbox]):not([type=radio]),select,textarea{border-radius:var(--radius-ctl);transition:border-color var(--dur) var(--ease),box-shadow var(--dur) var(--ease)}
+input:not([type=checkbox]):not([type=radio]):focus,select:focus,textarea:focus{border-color:var(--accent)!important;box-shadow:var(--focus-ring);outline:none}
+
+/* Tablolar: ferah satırlar (en az 48px), açık gri başlık, çok hafif satır vurgusu */
+table td{height:48px}
+/* Kartın içindeki tablo kartın çerçevesini kullanır; çift çizgi olmaz. Son sütunda dikey çizgi yok */
+.card .tbl-wrap{border:0;box-shadow:none;border-radius:0 0 var(--radius-card) var(--radius-card)}
+table th:last-child,table td:last-child{border-right:0}
+/* Hücre ızgaraları (ay seçimi vb.) satır yüksekliği kuralının dışında */
+.grid-table td{height:auto}
+tbody tr:hover > td{background-color:var(--row-hover)}
+
 /* Kanıt vurgusu — doküman metninde AI'ın dayandığı satır */
 /* Çok kolonlu tablolar için sıkı görünüm — kolonlar ayrık kalır, ekrana sığar */
 .dense-table th,.dense-table td{padding-left:6px!important;padding-right:6px!important}
@@ -49,3 +120,41 @@ mark.evidence{background:var(--accent-soft);color:var(--ink);border-bottom:2px s
 /* Düzeltme izi — eklenen sarı ve altı çizili, çıkarılan soluk ve üstü çizili */
 ins.redline-add{background:var(--gold-bg);color:var(--gold);text-decoration:underline;text-decoration-color:var(--gold);padding:0 2px;border-radius:2px}
 del.redline-del{color:var(--faint);text-decoration:line-through;text-decoration-color:var(--crit)}
+
+/* ---------------- Hareket ve etkileşim ----------------
+ * 150–200 ms, hafif ease-out. Yalnızca geri bildirim için; parlama, cam efekti, yoğun degrade yok.
+ * Hareket azaltma tercihi açıksa hepsi kapanır. */
+
+/* Butonlar: 8px köşe. Birincil mavi (hafif degrade), ikincil beyaz + ince gri çerçeve, yıkıcı kırmızı */
+.btn{background:var(--surface);color:var(--ink);border-color:var(--border-strong);border-radius:var(--radius-ctl);
+  transition:background-color var(--dur) var(--ease),color var(--dur) var(--ease),border-color var(--dur) var(--ease),box-shadow var(--dur) var(--ease)}
+.btn:not(:disabled):hover{background:var(--surface-2);border-color:#9CA3AF;box-shadow:var(--shadow-card)}
+.btn-primary{background:var(--accent-grad);color:#fff;border-color:var(--accent-strong)}
+.btn-primary:not(:disabled):hover{background:var(--accent-strong);color:#fff;border-color:var(--accent-strong);box-shadow:0 4px 12px rgba(37,99,235,.24)}
+.btn-danger{background:var(--crit);color:#fff;border-color:var(--crit)}
+.btn-danger:not(:disabled):hover{background:var(--crit-ink);color:#fff;border-color:var(--crit-ink)}
+
+/* Kartlar: standart hafif gölge; tıklanabilir kartlar üzerine gelince gölgesi derinleşir */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);box-shadow:var(--shadow-card)}
+.lift{transition:box-shadow var(--dur) var(--ease),border-color var(--dur) var(--ease)}
+.lift:hover{box-shadow:var(--shadow-hover)}
+
+/* Sayfa / sekme değişiminde içerik kısa bir solma ile gelir */
+@keyframes page-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.page-in{animation:page-in var(--dur) ease-out backwards}
+
+/* Pop-up açılışı */
+@keyframes pop-in{from{opacity:0;transform:translateY(4px) scale(.99)}to{opacity:1;transform:none}}
+@keyframes fade-in{from{opacity:0}to{opacity:1}}
+.pop{animation:pop-in var(--dur) ease-out both}
+.backdrop{animation:fade-in 150ms ease-out both}
+
+/* Sütun grafiklerinde çubuklar aşağıdan büyür */
+@keyframes grow-bar{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.grow-bar{transform-origin:bottom;animation:grow-bar 200ms ease-out both}
+
+tbody tr > td{transition:background-color 150ms ease-out}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}

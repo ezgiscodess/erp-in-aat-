@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { boqItems, project, workGroups } from '../data/mock'
 import type { BoqItem, TabKey } from '../data/types'
 import {
-  Badge, Btn, Card, ColumnFilter, ExportButtons, Field, Kpi, Modal, PageHead, ReadOnlyNote, Search, Table, Td, Th,
+  Badge, Btn, Card, Chips, ColumnFilter, Dropzone, ExportButtons, Field, Kpi, Modal, PageHead, ReadOnlyNote, Search, Table, Td, Th,
 } from '../components/ui'
 import { money, num } from '../lib/format'
 import { codeFor, methodOf } from '../lib/methods'
@@ -21,6 +21,10 @@ export function Boq({ writable, role, method, onGo }: { writable: boolean; role:
   /** Elle girilen fiyat havuza da işlendi mi */
   const [toPool, setToPool] = useState<Record<string, boolean>>({})
   const [editItem, setEditItem] = useState<BoqItem | null>(null)
+  /** Alttaki fiyat özetinde açık olan liste */
+  const [view, setView] = useState<SummaryView>('Fiyatı yok')
+  /** Özetten açılan "Birim fiyat ekle" penceresi */
+  const [adding, setAdding] = useState<BoqItem | null>(null)
   const m = methodOf(method)
 
   /** Bir kalemin geçerli birim fiyatı: elle girildiyse o, yoksa havuzdan gelen. */
@@ -42,6 +46,14 @@ export function Boq({ writable, role, method, onGo }: { writable: boolean; role:
   const unpriced = boqItems.filter((b) => priceOf(b) == null)
   const similar = boqItems.filter((b) => manual[b.id] == null && b.poolMatch === 'Benzer poz')
   const groups = workGroups.filter((g) => rows.some((b) => b.group === g))
+  const handPriced = boqItems.filter((b) => manual[b.id] != null)
+  const summaryList = view === 'Fiyatı yok' ? unpriced : view === 'Benzer kalem' ? similar : handPriced
+
+  /** KPI kutusuna tıklayınca alttaki özette o liste açılır */
+  function showSummary(v: SummaryView) {
+    setView(v)
+    document.getElementById('boq-summary')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   return (
     <>
@@ -57,14 +69,14 @@ export function Boq({ writable, role, method, onGo }: { writable: boolean; role:
 
       {!writable && <ReadOnlyNote role={role} />}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi label="BOQ toplamı" value={money(total, project.currency)} sub={`${boqItems.length} kalem · fiyatı olanlar`} tone="accent"
           help="Metraj × birim fiyat toplamı. Fiyatı girilmemiş kalemler toplama girmez." />
-        <Kpi label="Fiyatı yok" value={unpriced.length} sub="Havuzda eşleşmedi" tone="crit"
+        <Kpi label="Fiyatı yok" value={unpriced.length} sub="Havuzda eşleşmedi" tone="crit" onClick={() => showSummary('Fiyatı yok')}
           help="Pool’da karşılığı bulunmayan kalemler. Teklif verilmeden önce fiyatları girilmeli." />
-        <Kpi label="Benzer kalem" value={similar.length} sub="Önerilen fiyat onay bekliyor" tone="warn"
+        <Kpi label="Benzer kalem" value={similar.length} sub="Önerilen fiyat onay bekliyor" tone="warn" onClick={() => showSummary('Benzer kalem')}
           help="Kod birebir eşleşmedi; iş kalemi metnine göre benzer kalemin fiyatı önerildi." />
-        <Kpi label="Elle fiyatlanan" value={Object.keys(manual).length}
+        <Kpi label="Elle fiyatlanan" value={Object.keys(manual).length} onClick={() => showSummary('Elle fiyatlanan')}
           sub={`${Object.values(toPool).filter(Boolean).length} tanesi havuza işlendi`}
           help="Teklif ekibinin elle girdiği fiyatlar sarı görünür." />
       </div>
@@ -144,6 +156,62 @@ export function Boq({ writable, role, method, onGo }: { writable: boolean; role:
         </Table>
       </Card>
 
+      {/* Fiyat özeti — üstteki üç kutunun listesi */}
+      <div id="boq-summary" className="scroll-mt-20">
+        <Card
+          title="Fiyat özeti"
+          help="Üstteki kutuların ayrıntısı: fiyatı olmayan, benzer kalemden fiyat önerilen ve elle fiyatlanan kalemler. Birim fiyat ekle ile kalemin fiyatı ve dayandığı reçete / analiz girilir."
+          right={<Chips<SummaryView> value={view} onChange={setView} items={[
+            { key: 'Fiyatı yok', label: 'Fiyatı yok', count: unpriced.length },
+            { key: 'Benzer kalem', label: 'Benzer kalem', count: similar.length },
+            { key: 'Elle fiyatlanan', label: 'Elle fiyatlanan', count: handPriced.length },
+          ]} />}
+          pad={false}
+        >
+          <Table head={
+            <tr>
+              <Th w={100}>Kod · {m.label}</Th>
+              <Th w={360}>Açıklama</Th>
+              <Th w={70}>Birim</Th>
+              <Th w={100} right>Metraj</Th>
+              <Th w={120} right>{view === 'Fiyatı yok' ? 'Birim fiyat' : view === 'Benzer kalem' ? 'Önerilen fiyat' : 'Elle girilen'}</Th>
+              <Th w={150} center>İşlem</Th>
+            </tr>
+          }>
+            {summaryList.length === 0 && (
+              <tr><Td><span className="text-[12px] text-[var(--faint)]">Bu listede kalem yok.</span></Td><Td>{''}</Td><Td>{''}</Td><Td>{''}</Td><Td>{''}</Td><Td>{''}</Td></tr>
+            )}
+            {summaryList.map((b) => {
+              const price = priceOf(b)
+              return (
+                <tr key={b.id} className="hover:bg-[var(--surface-2)]">
+                  <Td mono nowrap>{codeFor(b, method)}</Td>
+                  <Td><span className="text-[12.5px] text-[var(--ink)]">{b.description}</span></Td>
+                  <Td nowrap><span className="text-[var(--muted)]">{b.unit}</span></Td>
+                  <Td right>{num(b.qty)}</Td>
+                  <Td right>{price == null ? <span className="text-[var(--faint)]">—</span> : <span style={{ color: manual[b.id] != null ? 'var(--gold)' : 'var(--ink)' }}>{num(price, price < 100 ? 2 : 0)}</span>}</Td>
+                  <Td nowrap center>
+                    <Btn small minW={124} primary={view === 'Fiyatı yok'} disabled={!writable} onClick={() => setAdding(b)}>
+                      {view === 'Elle fiyatlanan' ? 'Fiyatı düzenle' : '+ Birim fiyat ekle'}
+                    </Btn>
+                  </Td>
+                </tr>
+              )
+            })}
+          </Table>
+        </Card>
+      </div>
+
+      {adding && (
+        <AddPriceModal item={adding} code={codeFor(adding, method)} current={priceOf(adding)}
+          onClose={() => setAdding(null)}
+          onSave={(price) => {
+            setManual((x) => ({ ...x, [adding.id]: price }))
+            setToPool((t) => ({ ...t, [adding.id]: true }))
+            setAdding(null)
+          }} />
+      )}
+
       {editItem && (
         <PriceModal
           item={editItem}
@@ -157,6 +225,52 @@ export function Boq({ writable, role, method, onGo }: { writable: boolean; role:
         />
       )}
     </>
+  )
+}
+
+type SummaryView = 'Fiyatı yok' | 'Benzer kalem' | 'Elle fiyatlanan'
+
+/* ---------------- Birim fiyat ekleme (reçete / analizle) ---------------- */
+
+/**
+ * Fiyatı olmayan kaleme birim fiyat girişi: kod, açıklama ve birim kalemden gelir;
+ * birim fiyat ile dayandığı reçete / analiz dosyası girilir. Kaydedilen fiyat Pool'a işlenir.
+ */
+function AddPriceModal({ item, code, current, onClose, onSave }: {
+  item: BoqItem; code: string; current?: number; onClose: () => void; onSave: (price: number) => void
+}) {
+  const [desc, setDesc] = useState(item.description)
+  const [unit, setUnit] = useState(item.unit)
+  const [value, setValue] = useState(current != null ? String(current) : '')
+  const [files, setFiles] = useState<string[]>([])
+  const price = Number(value.replace(',', '.')) || 0
+  return (
+    <Modal title="Birim fiyat ekle" note={`${code} · metraj ${num(item.qty)} ${item.unit}`} onClose={onClose} wide
+      footer={<>
+        <span className="text-[11.5px] text-[var(--faint)]">
+          {price > 0 ? <>Kalem tutarı <b className="text-[var(--ink)]">{num(price * item.qty)} {project.currency}</b> · fiyat Pool’a işlenir</> : 'Birim fiyat zorunlu'}
+        </span>
+        <span className="ml-auto flex gap-2">
+          <Btn onClick={onClose}>Vazgeç</Btn>
+          <Btn primary disabled={price <= 0} onClick={() => onSave(price)}>Kaydet</Btn>
+        </span>
+      </>}>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+        <div className="sm:col-span-1"><Field label="Kod" value={code} onChange={() => {}} /></div>
+        <div className="sm:col-span-3"><Field label="Açıklama" value={desc} onChange={setDesc} /></div>
+        <div className="sm:col-span-1"><Field label="Birim" value={unit} onChange={setUnit} /></div>
+        <div className="sm:col-span-1"><Field required label={`Birim fiyat (${project.currency})`} value={value} onChange={setValue} type="number" /></div>
+        <div className="sm:col-span-2 self-end rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-2 text-[11.5px] text-[var(--muted)]">
+          Reçete yüklenirse AI malzeme, işçilik ve makine kalemlerini okuyup birim fiyatı önerir.
+        </div>
+        <div className="sm:col-span-4">
+          <div className="mb-1.5 text-[12px] font-medium text-[var(--ink)]">Birim fiyat reçetesi / analizi</div>
+          <Dropzone files={files} onAdd={(n) => setFiles((f) => [...f, ...n])} onRemove={(n) => setFiles((f) => f.filter((x) => x !== n))}
+            samples={['Birim fiyat analizi.xlsx', 'Malzeme recetesi.pdf', 'Tedarikci teklifi.pdf']}
+            hint="Excel veya PDF · malzeme, işçilik, makine ve genel gider kırılımı" />
+        </div>
+      </div>
+    </Modal>
   )
 }
 
@@ -230,7 +344,7 @@ function PriceModal({ item, current, onClose, onSave }: {
     >
       <div className="flex flex-col gap-3">
         <div className="grid grid-cols-2 gap-3">
-          <Field label={`Birim fiyat (${project.currency}/${item.unit})`} value={value} onChange={setValue} type="number" />
+          <Field required label={`Birim fiyat (${project.currency}/${item.unit})`} value={value} onChange={setValue} type="number" />
           <div className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-2">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Kalem tutarı</div>
             <div className="mt-1 text-[15px] font-bold text-[var(--ink)] tnum">

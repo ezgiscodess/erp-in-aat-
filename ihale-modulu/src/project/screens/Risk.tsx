@@ -110,7 +110,7 @@ export function RiskDashboard() {
       <PageHead title="Risk · Dashboard"
         note="Saha ve yönetim riskleri tek listede. Riskler sahadan ve alt modüllerden (Disruptions, Planning, Procurement) gelen veriyle güncellenir; her riskin tetiklediği işler ve bunların maliyet, inxsa ve iş programı etkisi hesaplanır." />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Kpi label="Toplam risk" value={RISKS.length} sub={`${RISKS.filter((r) => r.origin === 'Saha').length} saha · ${RISKS.filter((r) => r.origin === 'Yönetim').length} yönetim`} />
         <Kpi label="Çok yüksek" value={RISKS.filter((r) => r.p * r.i >= 15).length} sub="Olasılık × etki ≥ 15" tone="crit" />
         <Kpi label="Maliyet etkisi" value={eur(sum.cost)} sub={`Beklenen ${eur(expected)}`} tone="warn"

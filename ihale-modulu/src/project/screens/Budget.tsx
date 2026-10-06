@@ -44,7 +44,7 @@ export function BudgetDetail() {
       <PageHead title="Budget"
         note="Maliyet performansı ve verimlilik. Planlama ve raporlama ekranlarında fiyat gösterilmez; tutar içeren bütün analizler burada durur. Birim fiyatlar sözleşme ve birim fiyat havuzundan, gerçekleşen tutarlar hakediş ve satın alma kayıtlarından gelir."
         right={<ExportButtons />} />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <Kpi label="Bütçe (BAC)" value={m(bac)} sub="İşin tamamı" />
         <Kpi label="Kazanılmış değer (EV)" value={m(ev)} sub="İlerleme × bütçe" tone="accent"
           help="Yapılan işin bütçedeki karşılığı: gerçekleşen ilerleme × bütçe." />
@@ -80,10 +80,10 @@ export function BudgetDetail() {
                 <Td nowrap>{p.unit}</Td>
                 <Td right>{num(u.plan, u.plan < 100 ? 2 : 0)}</Td>
                 <Td right>{num(u.actual, u.actual < 100 ? 2 : 0)}</Td>
-                <Td right><span className="font-semibold" style={{ color: diff > 0 ? 'var(--crit)' : 'var(--ok)' }}>{diff > 0 ? '+' : ''}{num(diff, Math.abs(diff) < 100 ? 2 : 0)}</span></Td>
+                <Td right><span className="font-semibold" style={{ color: diff > 0 ? 'var(--crit-ink)' : 'var(--ok-ink)' }}>{diff > 0 ? '+' : ''}{num(diff, Math.abs(diff) < 100 ? 2 : 0)}</span></Td>
                 <Td right>{num(p.planRate, 2)}</Td>
                 <Td right>{num(p.actualRate, 2)}</Td>
-                <Td right><span className="font-semibold" style={{ color: eff >= 0.95 ? 'var(--ok)' : eff >= 0.85 ? 'var(--warn)' : 'var(--crit)' }}>%{Math.round(eff * 100)}</span></Td>
+                <Td right><span className="font-semibold" style={{ color: eff >= 0.95 ? 'var(--ok-ink)' : eff >= 0.85 ? 'var(--warn-ink)' : 'var(--crit-ink)' }}>%{Math.round(eff * 100)}</span></Td>
                 <Td right>{diff > 0 ? m(diff * (p.total - p.done)) : '—'}</Td>
               </tr>
             )

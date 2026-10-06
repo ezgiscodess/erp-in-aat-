@@ -33,6 +33,10 @@ export function ProjectModule({ item, persona, onBack }: { item: LibraryItem; pe
   /** Bitişe kalan gün — bütün ekranlarla aynı "bugün" tarihinden hesaplanır */
   const daysLeft = Math.round((new Date(item.dueAt).getTime() - new Date('2026-09-27').getTime()) / 86_400_000)
 
+  /** Mobilde yan menü çekmece olarak açılır */
+  const [navOpen, setNavOpen] = useState(false)
+  const pick = (key: string) => { setPage(key); setNavOpen(false) }
+
   function go(key: string) {
     const { group } = findItem(key)
     if (group && !open.includes(group.key)) setOpen((o) => [...o, group.key])
@@ -40,11 +44,12 @@ export function ProjectModule({ item, persona, onBack }: { item: LibraryItem; pe
   }
 
   return (
-    <div className="flex min-h-screen bg-[var(--surface-2)]">
+    <div className="flex min-h-screen bg-[var(--bg)]">
       {/* ---------- Sol menü ---------- */}
-      <aside className="sticky top-0 flex h-screen w-[238px] flex-shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface)]">
+      {navOpen && <div className="backdrop fixed inset-0 z-40 bg-[rgba(15,23,42,0.40)] md:hidden" onClick={() => setNavOpen(false)} />}
+      <aside className={`sidebar fixed inset-y-0 left-0 z-50 flex h-screen w-[240px] flex-shrink-0 flex-col transition-transform md:sticky md:top-0 md:translate-x-0 ${navOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center gap-2.5 border-b border-[var(--border)] px-4 py-3">
-          <span className="grid h-6 w-6 place-items-center rounded-md text-[12px] font-extrabold text-white" style={{ background: 'var(--accent)' }}>IC</span>
+          <span className="grid h-7 w-7 place-items-center rounded-md text-[12px] font-extrabold text-white" style={{ background: 'var(--accent-grad)' }}>IC</span>
           <span className="text-[13.5px] font-bold tracking-tight text-[var(--ink)]">ICCM Ecosystem</span>
           <span className="text-[11px] text-[var(--muted)]">{persona === 'patron' ? 'Patron' : 'Proje ekibi'}</span>
         </div>
@@ -54,15 +59,15 @@ export function ProjectModule({ item, persona, onBack }: { item: LibraryItem; pe
         </button>
 
         <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-2 py-2">
-          <NavLink label="Home" on={page === 'home'} onClick={() => setPage('home')} strong />
+          <NavLink label="Home" on={page === 'home'} onClick={() => pick('home')} strong />
           {menu.map((g) => {
             const expanded = open.includes(g.key)
             const leaf = g.items.length === 0
             return (
               <div key={g.key}>
                 <button
-                  onClick={() => (leaf ? setPage(g.key) : setOpen((o) => (expanded ? o.filter((x) => x !== g.key) : [...o, g.key])))}
-                  className="flex w-full items-center gap-1.5 rounded-md px-2.5 py-[6px] text-left text-[12.5px] font-semibold transition-colors hover:bg-[var(--surface-2)]"
+                  onClick={() => (leaf ? pick(g.key) : setOpen((o) => (expanded ? o.filter((x) => x !== g.key) : [...o, g.key])))}
+                  className={`flex w-full items-center gap-1.5 rounded-md px-3 py-1.5 text-left text-[13px] font-semibold transition-colors hover:bg-[var(--surface-2)] ${page === g.key ? 'nav-active' : ''}`}
                   style={page === g.key ? { background: 'var(--accent-soft)', color: 'var(--accent)' } : { color: 'var(--ink)' }}>
                   <span className="min-w-0 flex-1 truncate">{g.label}</span>
                   {!leaf && <span className="text-[10px] text-[var(--faint)]">{expanded ? '▾' : '▸'}</span>}
@@ -70,7 +75,7 @@ export function ProjectModule({ item, persona, onBack }: { item: LibraryItem; pe
                 {expanded && !leaf && (
                   <div className="ml-2.5 flex flex-col gap-0.5 border-l border-[var(--border)] pl-1.5">
                     {g.items.map((i) => (
-                      <NavLink key={i.key} label={i.label} on={page === i.key} onClick={() => setPage(i.key)} dim={!i.ready} />
+                      <NavLink key={i.key} label={i.label} on={page === i.key} onClick={() => pick(i.key)} dim={!i.ready} />
                     ))}
                   </div>
                 )}
@@ -86,7 +91,8 @@ export function ProjectModule({ item, persona, onBack }: { item: LibraryItem; pe
 
       {/* ---------- Sağ taraf ---------- */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-40 flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-[var(--border)] bg-[var(--surface)] px-6 py-2.5">
+        <header className="sticky top-0 z-30 flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 shadow-sm sm:px-6">
+          <button onClick={() => setNavOpen(true)} aria-label="Menü" className="btn grid h-9 w-9 place-items-center border md:hidden">☰</button>
           <div className="min-w-0">
             <div className="truncate text-[13.5px] font-bold text-[var(--ink)]">{item.name}</div>
             <div className="truncate text-[11.5px] text-[var(--muted)]">{item.code} · {item.employer} · {item.location} · Proje dönemi</div>
@@ -102,7 +108,7 @@ export function ProjectModule({ item, persona, onBack }: { item: LibraryItem; pe
               <span className="text-right font-medium text-[var(--ink)] tnum">{date(item.dueAt)}</span>
             </div>
             <div className="flex flex-col items-center justify-center rounded-lg px-3 py-1"
-              style={{ background: daysLeft < 120 ? 'var(--warn-bg)' : 'var(--accent-soft)', color: daysLeft < 120 ? 'var(--warn)' : 'var(--accent)' }}
+              style={{ background: daysLeft < 120 ? 'var(--warn-bg)' : 'var(--accent-soft)', color: daysLeft < 120 ? 'var(--warn-ink)' : 'var(--accent)' }}
               title="Sözleşme bitiş tarihine kalan takvim günü">
               <span className="text-[22px] font-extrabold leading-none tnum">{daysLeft}</span>
               <span className="text-[10px] font-semibold uppercase tracking-wide">gün kaldı</span>
@@ -110,8 +116,8 @@ export function ProjectModule({ item, persona, onBack }: { item: LibraryItem; pe
           </div>
         </header>
 
-        <main className="flex-1 px-6 pb-16 pt-5">
-          <div className="mx-auto flex max-w-[1500px] flex-col gap-4">
+        <main className="flex-1 px-4 pb-12 pt-6 sm:px-6">
+          <div key={page} className="page-in mx-auto flex max-w-[1500px] flex-col gap-4">
             {!sample && (
               <div className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-[12.5px] text-[var(--muted)]">
                 Görsel prototip: ekrandaki veriler örnek projeye ({prj.code} · {prj.name}) aittir.
@@ -132,7 +138,7 @@ export function ProjectModule({ item, persona, onBack }: { item: LibraryItem; pe
 function NavLink({ label, on, onClick, strong, dim }: { label: string; on: boolean; onClick: () => void; strong?: boolean; dim?: boolean }) {
   return (
     <button onClick={onClick}
-      className={`flex items-center rounded-md px-2.5 py-[5px] text-left text-[12.5px] transition-colors hover:bg-[var(--surface-2)] ${strong ? 'font-semibold' : 'font-medium'}`}
+      className={`flex items-center rounded-md px-3 py-1.5 text-left text-[13px] transition-colors hover:bg-[var(--surface-2)] ${strong ? 'font-semibold' : 'font-medium'} ${on ? 'nav-active' : ''}`}
       style={on ? { background: 'var(--accent-soft)', color: 'var(--accent)' } : { color: dim ? 'var(--faint)' : 'var(--muted)' }}
       title={dim ? 'Hazırlanıyor' : undefined}>
       <span className="truncate">{label}</span>

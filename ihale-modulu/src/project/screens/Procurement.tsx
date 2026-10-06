@@ -51,7 +51,7 @@ export function Sas() {
       <PageHead title="Procurement · SAS"
         note="Tanımlı kullanıcıların malzeme, satın alma ve hizmet talepleri. Talep eklenirken malzeme kodu, gerektiği tarih, aciliyet ve onaycılar seçilir; onaycıların ana sayfasına bildirim düşer. Onaylar tamamlanınca sipariş verilir; ürün sahaya ulaşınca “depoya aktar” ile stoka girer. Onay ve teslim süreleri analiz için tutulur."
         right={<ExportButtons />} />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Kpi label="Toplam talep" value={items.length} sub="Bu proje" />
         <Kpi label="Onay bekleyen" value={req.length} sub={`${req.filter((i) => i.urgency === 'Acil').length} acil`} tone="warn" />
         <Kpi label="Devam eden sipariş" value={ord.length} sub="Sipariş verildi + yolda" tone="accent" />
@@ -117,7 +117,7 @@ export function Sas() {
                 <div className="mt-1.5 flex flex-wrap items-center gap-1">
                   {i.approvers.map((a) => (
                     <span key={a} className="mono rounded px-1.5 py-0.5 text-[10.5px]"
-                      style={i.approved.includes(a) ? { background: 'var(--ok-bg)', color: 'var(--ok)' } : { background: 'var(--surface-3)', color: 'var(--muted)' }}>
+                      style={i.approved.includes(a) ? { background: 'var(--ok-bg)', color: 'var(--ok-ink)' } : { background: 'var(--surface-3)', color: 'var(--muted)' }}>
                       {i.approved.includes(a) ? '✓ ' : ''}{a}
                     </span>
                   ))}
@@ -337,7 +337,7 @@ export function Stock() {
       <PageHead title="Procurement · Stock"
         note="Sahada, depoda ve yolda olan malzeme ile hizmet alımları: stok değeri, doluluk, giriş-çıkış hareketleri ve bütün işlemlerin kaydı."
         right={<ExportButtons />} />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Kpi label="Stok değeri" value={m(value)} sub="Depoda ve sahada" tone="accent" />
         <Kpi label="Kalem çeşidi" value={new Set(inStock.map((x) => x.code)).size} sub={`${new Set(moves.map((x) => x.group)).size} grup`} />
         <Kpi label="Depo doluluğu" value="%68" sub="Ana depo 1.200 m²" />

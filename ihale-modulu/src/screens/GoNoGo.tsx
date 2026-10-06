@@ -129,7 +129,7 @@ export function GoNoGo({ writable, role }: { writable: boolean; role: string }) 
       {!writable && <ReadOnlyNote role={role} />}
 
       {/* Sonuç en başta — beş kutu */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Kpi label="Sonuç" value={num(total, 1)} sub={`${verdict} · eşik ${THRESHOLD}`} tone={verdictTone}
           help={`Ağırlıklı kriter puanlarının ortalaması. Eşik ${THRESHOLD} puandır: üstü GO, 10 puan altına kadar ŞARTLI GO, daha düşüğü NO-GO önerisi verir.`} />
         <Kpi label="Beklenen marj" value={pct(7.4, 1)} sub="Hedef %10" tone="warn"
@@ -155,7 +155,7 @@ export function GoNoGo({ writable, role }: { writable: boolean; role: string }) 
           ))}
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-3 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
-          <span className="text-[24px] font-extrabold leading-none tnum" style={{ color: `var(--${verdictTone})` }}>{num(total, 1)}</span>
+          <span className="text-[24px] font-extrabold leading-none tnum" style={{ color: `var(--${verdictTone}-ink)` }}>{num(total, 1)}</span>
           <Badge tone={verdictTone} dot>{verdict}</Badge>
           <p className="min-w-[240px] flex-1 text-[12px] leading-relaxed text-[var(--muted)]">
             Teknik ve stratejik uyum güçlü; ticari ve sözleşmesel koşullar zayıf.
@@ -294,7 +294,7 @@ export function GoNoGo({ writable, role }: { writable: boolean; role: string }) 
                         onClick={() => setTodos((list) => list.map((x) => (x.id === t.id ? { ...x, state: st, action: { by: ME, at: today() } } : x)))}
                         className="rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors disabled:opacity-45"
                         style={on
-                          ? { background: `var(--${TODO_TONE[st]}-bg)`, borderColor: `var(--${TODO_TONE[st]})`, color: `var(--${TODO_TONE[st]})` }
+                          ? { background: `var(--${TODO_TONE[st]}-bg)`, borderColor: `var(--${TODO_TONE[st]})`, color: `var(--${TODO_TONE[st]}-ink)` }
                           : { background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--faint)' }}>
                         {st}
                       </button>

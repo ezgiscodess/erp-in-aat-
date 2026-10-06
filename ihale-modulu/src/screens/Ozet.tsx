@@ -50,7 +50,7 @@ export function Ozet({ onGo }: { onGo: (t: TabKey) => void }) {
       />
 
       {/* Künye şeridi */}
-      <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+      <div className="card px-4 py-3">
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
           <div>
             <div className="text-[15px] font-bold text-[var(--ink)]">{project.name}</div>
@@ -72,9 +72,9 @@ export function Ozet({ onGo }: { onGo: (t: TabKey) => void }) {
           <div className="flex h-full flex-col justify-between rounded-lg border p-4"
             style={{ background: 'var(--warn-bg)', borderColor: 'var(--warn)' }}>
             <div>
-              <div className="text-[11px] font-bold uppercase tracking-wide" style={{ color: 'var(--warn)' }}>Öneri</div>
-              <div className="mt-1 text-[28px] font-extrabold leading-none" style={{ color: 'var(--warn)' }}>ŞARTLI GO</div>
-              <div className="mt-2 text-[12.5px] leading-relaxed" style={{ color: 'var(--warn)' }}>
+              <div className="text-[11px] font-bold uppercase tracking-wide" style={{ color: 'var(--warn-ink)' }}>Öneri</div>
+              <div className="mt-1 text-[28px] font-extrabold leading-none" style={{ color: 'var(--warn-ink)' }}>ŞARTLI GO</div>
+              <div className="mt-2 text-[12.5px] leading-relaxed" style={{ color: 'var(--warn-ink)' }}>
                 Skor <b>{num(score, 1)}/100</b> (eşik 60). Teknik uyum güçlü; ticari ve sözleşmesel koşullar zayıf.
                 Dört koşul karşılanırsa teklif verilmesi öneriliyor.
               </div>
@@ -87,7 +87,7 @@ export function Ozet({ onGo }: { onGo: (t: TabKey) => void }) {
         </div>
 
         <div className="lg:col-span-8">
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Kpi label="Ön teklif bedeli" value={moneyShort(bidPrice, project.currency)} sub={`Direkt ${moneyShort(boqTotal, project.currency)} + genel gider + risk + kâr`} tone="accent" />
             <Kpi label="Risk karşılığı" value={moneyShort(riskProvision, project.currency)} sub={`Teklifin ${pct((riskProvision / bidPrice) * 100)}’i`} tone="crit"
               help="Teklif fiyatına eklenen risk karşılığı. Risklerin olasılıkla ağırlıklı beklenen değerinden hesaplanır; en kötü senaryonun tamamı değildir." />
@@ -311,7 +311,7 @@ function SummaryCard({ title, lines, children, onGo, addon }: {
   addon?: boolean
 }) {
   return (
-    <section className="flex flex-col rounded-lg border border-[var(--border)] bg-[var(--surface)]">
+    <section className="flex flex-col card">
       <header className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-2.5">
         <h3 className="text-[13px] font-semibold text-[var(--ink)]">{title}</h3>
         {addon && <span className="rounded px-1.5 py-0.5 text-[9.5px] font-bold uppercase" style={{ background: 'var(--gold-bg)', color: 'var(--gold)', border: '1px solid var(--gold-border)' }}>Ek</span>}
@@ -394,7 +394,7 @@ function ReportModal({ onClose }: { onClose: () => void }) {
       onClose={onClose}
       wide
       footer={done ? <>
-        <span className="text-[12px] text-[var(--ok)]">✓ Rapor hazırlandı · {included.length} bölüm · {project.code}-Rapor.{format === 'PDF' ? 'pdf' : 'docx'}</span>
+        <span className="text-[12px] text-[var(--ok-ink)]">✓ Rapor hazırlandı · {included.length} bölüm · {project.code}-Rapor.{format === 'PDF' ? 'pdf' : 'docx'}</span>
         <span className="ml-auto flex gap-2"><Btn onClick={onClose}>Kapat</Btn><Btn primary>İndir</Btn></span>
       </> : <>
         <span className="text-[11.5px] text-[var(--faint)]">{included.length} / {tabs.length} bölüm seçili</span>

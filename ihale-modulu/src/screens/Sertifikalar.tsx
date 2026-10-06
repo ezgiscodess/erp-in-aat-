@@ -40,7 +40,7 @@ export function Sertifikalar({ writable, role, embedded }: { writable: boolean; 
         {!writable && <ReadOnlyNote role={role} />}
       </>}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Kpi label="İstenen belge" value={certs.filter((c) => c.required).length} sub="İdari Şartname 7. madde" />
         <Kpi label="Mevcut" value={certs.filter((c) => c.owned).length} sub="Firma belge havuzunda" tone="ok" />
         <Kpi label="Eksik" value={missing.length} sub="Teklif öncesi tamamlanmalı" tone="crit" />
@@ -50,8 +50,8 @@ export function Sertifikalar({ writable, role, embedded }: { writable: boolean; 
 
       {(missing.length > 0 || expiring.length > 0) && (
         <div className="rounded-lg border p-3" style={{ background: 'var(--crit-bg)', borderColor: 'var(--crit)' }}>
-          <div className="text-[13px] font-semibold" style={{ color: 'var(--crit)' }}>Teklif teslimini riske atan belgeler</div>
-          <ul className="mt-2 flex flex-col gap-1 text-[12.5px]" style={{ color: 'var(--crit)' }}>
+          <div className="text-[13px] font-semibold" style={{ color: 'var(--crit-ink)' }}>Teklif teslimini riske atan belgeler</div>
+          <ul className="mt-2 flex flex-col gap-1 text-[12.5px]" style={{ color: 'var(--crit-ink)' }}>
             {missing.slice(0, 3).map((c) => <li key={c.id}>• <b>{c.name}</b> — {c.note}</li>)}
             {expiring.map((c) => <li key={c.id}>• <b>{c.name}</b> — geçerlilik {date(c.validUntil!)} ({daysLabel(c.daysLeft!)})</li>)}
           </ul>
@@ -97,7 +97,7 @@ export function Sertifikalar({ writable, role, embedded }: { writable: boolean; 
                     <div>
                       <div className="tnum text-[12.5px] text-[var(--ink)]">{date(c.validUntil)}</div>
                       {c.daysLeft != null && (
-                        <div className="text-[11px]" style={{ color: c.daysLeft <= 60 ? 'var(--warn)' : 'var(--faint)' }}>{daysLabel(c.daysLeft)}</div>
+                        <div className="text-[11px]" style={{ color: c.daysLeft <= 60 ? 'var(--warn-ink)' : 'var(--faint)' }}>{daysLabel(c.daysLeft)}</div>
                       )}
                     </div>
                   ) : <span className="text-[var(--faint)]">—</span>}
@@ -182,7 +182,7 @@ function CertModal({ cert, onClose, onSave }: { cert: Certificate | null; onClos
       </>}
     >
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="sm:col-span-2"><Field label="Belge" value={name} onChange={setName} placeholder="Ör. ISO 9001:2015 Kalite Yönetim Sistemi" /></div>
+        <div className="sm:col-span-2"><Field required label="Belge" value={name} onChange={setName} placeholder="Ör. ISO 9001:2015 Kalite Yönetim Sistemi" /></div>
         <Field label="Veren kurum" value={authority} onChange={setAuthority} />
         <Field label="Belge no" value={number} onChange={setNumber} hint="Girilirse belge 'var' sayılır" />
         <Field label="Geçerlilik" value={validUntil} onChange={setValidUntil} type="date" />

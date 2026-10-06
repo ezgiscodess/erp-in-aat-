@@ -31,6 +31,8 @@ export function PersonelEkipman({ writable, role }: { writable: boolean; role: s
   const [equipment, setEquipment] = useState<EquipmentItem[]>(equipmentPlan)
   const [openStaff, setOpenStaff] = useState<StaffItem | null>(null)
   const [openEquip, setOpenEquip] = useState<EquipmentItem | null>(null)
+  /** Aylık dağılım pop-up'ı: personel ya da makine-ekipman */
+  const [dist, setDist] = useState<'staff' | 'equip' | null>(null)
 
   const staffCost = staff.reduce((a, s) => a + s.count * gross(s.monthlyCost) * s.months.length, 0)
   const equipCost = equipment.reduce((a, e) => a + e.count * e.monthlyCost * e.months.length, 0)
@@ -50,7 +52,7 @@ export function PersonelEkipman({ writable, role }: { writable: boolean; role: s
 
       {!writable && <ReadOnlyNote role={role} />}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi label="Personel" value={headcount} sub={`${staff.length} görev tanımı`}
           help="İş süresince sahada bulunacak toplam kişi sayısı. Aynı görevde birden fazla kişi olabilir." />
         <Kpi label="Personel gideri" value={moneyShort(staffCost, project.currency)} sub="Süre boyunca toplam"
@@ -61,17 +63,22 @@ export function PersonelEkipman({ writable, role }: { writable: boolean; role: s
           help="Adet × aylık maliyet × kullanım ayı. Kiralık ekipman fiyat dalgalanması Teklif Riskleri R12 ile bağlantılıdır." />
       </div>
 
-      <Card title="Şantiye genel giderine yansıma" help="Personel ve ekipman toplamı, teklif fiyatındaki şantiye genel gideri kaleminin ana bileşenidir.">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <Card title="Şantiye genel giderine yansıma" help="Personel ve ekipman toplamı, teklif fiyatındaki şantiye genel gideri kaleminin ana bileşenidir. Aylık dağılım iş programındaki sürelere bağlıdır: bir aktivite uzarsa o aylardaki kadro ve ekipman gideri de doğrudan artar.">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <Total label="Personel" value={staffCost} tone="var(--ink)" />
           <Total label="Makine ve ekipman" value={equipCost} tone="var(--ink)" />
           <Total label="Toplam şantiye kadrosu gideri" value={staffCost + equipCost} tone="var(--ink)" />
+          <DistButton label="Personel" sub="Aylık dağılım" count={`${headcount} kişi`} onClick={() => setDist('staff')} />
+          <DistButton label="Makine - Ekipman" sub="Aylık dağılım" count={`${machines} adet`} onClick={() => setDist('equip')} />
         </div>
-        <p className="mt-3 text-[12px] leading-relaxed text-[var(--muted)]">
-          Aylık dağılım iş programındaki sürelere bağlıdır: bir aktivite uzarsa o aylardaki kadro ve ekipman
-          gideri de doğrudan artar. Kiralık deniz ekipmanının fiyat dalgalanması Teklif Riskleri sekmesindeki
-          R12 riskiyle eşleşir.
-        </p>
+
+        {/* Önizleme: hangi ay kaç kişi / kaç makine sahada */}
+        <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <MonthPreview title="Personel · aylık sahadaki kişi" color="var(--series-1)" onOpen={() => setDist('staff')}
+            values={Array.from({ length: MONTHS }, (_, m) => staff.reduce((a, x) => a + (x.months.includes(m) ? x.count : 0), 0))} unit="kişi" />
+          <MonthPreview title="Makine - ekipman · aylık sahadaki adet" color="var(--series-2)" onOpen={() => setDist('equip')}
+            values={Array.from({ length: MONTHS }, (_, m) => equipment.reduce((a, x) => a + (x.months.includes(m) ? x.count : 0), 0))} unit="adet" />
+        </div>
       </Card>
 
       {/* Sol: personel · Sağ: makine-ekipman */}
@@ -101,7 +108,7 @@ export function PersonelEkipman({ writable, role }: { writable: boolean; role: s
                 <Td>
                   <div className="text-[12.5px] font-medium text-[var(--ink)]">{s.title}</div>
                   <div className="mt-0.5 text-[11px] text-[var(--muted)]">{s.duty}</div>
-                  {s.note && <div className="mt-0.5 text-[11px] text-[var(--warn)]">⚠ {s.note}</div>}
+                  {s.note && <div className="mt-0.5 text-[11px] text-[var(--warn-ink)]">⚠ {s.note}</div>}
                 </Td>
                 <Td right>{s.count}</Td>
                 <Td right>{num(s.monthlyCost)}</Td>
@@ -153,7 +160,7 @@ export function PersonelEkipman({ writable, role }: { writable: boolean; role: s
                     <Badge tone={e.ownership === 'Kira' ? 'warn' : 'ok'}>{e.ownership}</Badge>
                   </div>
                   <div className="mt-0.5 text-[11px] text-[var(--muted)]">{e.group}</div>
-                  {e.note && <div className="mt-0.5 text-[11px] text-[var(--warn)]">⚠ {e.note}</div>}
+                  {e.note && <div className="mt-0.5 text-[11px] text-[var(--warn-ink)]">⚠ {e.note}</div>}
                 </Td>
                 <Td right>{e.count}</Td>
                 <Td right>{num(e.monthlyCost)}</Td>
@@ -177,6 +184,22 @@ export function PersonelEkipman({ writable, role }: { writable: boolean; role: s
         </Card>
       </div>
 
+
+      {dist && (
+        <DistributionModal
+          title={dist === 'staff' ? 'Personel aylık dağılımı' : 'Makine - ekipman aylık dağılımı'}
+          writable={writable}
+          rows={dist === 'staff'
+            ? staff.map((x) => ({ id: x.id, name: x.title, sub: x.duty, count: x.count, months: x.months }))
+            : equipment.map((x) => ({ id: x.id, name: x.name, sub: `${x.group} · ${x.ownership}`, count: x.count, months: x.months }))}
+          onClose={() => setDist(null)}
+          onSave={(map) => {
+            if (dist === 'staff') setStaff((l) => l.map((x) => ({ ...x, months: map[x.id] ?? x.months })))
+            else setEquipment((l) => l.map((x) => ({ ...x, months: map[x.id] ?? x.months })))
+            setDist(null)
+          }}
+        />
+      )}
 
       {openStaff && (
         <MonthModal
@@ -285,5 +308,122 @@ function MonthModal({ title, subtitle, months, unit, writable, onClose, onSave }
         </p>
       </div>
     </Modal>
+  )
+}
+
+/** Toplamların yanındaki dağılım düğmesi */
+function DistButton({ label, sub, count, onClick }: { label: string; sub: string; count: string; onClick: () => void }) {
+  return (
+    <button onClick={onClick}
+      className="lift group flex items-center gap-3 rounded-md border border-[var(--accent)] bg-[var(--accent-soft)] px-3 py-2.5 text-left transition-colors hover:bg-[var(--accent)]">
+      <span className="min-w-0 flex-1">
+        <span className="block text-[11px] font-semibold uppercase tracking-wide text-[var(--accent)] group-hover:text-white">{label}</span>
+        <span className="block text-[12.5px] text-[var(--ink)] group-hover:text-white">{sub} · {count}</span>
+      </span>
+      <span className="text-[16px] text-[var(--accent)] group-hover:text-white">→</span>
+    </button>
+  )
+}
+
+/** Aylık sütun önizlemesi: her ay sahada kaç kişi / makine olduğu. Tıklayınca dağılım pop-up'ı açılır. */
+function MonthPreview({ title, values, color, unit, onOpen }: { title: string; values: number[]; color: string; unit: string; onOpen: () => void }) {
+  const max = Math.max(1, ...values)
+  const peak = values.indexOf(max)
+  return (
+    <button onClick={onOpen} className="lift rounded-md border border-[var(--border)] bg-[var(--surface)] p-3 text-left hover:border-[var(--accent)]">
+      <div className="flex items-center gap-2">
+        <span className="text-[12px] font-semibold text-[var(--ink)]">{title}</span>
+        <span className="ml-auto text-[11px] text-[var(--muted)]">En yoğun: {monthLabel(peak)} · {max} {unit}</span>
+      </div>
+      <div className="mt-2 flex h-[72px] items-end gap-[3px]">
+        {values.map((v, m) => (
+          <span key={m} className="grow-bar flex-1 rounded-t-[2px]" title={`${m + 1}. ay (${monthLabel(m)}) · ${v} ${unit}`}
+            style={{ height: `${Math.max(3, (v / max) * 100)}%`, background: color, opacity: v ? 0.9 : 0.15, animationDelay: `${m * 18}ms` }} />
+        ))}
+      </div>
+      <div className="mt-1 flex text-[9.5px] text-[var(--faint)]">
+        {values.map((_, m) => <span key={m} className="flex-1 text-center">{m % 3 === 0 ? monthLabel(m) : ''}</span>)}
+      </div>
+    </button>
+  )
+}
+
+/**
+ * Bütün satırların ay ay dağılımı: her hücre o ay sahada olup olmadığıdır, tıklayınca işaretlenir.
+ * Alt satır her ayın toplamını (kişi / adet) gösterir.
+ */
+function DistributionModal({ title, rows, writable, onClose, onSave }: {
+  title: string
+  rows: { id: string; name: string; sub: string; count: number; months: number[] }[]
+  writable: boolean
+  onClose: () => void
+  onSave: (map: Record<string, number[]>) => void
+}) {
+  const [map, setMap] = useState<Record<string, number[]>>(Object.fromEntries(rows.map((r) => [r.id, r.months])))
+  const toggle = (id: string, m: number) => {
+    if (!writable) return
+    setMap((x) => ({ ...x, [id]: x[id].includes(m) ? x[id].filter((v) => v !== m) : [...x[id], m].sort((a, b) => a - b) }))
+  }
+  const totals = Array.from({ length: MONTHS }, (_, m) => rows.reduce((a, r) => a + (map[r.id].includes(m) ? r.count : 0), 0))
+  return (
+    <div className="backdrop fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[rgba(16,24,40,0.45)] p-6" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="pop mt-6 w-full max-w-[1280px] rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl">
+        <header className="flex items-start gap-3 border-b border-[var(--border)] px-5 py-3.5">
+          <div>
+            <h3 className="text-[14.5px] font-bold text-[var(--ink)]">{title}</h3>
+            <p className="mt-0.5 text-[12px] text-[var(--muted)]">Hücreye tıklayınca o ay işaretlenir ya da kaldırılır. Aylar iş programındaki sürelere göre önerilir.</p>
+          </div>
+          <button onClick={onClose} aria-label="Kapat" className="ml-auto grid h-7 w-7 place-items-center rounded-md border border-[var(--border)] text-[14px] text-[var(--muted)] hover:bg-[var(--surface-2)]">×</button>
+        </header>
+        <div className="overflow-x-auto px-5 py-4">
+          <table className="grid-table w-full border-collapse text-[11.5px]">
+            <thead>
+              <tr>
+                <th className="sticky left-0 z-10 w-[220px] bg-[var(--surface)] px-2 py-1.5 text-left text-[11px] font-bold uppercase tracking-wide text-[var(--muted)]">Kalem</th>
+                <th className="w-10 px-1 text-right text-[11px] font-bold text-[var(--muted)]">Ad.</th>
+                {Array.from({ length: MONTHS }, (_, m) => (
+                  <th key={m} className="min-w-[30px] px-0.5 py-1.5 text-center text-[9.5px] font-medium text-[var(--muted)]">
+                    <div>{m + 1}</div><div className="text-[var(--faint)]">{monthLabel(m)}</div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.id} className="border-t border-[var(--border)]">
+                  <td className="sticky left-0 z-10 bg-[var(--surface)] px-2 py-1">
+                    <div className="truncate font-medium text-[var(--ink)]" title={r.name}>{r.name}</div>
+                    <div className="truncate text-[10.5px] text-[var(--faint)]">{r.sub}</div>
+                  </td>
+                  <td className="px-1 text-right tnum text-[var(--muted)]">{r.count}</td>
+                  {Array.from({ length: MONTHS }, (_, m) => {
+                    const on = map[r.id].includes(m)
+                    return (
+                      <td key={m} className="p-[2px]">
+                        <button onClick={() => toggle(r.id, m)} title={`${r.name} · ${m + 1}. ay`}
+                          className="block h-6 w-full rounded-[3px] transition-colors"
+                          style={{ background: on ? 'var(--accent)' : 'var(--surface-2)', border: on ? 'none' : '1px solid var(--border)' }} />
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+              <tr className="border-t-2 border-[var(--border-strong)] bg-[var(--surface-2)]">
+                <td className="sticky left-0 z-10 bg-[var(--surface-2)] px-2 py-1.5 font-bold text-[var(--ink)]">Aylık toplam</td>
+                <td />
+                {totals.map((t, m) => <td key={m} className="py-1.5 text-center font-semibold tnum text-[var(--ink)]">{t || ''}</td>)}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div className="flex items-center gap-2 border-t border-[var(--border)] bg-[var(--surface-2)] px-5 py-3">
+          <span className="text-[12px] text-[var(--muted)]">En yoğun ay: <b className="text-[var(--ink)]">{monthLabel(totals.indexOf(Math.max(...totals)))}</b> · {Math.max(...totals)}</span>
+          <span className="ml-auto flex gap-2">
+            <Btn onClick={onClose}>Vazgeç</Btn>
+            <Btn primary disabled={!writable} onClick={() => onSave(map)}>Kaydet</Btn>
+          </span>
+        </div>
+      </div>
+    </div>
   )
 }

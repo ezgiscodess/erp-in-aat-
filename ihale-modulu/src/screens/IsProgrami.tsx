@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { boqItems, scheduleMilestones, scheduleTasks, project } from '../data/mock'
 import type { ScheduleMilestone, ScheduleTask, TabKey } from '../data/types'
 import {
-  AddonBadge, Badge, Bar, Btn, Card, Field, IconBtn, Kpi, Modal, PageHead, RowActions, ReadOnlyNote, StickyPane, Table, Td, Th,
+  AddonBadge, Badge, Bar, Btn, Card, Dropzone, Field, IconBtn, Kpi, Modal, PageHead, RowActions, ReadOnlyNote, StickyPane, Table, Td, Th,
 } from '../components/ui'
 import { date, num } from '../lib/format'
+import { smoothPath } from '../project/charts'
 
 const MONTHS = 24
 
@@ -19,6 +20,25 @@ function monthLabel(m: number): string {
 function monthDate(m: number): string {
   const d = new Date(START.getFullYear(), START.getMonth() + m, 1)
   return new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' }).format(d)
+}
+
+/** Çizelgenin sol (tablo) kısmının genişliği: kod, iş kalemi, başlangıç, bitiş, gün */
+const LW = 560
+
+/** Aktivite kodu — WBS sırasından (A-1010, A-1020…) */
+const codeOf = (t: ScheduleTask) => `A-${1000 + Number(t.wbs) * 10}`
+
+/** Ay başından gün sayısı kaydırmalı kısa tarih: 01.11.26 */
+function shortDate(m: number, shiftDays = 0): string {
+  const d = new Date(START.getFullYear(), START.getMonth() + m, 1 + shiftDays)
+  return new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: '2-digit', year: '2-digit' }).format(d)
+}
+
+/** Aktivitenin takvim günü */
+function daysOf(t: ScheduleTask): number {
+  const a = new Date(START.getFullYear(), START.getMonth() + t.startMonth, 1)
+  const b = new Date(START.getFullYear(), START.getMonth() + t.startMonth + t.months, 1)
+  return Math.round((b.getTime() - a.getTime()) / 86_400_000)
 }
 
 /**
@@ -39,6 +59,8 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
     if (sel.id === id && rest[0]) setSel(rest[0])
   }
   const [openMs, setOpenMs] = useState<ScheduleMilestone | null>(null)
+  const [importing, setImporting] = useState(false)
+  const [importFiles, setImportFiles] = useState<string[]>([])
 
   const finish = Math.max(...tasks.map((t) => t.startMonth + t.months))
   const critical = tasks.filter((t) => t.critical)
@@ -51,8 +73,7 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
         right={<>
           <AddonBadge />
           <Btn disabled={!writable} title="Doküman analizi ve metrajdaki son değişiklikleri programa yansıtır. Program bu değişikliklerle zaten otomatik güncellenir; bu düğme hemen yenilemek içindir.">↻ Güncelle</Btn>
-          <Btn title="MS Project dosyası (.xml / .mpp)">MS Project</Btn>
-          <Btn title="Primavera P6 dosyası (.xer)">P6 (XER)</Btn>
+          <Btn disabled={!writable} onClick={() => setImporting(true)} title="MS Project, Primavera P6 (.xer) veya Excel programı içe aktar">⇪ Import</Btn>
           <Btn title="PDF olarak dışa aktar">PDF</Btn>
           <Btn title="Excel olarak dışa aktar">Excel</Btn>
         </>}
@@ -60,7 +81,7 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
 
       {!writable && <ReadOnlyNote role={role} />}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Kpi label="Toplam süre" value={`${finish} ay`} sub={`${project.durationDays} takvim günü`}
           help="Programın ilk işinden son işin bitişine kadar geçen süre. Sözleşmedeki iş süresiyle aynı olmak zorundadır." />
         <Kpi label="Aktivite" value={tasks.length} sub="WBS satırı"
@@ -79,16 +100,20 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
         help="Üstteki şerit sözleşmeden gelen kilometre taşlarını gösterir. Kırmızı çubuklar kritik yoldaki işlerdir; satıra tıklayınca ayrıntısı aşağıda açılır. En alttaki S eğrisi, işin aylık dağılımından (metraj × birim fiyat) hesaplanan planlanan kümülatif ilerlemedir. + ile aktivite eklenir, çöp kutusu seçili aktiviteyi siler."
         right={<span className="flex items-center gap-1.5">
           <IconBtn icon="add" primary title="Aktivite ekle" disabled={!writable} onClick={() => setEditTask('new')} />
-          <RowActions name={`${sel.wbs} · ${sel.name}`} disabled={!writable} onDelete={() => removeTask(sel.id)} />
+          <RowActions name={`${codeOf(sel)} · ${sel.name}`} disabled={!writable} onEdit={() => setEditTask(sel)} onDelete={() => removeTask(sel.id)} />
         </span>}
         pad={false}
       >
         <div className="overflow-x-auto">
-          <div className="min-w-[860px]">
+          <div className="min-w-[1180px]">
             {/* Ay başlıkları */}
             <div className="flex border-b border-[var(--border)] bg-[var(--surface-3)]">
-              <div className="w-[310px] flex-shrink-0 border-r border-[var(--border)] px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--muted)]">
-                İş kalemi
+              <div className="flex flex-shrink-0 items-center border-r border-[var(--border)] text-[11px] font-bold uppercase tracking-wide text-[var(--muted)]" style={{ width: LW }}>
+                <span className="w-[64px] px-3 py-1.5">Kod</span>
+                <span className="min-w-0 flex-1 px-1 py-1.5">İş kalemi</span>
+                <span className="w-[74px] px-1 py-1.5 text-center">Başlangıç</span>
+                <span className="w-[74px] px-1 py-1.5 text-center">Bitiş</span>
+                <span className="w-[46px] px-2 py-1.5 text-right">Gün</span>
               </div>
               <div className="relative flex flex-1">
                 {Array.from({ length: MONTHS }, (_, m) => (
@@ -101,7 +126,7 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
 
             {/* Kilometre taşları şeridi */}
             <div className="flex border-b border-[var(--border)] bg-[var(--surface-2)]">
-              <div className="w-[310px] flex-shrink-0 border-r border-[var(--border)] px-3 py-2 text-[11.5px] font-semibold text-[var(--ink)]">
+              <div className="flex-shrink-0 border-r border-[var(--border)] px-3 py-2 text-[11.5px] font-semibold text-[var(--ink)]" style={{ width: LW }}>
                 Kilometre taşları
               </div>
               <div className="relative flex-1 py-2">
@@ -122,10 +147,12 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
                 <div key={t.id} onClick={() => setSel(t)}
                   className="flex cursor-pointer border-b border-[var(--border)] last:border-0 hover:bg-[var(--surface-2)]"
                   style={on ? { background: 'var(--accent-soft)' } : undefined}>
-                  <div className="flex w-[310px] flex-shrink-0 items-center gap-2 border-r border-[var(--border)] px-3 py-1.5">
-                    <span className="mono w-5 flex-shrink-0 text-[11px] text-[var(--faint)]">{t.wbs}</span>
-                    <span className="min-w-0 flex-1 truncate text-[12.5px] text-[var(--ink)]" title={t.name}>{t.name}</span>
-                    <span className="flex-shrink-0 text-[10.5px] text-[var(--faint)] tnum">{t.months} ay</span>
+                  <div className="flex flex-shrink-0 items-center border-r border-[var(--border)] py-1.5" style={{ width: LW }}>
+                    <span className="mono w-[64px] flex-shrink-0 px-3 text-[11px] text-[var(--muted)]">{codeOf(t)}</span>
+                    <span className="min-w-0 flex-1 truncate px-1 text-[12.5px] text-[var(--ink)]" title={t.name}>{t.name}</span>
+                    <span className="w-[74px] flex-shrink-0 px-1 text-center text-[11px] text-[var(--muted)] tnum">{shortDate(t.startMonth)}</span>
+                    <span className="w-[74px] flex-shrink-0 px-1 text-center text-[11px] text-[var(--muted)] tnum">{shortDate(t.startMonth + t.months, -1)}</span>
+                    <span className="w-[46px] flex-shrink-0 px-2 text-right text-[11px] font-semibold text-[var(--ink)] tnum">{daysOf(t)}</span>
                   </div>
                   <div className="relative flex-1 py-1.5">
                     {/* Ay ızgarası */}
@@ -151,7 +178,7 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
 
             {/* S eğrisi — aylık planlanan iş ve kümülatif ilerleme */}
             <div className="flex border-t border-[var(--border-strong)] bg-[var(--surface-2)]">
-              <div className="w-[310px] flex-shrink-0 border-r border-[var(--border)] px-3 py-2">
+              <div className="flex-shrink-0 border-r border-[var(--border)] px-3 py-2" style={{ width: LW }}>
                 <div className="text-[11.5px] font-semibold text-[var(--ink)]">S eğrisi</div>
                 <div className="mt-0.5 text-[11px] leading-snug text-[var(--muted)]">
                   Planlanan kümülatif ilerleme — işin aylık dağılımına göre (metraj × birim fiyat)
@@ -176,8 +203,8 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
                     const h = (c.month / peak) * 45
                     return <rect key={i} x={i + 0.2} width={0.6} y={100 - h} height={h} fill="var(--accent)" opacity={0.25} />
                   })}
-                  <polyline fill="none" stroke="var(--accent)" strokeWidth={2} vectorEffect="non-scaling-stroke"
-                    points={['0,100', ...curve.map((c, i) => `${i + 1},${100 - c.cum}`)].join(' ')} />
+                  <path fill="none" stroke="var(--accent)" strokeWidth={2} vectorEffect="non-scaling-stroke"
+                    d={smoothPath([[0, 100], ...curve.map((c, i): [number, number] => [i + 1, 100 - c.cum])])} />
                 </svg>
                 <span className="absolute right-1 top-0.5 text-[10px] text-[var(--faint)]">%100</span>
                 <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[10px] text-[var(--faint)]">%50</span>
@@ -204,11 +231,11 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <div className="flex flex-col gap-4">
           <Card
-            title={`${sel.wbs} · ${sel.name}`}
+            title={`${codeOf(sel)} · ${sel.name}`}
             subtitle={sel.group}
             right={<>
               {sel.critical && <Badge tone="crit" dot>Kritik yol</Badge>}
-              <RowActions name={`${sel.wbs} · ${sel.name}`} disabled={!writable}
+              <RowActions name={`${codeOf(sel)} · ${sel.name}`} disabled={!writable}
                 onEdit={() => setEditTask(sel)} onDelete={() => removeTask(sel.id)} />
             </>}
           >
@@ -272,7 +299,7 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
                     </Td>
                     <Td>
                       {m.penalty
-                        ? <div className="font-semibold text-[var(--crit)] tnum">{num(m.penalty)} {project.currency}</div>
+                        ? <div className="font-semibold text-[var(--crit-ink)] tnum">{num(m.penalty)} {project.currency}</div>
                         : <div className="text-[var(--faint)]">Ceza yok</div>}
                       {m.penaltyNote && <div className="text-[11.5px] text-[var(--ink)]">{m.penaltyNote}</div>}
                       <div className="text-[11px] text-[var(--faint)]">{m.source}</div>
@@ -309,6 +336,20 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
           </div>
         </StickyPane>
       </div>
+
+      {importing && (
+        <Modal title="Program içe aktar" note="MS Project, Primavera P6 (.xer) ya da Excel programı yüklenir. Aktiviteler kod, başlangıç, bitiş ve ilişkileriyle okunur; mevcut programla karşılaştırılıp onaya sunulur." onClose={() => setImporting(false)} wide
+          footer={<>
+            <span className="text-[11.5px] text-[var(--faint)]">{importFiles.length ? `${importFiles.length} dosya` : '.mpp · .xml · .xer · .xlsx'}</span>
+            <span className="ml-auto flex gap-2">
+              <Btn onClick={() => setImporting(false)}>Vazgeç</Btn>
+              <Btn primary disabled={!importFiles.length} onClick={() => setImporting(false)}>İçe aktar</Btn>
+            </span>
+          </>}>
+          <Dropzone files={importFiles} onAdd={(n) => setImportFiles((f) => [...f, ...n])} onRemove={(n) => setImportFiles((f) => f.filter((x) => x !== n))}
+            samples={['Is programi Rev3.mpp', 'Baseline.xer', 'Program.xlsx']} hint="MS Project, Primavera P6 veya Excel" />
+        </Modal>
+      )}
 
       {editTask && (
         <ActivityModal task={editTask === 'new' ? null : editTask} tasks={tasks} onClose={() => setEditTask(null)}
@@ -352,7 +393,7 @@ export function IsProgrami({ writable, role, onGo }: { writable: boolean; role: 
             )}
             {openMs.penaltyNote && (
               <div className="rounded-md border px-3 py-2" style={{ background: 'var(--crit-bg)', borderColor: 'var(--crit)' }}>
-                <span className="font-semibold text-[var(--crit)]">Ceza: </span>
+                <span className="font-semibold text-[var(--crit-ink)]">Ceza: </span>
                 <span className="text-[var(--ink)]">{openMs.penaltyNote}</span>
               </div>
             )}
@@ -405,14 +446,15 @@ function Note({ tone, title, children }: { tone: 'crit' | 'warn' | 'neutral'; ti
   return (
     <div className="rounded-md border px-3 py-2"
       style={{ background: `var(--${tone}-bg)`, borderColor: tone === 'neutral' ? 'var(--border)' : `var(--${tone})` }}>
-      <div className="text-[12px] font-semibold" style={{ color: `var(--${tone})` }}>{title}</div>
+      <div className="text-[12px] font-semibold" style={{ color: `var(--${tone}-ink)` }}>{title}</div>
       <p className="mt-0.5 text-[11.5px] leading-relaxed" style={{ color: 'var(--ink)' }}>{children}</p>
     </div>
   )
 }
 
 /**
- * S eğrisi: her aktivitenin tutarı (metraj × birim fiyat) süresine eşit dağıtılır,
+ * S eğrisi: her aktivitenin tutarı (metraj × birim fiyat) süresine çan biçiminde dağıtılır
+ * (başta ve sonda yavaş, ortada tam tempo; kümülatif pay F(u) = u − sin(2πu)/2π),
  * aylık toplamlar yüzdeye çevrilip kümülatif toplanır. Metrajı bağlı olmayan aktivite
  * süresiyle orantılı küçük bir ağırlık alır.
  */
@@ -421,8 +463,15 @@ function sCurve(tasks: ScheduleTask[]): { month: number; cum: number }[] {
   for (const t of tasks) {
     const item = boqItems.find((b) => b.no === t.boqRef)
     const value = item?.unitPrice ? item.qty * item.unitPrice : t.months * 50_000
-    for (let m = t.startMonth; m < Math.min(MONTHS, t.startMonth + t.months); m++) monthly[m] += value / t.months
+    /** Yarı çan, yarı düz: tek işin başı ve sonu yavaş, ama ardışık işler arasında boşluk oluşmaz */
+    const F = (u: number) => u - Math.sin(2 * Math.PI * u) / (4 * Math.PI)
+    for (let m = t.startMonth; m < Math.min(MONTHS, t.startMonth + t.months); m++) {
+      monthly[m] += value * (F((m + 1 - t.startMonth) / t.months) - F((m - t.startMonth) / t.months))
+    }
   }
+  // Komşu aylarla yumuşatma: saha temposu bir ayda sıfıra düşüp ertesi ay zirve yapmaz
+  const smooth = monthly.map((v, i) => 0.25 * (monthly[i - 1] ?? v) + 0.5 * v + 0.25 * (monthly[i + 1] ?? v))
+  monthly.splice(0, MONTHS, ...smooth)
   const total = monthly.reduce((a, v) => a + v, 0) || 1
   let cum = 0
   return monthly.map((v) => {
@@ -471,7 +520,7 @@ function ActivityModal({ task, tasks, onClose, onSave }: {
           <select value={dependsOn} onChange={(e) => setDependsOn(e.target.value)}
             className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-2 text-[13px] text-[var(--ink)] outline-none focus:border-[var(--accent)]">
             <option value="">— İşe başlamayla —</option>
-            {tasks.filter((t) => t.id !== task?.id).map((t) => <option key={t.id} value={t.wbs}>{t.wbs} · {t.name}</option>)}
+            {tasks.filter((t) => t.id !== task?.id).map((t) => <option key={t.id} value={t.wbs}>{codeOf(t)} · {t.name}</option>)}
           </select>
         </label>
         <label className="flex flex-col gap-1">

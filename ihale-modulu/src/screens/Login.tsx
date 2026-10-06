@@ -14,8 +14,8 @@ export function Login({ onLogin }: { onLogin: (p: Persona) => void }) {
   const [persona, setPersona] = useState<Persona>('ihale')
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--surface-2)] p-6">
-      <div className="w-full max-w-[880px] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-sm md:grid md:grid-cols-2">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--bg)] p-6">
+      <div className="pop w-full max-w-[880px] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl md:grid md:grid-cols-2">
         {/* Sol: marka tarafı */}
         <div className="flex flex-col justify-between gap-8 p-8" style={{ background: 'var(--accent-soft)' }}>
           <div className="flex items-center gap-2.5">

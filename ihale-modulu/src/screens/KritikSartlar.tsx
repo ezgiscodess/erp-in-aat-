@@ -71,7 +71,7 @@ export function KritikSartlar({ writable, role }: { writable: boolean; role: str
 
       {!writable && <ReadOnlyNote role={role} />}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Kpi label="Toplam kriter" value={active.length} sub="Analizden çıkarıldı"
           help="İhale dokümanlarından çıkarılan bağlayıcı kriter sayısı. Zeyilname geldiğinde liste güncellenir." />
         <Kpi label="Kritik" value={active.filter((t) => t.severity === 'Kritik').length} sub="Teklifi doğrudan bağlar" tone="crit"

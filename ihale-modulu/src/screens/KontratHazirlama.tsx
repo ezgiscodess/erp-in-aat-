@@ -27,7 +27,7 @@ export function KontratHazirlama({ writable, role }: { writable: boolean; role: 
 
       {!writable && <ReadOnlyNote role={role} />}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi label="Tamamlanma" value={pct(completion)} sub={`${ready}/${contractSections.length} bölüm hazır`} tone={completion > 70 ? 'ok' : 'warn'}
           help="Taslağı hazır ve onaylanmış bölümlerin toplam bölüme oranı." />
         <Kpi label="Değişkenler" value={`${filled}/${vars.length}`} sub="Otomatik dolduruldu" tone="accent"
@@ -64,7 +64,7 @@ export function KontratHazirlama({ writable, role }: { writable: boolean; role: 
                 <tr key={v.key} className="hover:bg-[var(--surface-2)]">
                   <Td><span className="font-medium text-[var(--ink)]">{v.label}</span></Td>
                   <Td>
-                    <span className={v.filled ? 'text-[var(--ink)]' : 'text-[var(--crit)]'}>{v.value}</span>
+                    <span className={v.filled ? 'text-[var(--ink)]' : 'text-[var(--crit-ink)]'}>{v.value}</span>
                     {!v.filled && <span className="ml-2"><Badge tone="crit">boş</Badge></span>}
                   </Td>
                   <Td><span className="text-[11.5px] text-[var(--faint)]">{v.source}</span></Td>
@@ -107,7 +107,7 @@ export function KontratHazirlama({ writable, role }: { writable: boolean; role: 
             }}
             footer={(logButton) => (
               <div className="flex flex-col gap-2">
-                <div className="rounded border border-dashed px-3 py-2 text-[12px]" style={{ borderColor: 'var(--warn)', background: 'var(--warn-bg)', color: 'var(--warn)' }}>
+                <div className="rounded border border-dashed px-3 py-2 text-[12px]" style={{ borderColor: 'var(--warn)', background: 'var(--warn-bg)', color: 'var(--warn-ink)' }}>
                   ⚠ Revizyon notu: İhale dokümanında ceza tavanı %15’tir. Bu taslakta %10 olarak yazıldı ve zeyilname talebine bağlandı.
                   Talep kabul edilmezse metin geri alınmalıdır.
                 </div>

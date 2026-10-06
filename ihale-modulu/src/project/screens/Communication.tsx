@@ -88,7 +88,7 @@ export function Communication() {
       <PageHead title="Communication" note="Uygulama içi sohbet (birebir ve grup) ve akıllı not defteri. Not defterine eklenen not ve görevler bir başkasıyla paylaşılabilir ya da ona atanabilir; atanan görev ilgili kişinin not defterine ve ana sayfasına düşer." />
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-12" style={{ minHeight: 'calc(100vh - 220px)' }}>
         {/* ---------- 1. Sohbet ---------- */}
-        <div className="flex overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] xl:col-span-8">
+        <div className="flex overflow-hidden card xl:col-span-8">
           <div className="flex w-[230px] flex-shrink-0 flex-col border-r border-[var(--border)]">
             <div className="flex items-center border-b border-[var(--border)] px-3 py-2">
               <span className="text-[13px] font-semibold text-[var(--ink)]">Sohbetler</span>
@@ -148,7 +148,7 @@ export function Communication() {
         </div>
 
         {/* ---------- 2. Not defteri ---------- */}
-        <div className="flex flex-col rounded-lg border border-[var(--border)] bg-[var(--surface)] xl:col-span-4">
+        <div className="flex flex-col card xl:col-span-4">
           <div className="flex items-center border-b border-[var(--border)] px-3 py-2">
             <span className="text-[13px] font-semibold text-[var(--ink)]">Not defteri</span>
             <span className="ml-auto text-[11.5px] text-[var(--muted)]">{notes.filter((n) => n.assignees?.includes(ME) && !n.done).length} açık görevim</span>
@@ -183,7 +183,7 @@ export function Communication() {
                     <Badge tone={n.kind === 'Görev' ? 'accent' : 'neutral'}>{n.kind}</Badge>
                     {!!n.assignees?.length && <span className="mono text-[var(--muted)]">{n.owner === ME ? `→ ${n.assignees.join(', ')}` : `${n.owner} atadı`}</span>}
                     {n.shared.length > 0 && <span className="text-[var(--muted)]">paylaşıldı: <span className="mono">{n.shared.join(', ')}</span></span>}
-                    {n.due && <span className="text-[var(--warn)]">son gün {new Date(n.due).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' })}</span>}
+                    {n.due && <span className="text-[var(--warn-ink)]">son gün {new Date(n.due).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' })}</span>}
                   </div>
                 </div>
                 <span className="flex flex-shrink-0 items-center gap-1">

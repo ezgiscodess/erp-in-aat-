@@ -43,7 +43,7 @@ export function ContractsDashboard({ onGo }: { onGo: (k: string) => void }) {
     <>
       <PageHead title="Contracts · Dashboard"
         note="İşverenle yapılan ana kontrat ve alt yüklenici kontratlarının özeti: bedeller, alınan ve ödenen tutarlar, taşere oranı ve ana kontratla uyuşmayan kalemler." />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Kpi label="Ana kontrat" value={m(mainTotal)} sub={`Değişiklik emri dâhil (+${m(prj.approvedChange)})`} tone="accent" />
         <Kpi label="İşverenden alınan" value={m(paid)} sub={`${pct((paid / mainTotal) * 100)} · onay bekleyen ${m(waiting)}`} tone="ok" />
         <Kpi label="Alt yüklenici kontratları" value={m(subValue)} sub={`${subcontracts.length} sözleşme · taşere oranı ${pct((subValue / mainTotal) * 100)}`} />
@@ -100,7 +100,7 @@ export function ContractsDashboard({ onGo }: { onGo: (k: string) => void }) {
               <span className="h-2 w-2 rounded-full bg-[var(--crit)]" />
               <span className="font-semibold text-[var(--ink)]">{d.item}</span>
               <span className="text-[var(--muted)]">İşverenle {num(d.mainQty)} {d.unit} × {num(d.mainPrice, 2)} · {d.sub} ile {num(d.subQty)} {d.unit} × {num(d.subPrice, 2)}</span>
-              <span className="ml-auto font-bold text-[var(--crit)] tnum">+{m(d.subQty * d.subPrice - d.mainQty * d.mainPrice)}</span>
+              <span className="ml-auto font-bold text-[var(--crit-ink)] tnum">+{m(d.subQty * d.subPrice - d.mainQty * d.mainPrice)}</span>
             </div>
           ))}
         </Card>
@@ -149,7 +149,7 @@ export function MainContract() {
                 <tr key={i.no} className="hover:bg-[var(--surface-2)]">
                   <Td mono nowrap>IPC-{String(i.no).padStart(2, '0')}</Td><Td nowrap>{monthName(i.month)}</Td>
                   <Td right>{num(i.gross)}</Td><Td right>{num(i.advanceRecovery)}</Td><Td right>{num(i.retention)}</Td><Td right><b>{num(i.net)}</b></Td>
-                  <Td nowrap><Badge tone={i.state === 'Ödendi' ? 'ok' : i.state === 'Onaylandı' ? 'accent' : 'warn'}>{i.state}</Badge>{i.lateDays ? <span className="ml-1 text-[11px] text-[var(--crit)]">{i.lateDays} gün geç</span> : null}</Td>
+                  <Td nowrap><Badge tone={i.state === 'Ödendi' ? 'ok' : i.state === 'Onaylandı' ? 'accent' : 'warn'}>{i.state}</Badge>{i.lateDays ? <span className="ml-1 text-[11px] text-[var(--crit-ink)]">{i.lateDays} gün geç</span> : null}</Td>
                 </tr>
               ))}
             </Table>
@@ -197,7 +197,7 @@ export function SubContracts() {
     <>
       <PageHead title="Contracts · Sub-Contracts"
         note="Alt yüklenici sözleşmeleri: kapsam, bedel, yapılan ve ödenen iş. Satıra tıklayınca sağda sözleşmenin detayı ve ana kontratla karşılaştırması açılır." />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi label="Sözleşme" value={list.length} sub={`${list.filter((s) => SUB_META[s.name]?.state === 'Askıda').length} askıda`} />
         <Kpi label="Toplam bedel" value={m(list.reduce((a, s) => a + s.value, 0))} tone="accent" />
         <Kpi label="Yapılan iş" value={m(list.reduce((a, s) => a + s.done, 0))} sub={pct((list.reduce((a, s) => a + s.done, 0) / list.reduce((a, s) => a + s.value, 0)) * 100)} />
@@ -253,7 +253,7 @@ export function SubContracts() {
                         <div key={c.item} className="rounded-md border px-2.5 py-2" style={{ borderColor: bad ? 'var(--crit)' : 'var(--border)', background: bad ? 'var(--crit-bg)' : 'var(--surface-2)' }}>
                           <div className="font-semibold text-[var(--ink)]">{c.item}</div>
                           <div className="text-[11.5px] text-[var(--muted)]">Ana: {num(c.mainQty)} {c.unit} × {num(c.mainPrice, 2)} · Alt: {num(c.subQty)} {c.unit} × {num(c.subPrice, 2)}</div>
-                          <div className="text-[12px] font-bold tnum" style={{ color: bad ? 'var(--crit)' : 'var(--ok)' }}>{diff > 0 ? '+' : ''}{m(diff)}</div>
+                          <div className="text-[12px] font-bold tnum" style={{ color: bad ? 'var(--crit-ink)' : 'var(--ok-ink)' }}>{diff > 0 ? '+' : ''}{m(diff)}</div>
                         </div>
                       )
                     })}

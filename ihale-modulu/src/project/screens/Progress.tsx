@@ -68,7 +68,7 @@ export function DateRange({ range, onApply, presets = PRESETS }: { range: [strin
   const [to, setTo] = useState(range[1])
   const input = 'rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-[12.5px] text-[var(--ink)] outline-none focus:border-[var(--accent)]'
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+    <div className="flex flex-wrap items-center gap-2 card px-3 py-2">
       <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Başlangıç</span>
       <input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} className={input} />
       <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Bitiş</span>
@@ -107,7 +107,7 @@ function Pipeline({ entries, onPick }: { entries: SiteEntry[]; onPick?: (s: Stag
         const t = STAGE_TONE[s.stage]
         return (
           <button key={s.stage} onClick={() => onPick?.(s.stage)}
-            className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3.5 py-2.5 text-left transition-colors hover:border-[var(--accent)]">
+            className="flex items-center gap-3 card px-3.5 py-2.5 text-left transition-colors hover:border-[var(--accent)]">
             <span className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-full text-[13px] font-bold tnum"
               style={{ background: t === 'accent' ? 'var(--accent-soft)' : `var(--${t}-bg)`, color: t === 'accent' ? 'var(--accent)' : `var(--${t})` }}>{n}</span>
             <span className="min-w-0">
@@ -151,7 +151,7 @@ export function ProgressDashboard({ onGo }: { onGo: (k: string) => void }) {
   return (
     <>
       <PageHead title="Progress · Dashboard" note="Genel ilerlemeler ve KPI’lar. Sayılar sahadan girilip şantiye şefi onayından geçmiş kayıtlardan hesaplanır; onay bekleyen kayıtlar henüz ilerlemeye yansımaz. Bu ekranda fiyat gösterilmez; maliyet analizleri Budget modülündedir." right={<ExportButtons />} />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <Kpi label="Fiziksel ilerleme" value={pct(actual)} sub={`Planlanan ${pct(planned, 1)}`} tone="accent" />
         <Kpi label="Dünkü kayıt" value={yesterday.length} sub={`${yesterday.reduce((a, e) => a + e.people, 0)} kişi · ${num(yesterday.reduce((a, e) => a + e.people * e.hours, 0))} inxsa`} />
         <Kpi label="İnsan-saat" value={`${num(phrsTotals.actual / 1000)} bin`}
@@ -179,7 +179,7 @@ export function ProgressDashboard({ onGo }: { onGo: (k: string) => void }) {
       </div>
 
       <Card title="Son saha fotoğrafları" right={<Btn small onClick={() => onGo('site_photos')}>Tümü →</Btn>}>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-6">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-6">
           {sitePhotos.slice(0, 6).map((p) => <PhotoThumb key={p.id} p={p} />)}
         </div>
       </Card>
@@ -255,8 +255,8 @@ export function SiteActivity() {
                 <Td nowrap><span className="tnum">{date(e.date)}</span></Td>
                 <Td>
                   <div className="text-[12.5px] text-[var(--ink)]">{e.activity}</div>
-                  {e.rejected && <div className="mt-0.5 text-[11px] text-[var(--crit)]">✕ {e.rejected.note}</div>}
-                  {e.note && !e.rejected && <div className="mt-0.5 text-[11px] text-[var(--warn)]">⚠ {e.note}</div>}
+                  {e.rejected && <div className="mt-0.5 text-[11px] text-[var(--crit-ink)]">✕ {e.rejected.note}</div>}
+                  {e.note && !e.rejected && <div className="mt-0.5 text-[11px] text-[var(--warn-ink)]">⚠ {e.note}</div>}
                 </Td>
                 <Td>{e.loc1}</Td>
                 <Td>{e.loc2}</Td>
@@ -268,7 +268,7 @@ export function SiteActivity() {
                 <Td right>{num(e.people * e.hours)}</Td>
                 <Td nowrap mono>{e.entered.by}</Td>
                 <Td>
-                  <div className="flex flex-col items-start gap-1"><ApprovalDots e={e} /><span className="text-[11px] font-semibold" style={{ color: `var(--${STAGE_TONE[st] === 'accent' ? 'accent' : STAGE_TONE[st]})` }}>{st}</span></div>
+                  <div className="flex flex-col items-start gap-1"><ApprovalDots e={e} /><span className="text-[11px] font-semibold" style={{ color: `var(--${STAGE_TONE[st] === 'accent' ? 'accent' : STAGE_TONE[st]}-ink)` }}>{st}</span></div>
                 </Td>
                 <Td nowrap center>
                   <RowActions name={e.code} onOpen={() => setOpen(e)} onEdit={() => setEditing(e)}
@@ -334,7 +334,7 @@ function EntryModal({ entry: e, onClose, onChange, onEdit }: {
             {steps.map((s, i) => (
               <li key={i} className="flex gap-2.5">
                 <span className="mt-0.5 grid h-5 w-5 flex-shrink-0 place-items-center rounded-full text-[10.5px] font-bold"
-                  style={s.a ? { background: 'var(--ok)', color: '#fff' } : e.rejected && i > 0 ? { background: 'var(--crit-bg)', color: 'var(--crit)' } : { background: 'var(--surface-3)', color: 'var(--muted)' }}>
+                  style={s.a ? { background: 'var(--ok)', color: '#fff' } : e.rejected && i > 0 ? { background: 'var(--crit-bg)', color: 'var(--crit-ink)' } : { background: 'var(--surface-3)', color: 'var(--muted)' }}>
                   {s.a ? '✓' : i + 1}
                 </span>
                 <span className="text-[12px]">
@@ -345,7 +345,7 @@ function EntryModal({ entry: e, onClose, onChange, onEdit }: {
             ))}
           </ol>
           {e.rejected && (
-            <div className="mt-3 rounded-md border px-2.5 py-2 text-[12px]" style={{ background: 'var(--crit-bg)', borderColor: 'var(--crit)', color: 'var(--crit)' }}>
+            <div className="mt-3 rounded-md border px-2.5 py-2 text-[12px]" style={{ background: 'var(--crit-bg)', borderColor: 'var(--crit)', color: 'var(--crit-ink)' }}>
               ✕ {e.rejected.by} geri gönderdi · {e.rejected.at}<br /><span className="text-[var(--ink)]">{e.rejected.note}</span>
             </div>
           )}
@@ -474,7 +474,7 @@ export function DailyManpower() {
         note="Saha veri mühendisinin her gün girdiği personel kaydı: firma, meslek, kişi sayısı ve çalışılan saat. İnsan-saat (inxsa) analizleri ve raporlar bu kayıtlardan beslenir."
         right={<><ExportButtons /><Btn primary onClick={() => setEditing('new')}>+ Personel girişi</Btn></>} />
       <DateRange range={range} onApply={setRange} />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi label="Sahadaki personel" value={people} sub={`${new Set(filtered.map((r) => r.company)).size} firma`} tone="accent" />
         <Kpi label="İnsan-saat" value={num(hours)} sub="Kişi × saat" />
         <Kpi label="Kendi personelimiz" value={filtered.filter((r) => r.company === 'ICCM Construction').reduce((a, r) => a + r.people, 0)} sub="ICCM Construction" />
@@ -536,7 +536,7 @@ export function DailyEquipment() {
         note="Saha veri mühendisinin her gün girdiği makine-ekipman kaydı: çalışma ve bekleme saati, yakıt, operatör ve durum. Makine verimliliği ve raporlar bu kayıtlardan beslenir."
         right={<><ExportButtons /><Btn primary onClick={() => setEditing('new')}>+ Ekipman girişi</Btn></>} />
       <DateRange range={range} onApply={setRange} />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Kpi label="Sahadaki makine" value={filtered.length} sub={`${filtered.filter((r) => r.ownership === 'Kira').length} kiralık`} tone="accent" />
         <Kpi label="Çalışma saati" value={num(work)} />
         <Kpi label="Bekleme saati" value={num(idle)} sub={`Toplamın %${Math.round((idle / ((work + idle) || 1)) * 100)}’i`} tone="warn" />
@@ -628,7 +628,7 @@ export function ProgressDisruptions() {
       <PageHead title="Progress · Disruptions"
         note="Sahada verimsizlik oluşturan her olay sebep – etki – çözüm mantığıyla kaydedilir: ne oldu, programa ve maliyete etkisi ne, ne yapıldı. İşveren veya kurum kaynaklı olanlar kanıtlarıyla (kayıt, fotoğraf) hak talebine dönüştürülür."
         right={<><ExportButtons /><Btn primary onClick={() => setEditing('new')}>+ Aksaklık ekle</Btn></>} />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi label="Aksaklık" value={list.length} sub={`${list.filter((d) => d.state === 'Açık' || d.state === 'Çözümde').length} açık`} />
         <Kpi label="Kayıp insan-saat" value={num(list.reduce((a, d) => a + d.lostHours, 0))} tone="warn" />
         <Kpi label="Maliyet etkisi" value={moneyShort(list.reduce((a, d) => a + d.cost, 0), prj.currency)} tone="crit" />
@@ -802,7 +802,7 @@ export function SitePhotos() {
         }))} />
         <div className="ml-auto"><Search value={q} onChange={setQ} placeholder="Aktivite, bölge, açıklama…" /></div>
       </div>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-6">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-6">
         {rows.map((p) => <PhotoThumb key={p.id} p={p} onClick={() => setOpen(p)} />)}
       </div>
 

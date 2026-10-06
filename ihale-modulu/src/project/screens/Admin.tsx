@@ -34,7 +34,7 @@ export function AdminBudget() {
   return (
     <>
       <Head title="Budget" note="Birim fiyatlar ve girilen verilere göre tahmini maliyet (estimated cost). Detayı finans, planlama ve bütçe alt modüllerinde; burada yönetici için özet ve görsel hâli durur." />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Kpi label="Bütçe (BAC)" value={m(bac)} sub="Metraj × birim fiyat" help="Budget at completion: işin tamamı için onaylanan maliyet bütçesi." />
         <Kpi label="Gerçekleşen (AC)" value={m(ac)} sub={`Bütçenin ${pct((ac / bac) * 100)}’i`} />
         <Kpi label="Öngörülen (EAC)" value={m(eac)} sub={`Bütçeyi ${m(eac - bac)} aşıyor`} tone="crit" help="Estimate at completion: bugünkü gidişle işin sonunda oluşacak toplam maliyet." />
@@ -71,7 +71,7 @@ export function AdminBudget() {
               <Td right>{num(c.committed)}</Td>
               <Td right>{num(c.actual)}</Td>
               <Td right>{num(c.forecast)}</Td>
-              <Td right><span className="font-semibold" style={{ color: c.forecast > c.budget ? 'var(--crit)' : 'var(--ok)' }}>{c.forecast > c.budget ? '+' : ''}{num(c.forecast - c.budget)}</span></Td>
+              <Td right><span className="font-semibold" style={{ color: c.forecast > c.budget ? 'var(--crit-ink)' : 'var(--ok-ink)' }}>{c.forecast > c.budget ? '+' : ''}{num(c.forecast - c.budget)}</span></Td>
             </tr>
           ))}
         </Table>
@@ -99,7 +99,7 @@ export function AdminIpc() {
   return (
     <>
       <Head title="IPC" note="İşverenle yapılan ana kontrat ve metraj tutarlarına göre alınan periyodik ödemeler (Interim Payment Certificate — ara hakediş) ile alt yüklenicilere verilen işler, miktarlar ve ödemeler." />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Kpi label="Kesilen hakediş" value={m(gross)} sub={`${ipcs.length} hakediş · brüt`} />
         <Kpi label="Tahsil edilen" value={m(paid)} sub="Net, kesintiler sonrası" tone="ok" />
         <Kpi label="Bekleyen" value={m(pending)} sub="Onaylı + incelemede" tone="warn" />
@@ -125,7 +125,7 @@ export function AdminIpc() {
                   <Td right>{num(i.net)}</Td>
                   <Td nowrap>
                     <StateBadge value={i.state} />
-                    {i.lateDays && <div className="mt-0.5 text-[11px] text-[var(--crit)]">{i.lateDays} gün geç ödendi</div>}
+                    {i.lateDays && <div className="mt-0.5 text-[11px] text-[var(--crit-ink)]">{i.lateDays} gün geç ödendi</div>}
                   </Td>
                 </tr>
               ))}
@@ -171,7 +171,7 @@ export function AdminContract() {
   return (
     <>
       <Head title="Contract" note="İşverenle ana kontrat (tutar, alınan, kalan, kesintiler, avans) ve alt yüklenici kontratlarının ana kontratla karşılaştırması. Aynı kalemde miktar veya birim fiyat farkı varsa sistem otomatik uyarır." />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Kpi label="Ana kontrat" value={m(total)} sub={`${m(prj.contractValue)} + değişiklik ${m(prj.approvedChange)}`} />
         <Kpi label="Alınan" value={m(paid)} sub={pct((paid / total) * 100)} tone="ok" />
         <Kpi label="Kalan" value={m(total - paid - waiting)} sub={`Onay bekleyen ${m(waiting)}`} />
@@ -196,8 +196,8 @@ export function AdminContract() {
 
       {diffs.length > 0 && (
         <div className="rounded-lg border p-3" style={{ background: 'var(--crit-bg)', borderColor: 'var(--crit)' }}>
-          <div className="text-[13px] font-semibold" style={{ color: 'var(--crit)' }}>Ana kontrat ile alt yüklenici kontratı arasında {diffs.length} fark</div>
-          <ul className="mt-1.5 flex flex-col gap-1 text-[12.5px]" style={{ color: 'var(--crit)' }}>
+          <div className="text-[13px] font-semibold" style={{ color: 'var(--crit-ink)' }}>Ana kontrat ile alt yüklenici kontratı arasında {diffs.length} fark</div>
+          <ul className="mt-1.5 flex flex-col gap-1 text-[12.5px]" style={{ color: 'var(--crit-ink)' }}>
             {diffs.map((d) => {
               const loss = d.subQty * d.subPrice - d.mainQty * d.mainPrice
               return (
@@ -219,10 +219,10 @@ export function AdminContract() {
                 <Td><span className="font-medium text-[var(--ink)]">{c.item}</span> <span className="text-[11px] text-[var(--faint)]">{c.unit}</span></Td>
                 <Td nowrap><span className="text-[12px] text-[var(--muted)]">{c.sub}</span></Td>
                 <Td right>{num(c.mainQty)}</Td>
-                <Td right><span style={{ color: qBad ? 'var(--crit)' : undefined, fontWeight: qBad ? 600 : undefined }}>{num(c.subQty)}</span></Td>
+                <Td right><span style={{ color: qBad ? 'var(--crit-ink)' : undefined, fontWeight: qBad ? 600 : undefined }}>{num(c.subQty)}</span></Td>
                 <Td right>{num(c.mainPrice, 2)}</Td>
-                <Td right><span style={{ color: pBad ? 'var(--crit)' : undefined, fontWeight: pBad ? 600 : undefined }}>{num(c.subPrice, 2)}</span></Td>
-                <Td right><span className="font-semibold" style={{ color: diff > 0 ? 'var(--crit)' : 'var(--ok)' }}>{diff > 0 ? '+' : ''}{num(diff)}</span></Td>
+                <Td right><span style={{ color: pBad ? 'var(--crit-ink)' : undefined, fontWeight: pBad ? 600 : undefined }}>{num(c.subPrice, 2)}</span></Td>
+                <Td right><span className="font-semibold" style={{ color: diff > 0 ? 'var(--crit-ink)' : 'var(--ok-ink)' }}>{diff > 0 ? '+' : ''}{num(diff)}</span></Td>
               </tr>
             )
           })}
@@ -239,7 +239,7 @@ export function AdminPlanning() {
   return (
     <>
       <Head title="Planning" note="İşverenle mutabık kalınan program üzerinden ilerleme: girilen verilere göre işin olması gereken ilerlemesi, kritik hat ve önümüzdeki dönemin iş planı." />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Kpi label="Gerçekleşen" value={pct(actual)} sub={`Planlanan ${pct(planned)}`} tone="accent" />
         <Gauge label="SPI" value={spi} />
         <Gauge label="CPI" value={cpi} />
@@ -283,7 +283,7 @@ export function AdminReport() {
   return (
     <>
       <Head title="Report" note="Proje ekibinin ve işverenin ilerlemeyi gördüğü kısım: bir önceki günün imalatları; imalatın toplam miktarı ve bitiş tarihi. Raporlar belirlenen periyotlarda mail listesine otomatik gider." />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi label="Rapor tarihi" value={date(dailyReport.date)} sub={dailyReport.weather} />
         <Kpi label="Sahadaki personel" value={dailyReport.manpower} sub="Dün puantaja giren" />
         <Kpi label="Çalışan makine" value={dailyReport.machines} sub="Dün sahada" />
@@ -333,7 +333,7 @@ export function AdminPhrs() {
   return (
     <>
       <Head title="Phrs (manhour)" note="İnsan-saat (inxsa) fiyattan sonra projenin en önemli birimidir: malzeme birim fiyatla hesaplanır, ama 1 birim imalatın gerektirdiği insan gücü projeye göre değişir. Planlanan ve gerçekleşen birim inxsa karşılaştırılarak verimsizlik ölçülür." />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi label="Planlanan inxsa" value={num(planHours)} sub="Yapılan miktar × plan birim saat" />
         <Kpi label="Harcanan inxsa" value={num(actualHours)} sub="Puantajdan" />
         <Kpi label="Verim" value={pct(eff * 100)} sub={`${num(actualHours - planHours)} saat kayıp`} tone={eff >= 0.95 ? 'ok' : 'warn'}
@@ -362,7 +362,7 @@ export function AdminPhrs() {
                     <Td>
                       <div className="flex items-center gap-2">
                         <div className="w-16"><Bar value={Math.min(100, e * 100)} tone={e >= 0.95 ? 'ok' : e >= 0.85 ? 'warn' : 'crit'} /></div>
-                        <span className="text-[11.5px] font-semibold tnum" style={{ color: e >= 0.95 ? 'var(--ok)' : e >= 0.85 ? 'var(--warn)' : 'var(--crit)' }}>%{Math.round(e * 100)}</span>
+                        <span className="text-[11.5px] font-semibold tnum" style={{ color: e >= 0.95 ? 'var(--ok-ink)' : e >= 0.85 ? 'var(--warn-ink)' : 'var(--crit-ink)' }}>%{Math.round(e * 100)}</span>
                       </div>
                     </Td>
                   </tr>
@@ -389,7 +389,7 @@ export function AdminPersonel() {
   return (
     <>
       <Head title="Personel" note="Meslek gruplarına göre planlanan ve sahadaki kadro. Eksik kadro programı, fazla kadro maliyeti etkiler." />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi label="Planlanan kadro" value={plan} />
         <Kpi label="Sahadaki kadro" value={actual} sub={`${actual - plan > 0 ? '+' : ''}${actual - plan} kişi`} tone={actual < plan ? 'warn' : 'neutral'} />
         <Kpi label="Eksik grup" value={trades.filter((t) => t.actual < t.plan).length} sub="Plandan az" tone="warn" />
@@ -414,7 +414,7 @@ export function AdminMachinery() {
   return (
     <>
       <Head title="Machinery-Equipment" note="Kaç makine var, planlanan ve gerçekleşen makine saati, sapma, yakıt ve bakım harcamaları." />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Kpi label="Makine" value={count} sub={`${machines.length} tip`} />
         <Kpi label="Planlanan saat" value={num(plan)} />
         <Kpi label="Gerçekleşen saat" value={num(actual)} sub={`Sapma ${actual - plan > 0 ? '+' : ''}${num(actual - plan)} saat`} tone={actual > plan ? 'warn' : 'neutral'} />
@@ -435,7 +435,7 @@ export function AdminMachinery() {
                   <Td><span className="text-[12.5px] text-[var(--ink)]">{x.name}</span></Td>
                   <Td right>{x.count}</Td>
                   <Td nowrap><Badge tone={x.ownership === 'Kira' ? 'warn' : 'ok'}>{x.ownership}</Badge></Td>
-                  <Td right><span style={{ color: x.actualHours > x.planHours ? 'var(--crit)' : 'var(--ok)' }}>{x.actualHours > x.planHours ? '+' : ''}{num(x.actualHours - x.planHours)}</span></Td>
+                  <Td right><span style={{ color: x.actualHours > x.planHours ? 'var(--crit-ink)' : 'var(--ok-ink)' }}>{x.actualHours > x.planHours ? '+' : ''}{num(x.actualHours - x.planHours)}</span></Td>
                   <Td right>{num(x.idleHours)}</Td>
                   <Td right>{x.fuel ? num(x.fuel) : '—'}</Td>
                   <Td right>{x.maintenance ? num(x.maintenance) : '—'}</Td>
@@ -461,7 +461,7 @@ export function AdminDisruptions() {
   return (
     <>
       <Head title="Disruptions" note="Projenin geri kaldığı, verimsizlik oluşan kalemler, maliyetleri ve iş programı üzerindeki etkileri. Sebep – etki – çözüm detayı Disruptions modülündedir." />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi label="Aksaklık" value={disruptions.length} sub={`${disruptions.filter((d) => d.state === 'Açık').length} açık`} />
         <Kpi label="Maliyet etkisi" value={m(cost)} tone="crit" />
         <Kpi label="Kritik yola etkisi" value={`${critDays} gün`} sub="Bitişi öteleyen" tone="crit" />
@@ -490,7 +490,7 @@ export function AdminDisruptions() {
                     <div className="mt-0.5 text-[11px] text-[var(--muted)]">→ {d.action}</div>
                   </Td>
                   <Td nowrap>{d.cause}</Td>
-                  <Td right>{d.days ? <span style={{ color: d.critical ? 'var(--crit)' : undefined }}>{d.days}{d.critical ? ' · KY' : ''}</span> : '—'}</Td>
+                  <Td right>{d.days ? <span style={{ color: d.critical ? 'var(--crit-ink)' : undefined }}>{d.days}{d.critical ? ' · KY' : ''}</span> : '—'}</Td>
                   <Td right>{num(d.cost)}</Td>
                   <Td nowrap><Badge tone={d.state === 'Açık' ? 'warn' : d.state === 'Çözüldü' ? 'ok' : 'accent'} dot>{d.state}</Badge></Td>
                 </tr>
@@ -515,7 +515,7 @@ export function AdminChangeOrder() {
   return (
     <>
       <Head title="Change Order" note="Değişiklik emri: kontrat şartları içinde, işverenle mutabık kalınan ek imalat, fiyat ve süre. Adet, toplam tutar ve durum (onaylandı mı, imalatı yapılıyor mu) takip edilir." />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi label="Değişiklik emri" value={changeOrders.length} />
         <Kpi label="Onaylanan tutar" value={m(approved.reduce((a, c) => a + c.amount, 0))} sub={`${approved.length} adet · +${approved.reduce((a, c) => a + c.days, 0)} gün`} tone="ok" />
         <Kpi label="Onay bekleyen" value={m(pending.reduce((a, c) => a + c.amount, 0))} sub={`${pending.length} adet`} tone="warn" />
@@ -557,7 +557,7 @@ export function AdminClaim() {
   return (
     <>
       <Head title="Claim" note="Hak talebi: ana kontratla örtüşmeyen, yükleniciden kaynaklanmayan ama zarara uğratan durumlar (işveren revizyonu, lisans alınamaması, yer tesliminin gecikmesi…) için ek bedel ve süre talebi. Amaç tahkime gitmeden, dokümanla güçlü bir pazarlıkla çözmek; ICCM bu durumları oluştuğu an saptar." />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi label="Hak talebi" value={claims.length} />
         <Kpi label="Talep edilen" value={m(total)} sub={`+${claims.reduce((a, c) => a + c.days, 0)} gün süre`} tone="accent" />
         <Kpi label="Bildirim bekleyen" value={claims.filter((c) => !c.noticed).length} tone="crit" />
@@ -580,8 +580,8 @@ export function AdminClaim() {
                 <Td right>+{c.days} gün</Td>
                 <Td nowrap>
                   {c.noticed
-                    ? <span className="text-[12px] text-[var(--ok)]">✓ Bildirildi</span>
-                    : <span className="text-[12px] font-semibold text-[var(--crit)]">{left} gün kaldı · {date(c.noticeDue)}</span>}
+                    ? <span className="text-[12px] text-[var(--ok-ink)]">✓ Bildirildi</span>
+                    : <span className="text-[12px] font-semibold text-[var(--crit-ink)]">{left} gün kaldı · {date(c.noticeDue)}</span>}
                 </Td>
                 <Td nowrap><Badge tone={c.state === 'Bildirim bekliyor' ? 'crit' : c.state === 'Kısmen kabul' ? 'ok' : 'warn'} dot>{c.state}</Badge></Td>
               </tr>

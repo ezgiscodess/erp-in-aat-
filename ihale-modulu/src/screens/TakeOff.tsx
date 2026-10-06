@@ -76,7 +76,7 @@ export function TakeOff({ writable, role, method, onGo }: { writable: boolean; r
 
       {!writable && <ReadOnlyNote role={role} />}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi label="Metraj kalemi" value={items.length} sub="Çizim + idare cetveli"
           help="Çizim ve dokümanlardan çıkarılan iş kalemi sayısı." />
         <Kpi label="Kod kırılımı" value={m.label} sub={`Örnek kod ${m.pattern}`} tone="accent"
@@ -130,7 +130,7 @@ export function TakeOff({ writable, role, method, onGo }: { writable: boolean; r
                   <Td>
                     <div className="text-[12.5px] text-[var(--ink)]">{b.description}</div>
                     <div className="mt-0.5 text-[11px] text-[var(--faint)]">{b.group} · {b.source}</div>
-                    {b.note && <div className="mt-0.5 text-[11px] text-[var(--warn)]">⚠ {b.note}</div>}
+                    {b.note && <div className="mt-0.5 text-[11px] text-[var(--warn-ink)]">⚠ {b.note}</div>}
                   </Td>
                   <Td nowrap><span className="text-[var(--muted)]">{b.unit}</span></Td>
                   <Td right>{num(b.qty)}</Td>
@@ -257,7 +257,7 @@ function PozModal({ item, onClose, onSave }: { item: BoqItem | null; onClose: ()
       </>}
     >
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Field label="Poz no (firma)" value={no} onChange={setNo} placeholder="Ör. 1000487" />
+        <Field required label="Poz no (firma)" value={no} onChange={setNo} placeholder="Ör. 1000487" />
         <label className="flex flex-col gap-1">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">İş grubu</span>
           <select value={group} onChange={(e) => setGroup(e.target.value as WorkGroup)}
@@ -265,9 +265,9 @@ function PozModal({ item, onClose, onSave }: { item: BoqItem | null; onClose: ()
             {workGroups.map((g) => <option key={g} value={g}>{g}</option>)}
           </select>
         </label>
-        <div className="sm:col-span-2"><Field label="İş kalemi" value={description} onChange={setDescription} /></div>
+        <div className="sm:col-span-2"><Field required label="İş kalemi" value={description} onChange={setDescription} /></div>
         <Field label="Birim" value={unit} onChange={setUnit} />
-        <Field label="Metraj" value={qty} onChange={setQty} type="number" />
+        <Field required label="Metraj" value={qty} onChange={setQty} type="number" />
         <div className="sm:col-span-2"><Field label="Metraj kaynağı" value={source} onChange={setSource} placeholder="Ör. Çizim D-204" /></div>
       </div>
     </Modal>

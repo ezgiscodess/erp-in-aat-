@@ -127,7 +127,7 @@ export function AlternatifTeklif({ writable, role }: { writable: boolean; role: 
         İdari Şartname md. 23: alternatif teklif, ana teklifle birlikte ve ayrı zarfta verilebilir. Ana teklif verilmeden alternatif değerlendirilmez.
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi label="Ana teklif" value={moneyShort(base, 'EUR')} sub={`${project.durationDays} gün · dokümana birebir uygun`}
           help="Kontrat Hazırlama’daki şartlara göre hazırlanan teklif." />
         <Kpi label="Alternatif teklif" value={moneyShort(altCost, 'EUR')} sub={`${altDays} gün · ${chosen.length} öneri açık`} tone="accent"
@@ -149,8 +149,8 @@ export function AlternatifTeklif({ writable, role }: { writable: boolean; role: 
                   <Td mono nowrap>{p.id}</Td>
                   <Td><span className="text-[12.5px] font-medium text-[var(--ink)]">{p.title}</span></Td>
                   <Td nowrap><span className="text-[12px] text-[var(--muted)]">{p.category}</span></Td>
-                  <Td right nowrap><span style={{ color: p.cost < 0 ? 'var(--ok)' : p.cost > 0 ? 'var(--crit)' : 'var(--muted)' }}>{signed(p.cost, 'EUR')}</span></Td>
-                  <Td right nowrap><span style={{ color: p.days < 0 ? 'var(--ok)' : 'var(--muted)' }}>{p.days ? signed(p.days, 'gün') : '—'}</span></Td>
+                  <Td right nowrap><span style={{ color: p.cost < 0 ? 'var(--ok-ink)' : p.cost > 0 ? 'var(--crit-ink)' : 'var(--muted)' }}>{signed(p.cost, 'EUR')}</span></Td>
+                  <Td right nowrap><span style={{ color: p.days < 0 ? 'var(--ok-ink)' : 'var(--muted)' }}>{p.days ? signed(p.days, 'gün') : '—'}</span></Td>
                   <Td nowrap><Badge tone={FIT_TONE[p.fit]}>{p.fit}</Badge></Td>
                   <Td center nowrap>
                     <RowActions name={p.id} disabled={!writable} onEdit={() => setEditing(p)}
@@ -205,7 +205,7 @@ export function AlternatifTeklif({ writable, role }: { writable: boolean; role: 
                       ].map(([l, v, t]) => (
                         <div key={l} className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1.5">
                           <div className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--faint)]">{l}</div>
-                          <div className="text-[14px] font-bold tnum" style={{ color: `var(--${t})` }}>{v}</div>
+                          <div className="text-[14px] font-bold tnum" style={{ color: `var(--${t}-ink)` }}>{v}</div>
                         </div>
                       ))}
                     </div>
