@@ -12,8 +12,8 @@ export const menu: MenuGroup[] = [
     key: 'admin', label: 'Admin Konsolu',
     note: 'Üst yöneticinin projeye ait her veriyi ve tutarı kısıtlamasız, en özet ve en görsel hâliyle gördüğü konsol. Detaylar ilgili alt modüllerdedir.',
     items: [
-      { key: 'a_finance', label: 'Finance Dashboard', ready: true },
-      { key: 'a_accounting', label: 'Accounting Dashboard', ready: true },
+      { key: 'a_finance', label: 'Finance', ready: true },
+      { key: 'a_accounting', label: 'Accounting', ready: true },
       { key: 'budget', label: 'Budget', ready: true },
       { key: 'ipc', label: 'IPC', ready: true },
       { key: 'contract', label: 'Contract', ready: true },
