@@ -27,7 +27,7 @@ export const tabs: TabDef[] = [
   { key: 'birim_fiyat', label: 'Pool', addon: true, note: 'Firmanın birim fiyat havuzu ve ölçüm standardı: RICS, CESMM4, Master Method, In-House veya firmanın kendi metodu (Import).' },
   { key: 'personel_ekipman', label: 'Personel & Ekipman', addon: true, note: 'İş süresince ihtiyaç duyulacak kadro ve makine parkı; aylık maliyet ve hangi aylarda sahada olacağı.' },
   { key: 'is_programi', label: 'İş Programı', addon: true, note: 'Metrajdan türetilen iş programı: imalat süreleri, aktivite ilişkileri, kritik yol ve key stage tarihleri.' },
-  { key: 'sertifikalar', label: 'PQQ', addon: true, note: 'Ön yeterlilik dosyası: sertifikalar, firma bilgileri, mali yeterlilik, iş deneyimi, kilit personel, İSG' },
+  { key: 'sertifikalar', label: 'PQQ', addon: true, hidden: true, note: 'Ön yeterlilik dosyası: sertifikalar, firma bilgileri, mali yeterlilik, iş deneyimi, kilit personel, İSG' },
   { key: 'ozet', label: 'Özet & Karar', note: 'Tüm sekmelerin tek sayfada toplandığı karar ekranı' },
   { key: 'kontrat_hazirlama', label: 'Kontrat Hazırlama', addon: true, note: 'İhale kazanıldıktan sonra şablondan sözleşme taslağı üretimi' },
   { key: 'alternatif_teklif', label: 'Alternatif Teklif', addon: true, note: 'Doküman şartlarına göre hazırlanan ana teklifin yanında AI’nın önerdiği alternatif yöntem, malzeme, program ve ticari seçenekler' },

@@ -1,3 +1,9 @@
+/* KIMKON yazı tipleri — Manrope (metin) ve Playfair Display (marka, sayfa başlıkları) */
+@font-face{font-family:'Manrope';font-style:normal;font-weight:300 800;font-display:swap;src:url(/fonts/manrope-normal-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'Manrope';font-style:normal;font-weight:300 800;font-display:swap;src:url(/fonts/manrope-normal-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Playfair Display';font-style:normal;font-weight:400 900;font-display:swap;src:url(/fonts/playfairdisplay-normal-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'Playfair Display';font-style:normal;font-weight:400 900;font-display:swap;src:url(/fonts/playfairdisplay-normal-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,47 +14,55 @@
  * Boşluk: yalnızca 4px katları (4, 8, 12, 16, 24, 32, 48).
  */
 :root{
-  /* Palet: Neutral + Earth (kum, beyaz, koyu petrol, hardal, mor) ile teal paletin (#388087, #6FB3B8,
-   * #BADFE7, #C2EDCE, #F6F6F2) harmanı. Ana renk teal, derinlik koyu petrol, vurgu hardal, ikincil mor. */
+  /* KIMKON paleti — kurumsal lacivert ve mat altın (referans: volkan bey web / site.css).
+   * Lacivert: menü, başlık, birincil buton, çerçeve. Altın: yalnızca ince çizgi, aktif menü, küçük vurgu ve hareket detayı. */
 
-  /* Zeminler — sıcak nötr */
-  --bg:#F5F2EC;               /* sayfa arka planı: kumun çok açık tonu */
-  --surface:#FFFFFF;          /* kart, modal, tablo */
-  --surface-2:#FAF8F4;        /* kart içi ikincil alan */
-  --surface-3:#F1ECE4;        /* tablo başlığı */
-  --row-hover:#EFF5F4;        /* satır üzerine gelme — çok hafif teal */
+  /* Zeminler */
+  --bg:#F8F6F1;               /* kırık beyaz */
+  --surface:#FFFFFF;
+  --surface-2:#FBFAF7;
+  --surface-3:#F3F1EB;        /* tablo başlığı */
+  --row-hover:#F2F5FA;        /* çok hafif lacivert */
 
   /* Çizgiler */
-  --border:#E7E1D7;
-  --border-strong:#D6CEC1;
+  --border:#E4E7EC;
+  --border-strong:#D0D5DD;
+  /* Lacivert çerçeve — sitedeki ince lacivert kenarlık (kart, panel, modal) */
+  --frame:rgba(8,38,90,.22);
+  --frame-strong:rgba(8,38,90,.45);
 
-  /* Metin — koyu petrol antrasit ve gri-yeşil; ikisi de AA kontrastını geçer */
-  --ink:#1C2B2A;
-  --muted:#5E6A69;
-  --faint:#6F7A79;
+  /* Metin */
+  --ink:#102A43;
+  --muted:#667085;            /* beyaz üzerinde 4.8:1 */
+  --faint:#6E7787;
 
-  /* Birincil renk: teal (#388087), derinlik koyu petrol (#1F5552) */
-  --accent:#388087;
-  --accent-strong:#1F5552;
-  --accent-soft:#E6F2F3;
-  --accent-ink:#2F6F75;
-  --accent-grad:linear-gradient(135deg,#388087,#1F5552);
-  --focus-ring:0 0 0 3px rgba(56,128,135,.18);
+  /* Birincil: lacivert */
+  --accent:#08265A;
+  --accent-strong:#061A3B;
+  --accent-soft:#EEF2F8;
+  --accent-ink:#08265A;
+  --accent-grad:linear-gradient(135deg,#0B3275,#061A3B);
+  --focus-ring:0 0 0 3px rgba(8,38,90,.14);
 
-  /* Durum renkleri. *-ink: küçük metinde kullanılan, kontrastı yeterli koyu ton */
-  --ok:#3A9B5C;   --ok-bg:#E3F5E8;   --ok-ink:#2B7A47;
-  --warn:#D9A23B; --warn-bg:#FBF0D9; --warn-ink:#8F6311;   /* hardal */
-  --crit:#C0473F; --crit-bg:#F9E5E3; --crit-ink:#A3352E;   /* toprak kırmızısı */
-  --info:#7A5C8E; --info-bg:#F1EBF5; --info-ink:#634878;   /* mor */
-  --neutral:#5E6A69; --neutral-bg:#EEEBE5; --neutral-ink:#4E5958;
-  --ok-grad:linear-gradient(135deg,#3A9B5C,#2B7A47);
-  /* Ek Paket vurgusu */
-  --gold:#8A6100; --gold-bg:#FBEFD2; --gold-border:#EAD18E; --gold-ink:#7A5600;
+  /* Altın — marka vurgusu */
+  --brand-gold:#C6A02F;
+  --brand-gold-light:#D8B84D;
+  --brand-gold-dark:#9C7C1F;  /* beyaz üzerinde küçük altın metin */
 
-  /* Gölgeler — çok hafif ve yumuşak */
-  --shadow-card:0 2px 8px rgba(28,43,42,.06);
-  --shadow-hover:0 6px 18px rgba(28,43,42,.10);
-  --shadow-pop:0 12px 32px rgba(28,43,42,.16);
+  /* Durum renkleri. *-ink: küçük metinde kontrastı yeterli koyu ton */
+  --ok:#2E8B57;   --ok-bg:#E8F4EC;   --ok-ink:#1F6B42;
+  --warn:#C9861A; --warn-bg:#FBF1DE; --warn-ink:#8A5A0B;
+  --crit:#B42318; --crit-bg:#FBE9E7; --crit-ink:#9A1D14;
+  --info:#2E5AA7; --info-bg:#EAF0FA; --info-ink:#244A8C;
+  --neutral:#5B6577; --neutral-bg:#EEF0F3; --neutral-ink:#4A5466;
+  --ok-grad:linear-gradient(135deg,#2E8B57,#1F6B42);
+  /* Ek Paket vurgusu (altın ailesi) */
+  --gold:#9C7C1F; --gold-bg:#FBF7EA; --gold-border:#E9D9A6; --gold-ink:#7E6418;
+
+  /* Gölgeler — lacivert tonlu, çok hafif */
+  --shadow-card:0 2px 8px rgba(8,38,90,.06);
+  --shadow-hover:0 6px 18px rgba(8,38,90,.10);
+  --shadow-pop:0 12px 32px rgba(6,26,59,.18);
 
   /* Köşeler */
   --radius-card:12px;
@@ -58,32 +72,34 @@
   --dur:180ms;
   --ease:cubic-bezier(.2,.8,.2,1);
 
-  /* Yan menü — koyu petrol; aktif öğe hardal çizgi */
-  --sidebar:#173F3D;
-  --sidebar-2:#1F504D;
-  --nav-line:#E3B04B;
+  /* Yan menü — koyu lacivert; aktif öğe altın çizgi */
+  --sidebar:#061A3B;
+  --sidebar-2:#0B2A5C;
+  --nav-line:#C6A02F;
 
-  /* Grafik serileri — sabit sıra: 1 gerçekleşen (teal), 2 planlanan (hardal), 3 açık teal, 4 mor, 5 kil */
-  --series-1:#388087; --series-2:#E3B04B; --series-3:#6FB3B8; --series-4:#7A5C8E; --series-5:#C98B6B;
-  --chart-rest:#D9D2C6;       /* "kalan" gibi nötr dilimler */
+  /* Grafik serileri: 1 gerçekleşen (lacivert-mavi), 2 planlanan (altın), 3 açık mavi, 4 yeşil, 5 bakır */
+  --series-1:#1F4E9C; --series-2:#C6A02F; --series-3:#7FA3D6; --series-4:#2E8B57; --series-5:#B8693A;
+  --chart-rest:#D9DEE6;
   --mono:ui-monospace,"SF Mono",SFMono-Regular,"Cascadia Mono","Roboto Mono",Menlo,Consolas,monospace;
+  --sans:"Manrope",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+  --serif:"Playfair Display","Iowan Old Style",Georgia,serif;
 }
 
-/* Yan menü: aynı değişkenler koyu zemin için yeniden tanımlanır; menü bileşenleri değişmeden koyu görünür */
+/* Yan menü: değişkenler koyu lacivert zemin için yeniden tanımlanır */
 .sidebar{
   --surface:var(--sidebar);
   --surface-2:var(--sidebar-2);
   --surface-3:var(--sidebar-2);
   --row-hover:rgba(255,255,255,.05);
-  --border:#22524F;
-  --border-strong:#2E6461;
-  --ink:#F6F6F2;
-  --muted:#A9C3C1;
-  --faint:#8FAAA8;
-  --accent:#BADFE7;
-  --accent-soft:rgba(186,223,231,.14);
-  --ok-ink:#8FD9A8; --warn-ink:#F0C66B; --crit-ink:#F2A29B; --accent-ink:#BADFE7;
-  --gold-bg:rgba(227,176,75,.16); --gold-border:rgba(227,176,75,.4); --gold:#F0C66B;
+  --border:rgba(255,255,255,.08);
+  --border-strong:rgba(255,255,255,.16);
+  --ink:#FFFFFF;
+  --muted:rgba(255,255,255,.72);
+  --faint:rgba(255,255,255,.55);
+  --accent:#D8B84D;
+  --accent-soft:rgba(216,184,77,.12);
+  --ok-ink:#86D3A6; --warn-ink:#F0C66B; --crit-ink:#F5A79E; --accent-ink:#D8B84D;
+  --gold-bg:rgba(198,160,47,.16); --gold-border:rgba(198,160,47,.45); --gold:#D8B84D;
   background:var(--sidebar);
   color:var(--ink);
 }
@@ -93,7 +109,7 @@
 *{box-sizing:border-box}
 html,body,#root{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);
-  font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-family:var(--sans);
   font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
 .mono{font-family:var(--mono)}
 .tnum{font-variant-numeric:tabular-nums}
@@ -136,14 +152,14 @@ del.redline-del{color:var(--faint);text-decoration:line-through;text-decoration-
   transition:background-color var(--dur) var(--ease),color var(--dur) var(--ease),border-color var(--dur) var(--ease),box-shadow var(--dur) var(--ease)}
 .btn:not(:disabled):hover{background:var(--surface-2);border-color:#9CA3AF;box-shadow:var(--shadow-card)}
 .btn-primary{background:var(--accent-grad);color:#fff;border-color:var(--accent-strong)}
-.btn-primary:not(:disabled):hover{background:var(--accent-strong);color:#fff;border-color:var(--accent-strong);box-shadow:0 4px 12px rgba(31,85,82,.28)}
+.btn-primary:not(:disabled):hover{background:var(--accent-strong);color:#fff;border-color:var(--accent-strong);box-shadow:0 4px 12px rgba(6,26,59,.28)}
 .btn-danger{background:var(--crit);color:#fff;border-color:var(--crit)}
 .btn-danger:not(:disabled):hover{background:var(--crit-ink);color:#fff;border-color:var(--crit-ink)}
 
 /* Kartlar: standart hafif gölge; tıklanabilir kartlar üzerine gelince gölgesi derinleşir */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);box-shadow:var(--shadow-card)}
+.card{background:var(--surface);border:1px solid var(--frame);border-radius:var(--radius-card);box-shadow:var(--shadow-card)}
 .lift{transition:box-shadow var(--dur) var(--ease),border-color var(--dur) var(--ease)}
-.lift:hover{box-shadow:var(--shadow-hover)}
+.lift:hover{box-shadow:var(--shadow-hover);border-color:var(--frame-strong)}
 
 /* Sayfa / sekme değişiminde içerik kısa bir solma ile gelir */
 @keyframes page-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
@@ -164,3 +180,63 @@ tbody tr > td{transition:background-color 150ms ease-out}
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
 }
+
+/* ---------------- Marka ---------------- */
+.brand-serif{font-family:var(--serif)}
+/* Sayfa başlıkları sitedeki gibi serif */
+h1{font-family:var(--serif);letter-spacing:-.005em}
+
+/* ---------------- Açılış animasyonu (KIMKON) ---------------- */
+.splash{position:fixed;inset:0;z-index:200;display:grid;place-items:center;overflow:hidden;cursor:pointer;
+  background:radial-gradient(120% 90% at 50% 40%,#0B3275 0%,#08265A 45%,#061A3B 80%,#030913 100%);
+  transition:opacity .6s ease,visibility .6s ease}
+.splash-out{opacity:0;visibility:hidden}
+.splash-center{position:relative;display:flex;flex-direction:column;align-items:center;gap:18px}
+.splash-word{font-family:var(--serif);font-weight:700;font-size:clamp(44px,8vw,96px);letter-spacing:.22em;padding-left:.22em;
+  background:linear-gradient(100deg,#9C7C1F 0%,#C6A02F 30%,#FFF4C4 48%,#D8B84D 56%,#C6A02F 70%,#9C7C1F 100%);
+  background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:splash-rise .9s cubic-bezier(.2,.8,.2,1) both,splash-shine 2.2s .5s ease-in-out both;
+  filter:drop-shadow(0 6px 24px rgba(198,160,47,.25))}
+.splash-line{height:1px;width:0;background:linear-gradient(90deg,rgba(198,160,47,0),#D8B84D,rgba(198,160,47,0));
+  animation:splash-line 1.1s .55s cubic-bezier(.2,.8,.2,1) forwards}
+.splash-tag{font-size:12px;letter-spacing:.32em;text-transform:uppercase;color:rgba(255,255,255,.72);
+  animation:splash-fade .8s .9s ease-out both}
+/* Ekranı çapraz geçen ışık şeritleri */
+.splash-sweep{position:absolute;top:-30%;left:-60%;width:40%;height:160%;transform:rotate(18deg);pointer-events:none;
+  background:linear-gradient(90deg,rgba(216,184,77,0),rgba(216,184,77,.10),rgba(255,244,196,.22),rgba(216,184,77,.10),rgba(216,184,77,0));
+  animation:splash-sweep 2.4s .2s ease-in-out both}
+.splash-sweep-2{width:22%;animation-delay:.9s;animation-duration:2s;opacity:.7}
+@keyframes splash-rise{from{opacity:0;transform:translateY(14px);letter-spacing:.34em}to{opacity:1;transform:none;letter-spacing:.22em}}
+@keyframes splash-shine{from{background-position:100% 0}to{background-position:0 0}}
+@keyframes splash-line{to{width:min(420px,70vw)}}
+@keyframes splash-fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes splash-sweep{from{left:-60%}to{left:130%}}
+
+/* ---------------- Süsleme ---------------- */
+/* Kart başlığının önünde küçük altın işaret */
+.card-title{position:relative;padding-left:12px}
+.card-title::before{content:"";position:absolute;left:0;top:50%;width:4px;height:14px;margin-top:-7px;border-radius:2px;
+  background:linear-gradient(180deg,var(--brand-gold-light),var(--brand-gold-dark))}
+/* Kart başlık şeridi: çok hafif lacivert-beyaz geçiş */
+.card > header{background:linear-gradient(180deg,rgba(8,38,90,.035),rgba(8,38,90,0))}
+/* Tablo kutuları ve modal da aynı lacivert çerçeveyi kullanır */
+.tbl-wrap{border-color:var(--frame)!important}
+.modal-frame{border-color:var(--frame-strong)!important}
+
+/* ---------------- Altın ışık geçişi ----------------
+ * Menüden bir sayfa açılınca: tıklanan menü öğesinin ve içeriğin üzerinden bir kez altın ışık geçer. */
+.gold-sweep-host{position:relative}
+.gold-sweep{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:5;border-radius:var(--radius-card)}
+.gold-sweep::after{content:"";position:absolute;top:-20%;left:-40%;width:28%;height:140%;transform:skewX(-18deg);
+  background:linear-gradient(90deg,rgba(216,184,77,0),rgba(216,184,77,.16),rgba(255,236,170,.30),rgba(216,184,77,.16),rgba(216,184,77,0));
+  animation:gold-pass .9s cubic-bezier(.3,.6,.3,1) .05s both}
+@keyframes gold-pass{from{left:-40%}to{left:120%}}
+.nav-active{position:relative;overflow:hidden}
+.nav-active::after{content:"";position:absolute;top:0;bottom:0;left:-60%;width:50%;transform:skewX(-18deg);pointer-events:none;
+  background:linear-gradient(90deg,rgba(216,184,77,0),rgba(255,236,170,.38),rgba(216,184,77,0));
+  animation:gold-pass .8s ease-out both}
+@media (prefers-reduced-motion: reduce){.gold-sweep::after,.nav-active::after{display:none}}
+
+/* Üst bar: altında ince altın çizgi */
+.topbar::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;
+  background:linear-gradient(90deg,rgba(198,160,47,0),rgba(198,160,47,.75) 30%,rgba(216,184,77,.9) 50%,rgba(198,160,47,.75) 70%,rgba(198,160,47,0))}

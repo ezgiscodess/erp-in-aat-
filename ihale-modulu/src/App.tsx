@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { ChartPalettePicker } from './components/ChartPalette'
+import { BrandMark, BrandName } from './components/Brand'
 import type { LibraryItem, TabKey } from './data/types'
 import { library, project } from './data/mock'
 import { tabs, accessFor, canWrite, personaOf, roleLabel } from './lib/roles'
@@ -73,8 +75,8 @@ export default function App() {
       {navOpen && <div className="backdrop fixed inset-0 z-40 bg-[rgba(15,23,42,0.40)] md:hidden" onClick={() => setNavOpen(false)} />}
       <aside className={`sidebar fixed inset-y-0 left-0 z-50 flex h-screen w-[240px] flex-shrink-0 flex-col transition-transform md:sticky md:top-0 md:translate-x-0 ${navOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center gap-2.5 border-b border-[var(--border)] px-4 py-3">
-          <span className="grid h-7 w-7 place-items-center rounded-md text-[12px] font-extrabold text-white" style={{ background: 'var(--accent-grad)' }}>IC</span>
-          <span className="text-[13.5px] font-bold tracking-tight text-[var(--ink)]">ICCM Ecosystem</span>
+          <BrandMark />
+          <BrandName />
           <span className="text-[11px] text-[var(--muted)]">{open.kind === 'ihale' ? 'İhale' : 'Proje'}</span>
         </div>
 
@@ -117,7 +119,7 @@ export default function App() {
       {/* ---------- Sağ taraf ---------- */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Sabit üst bilgi paneli — sayfa kaydırılınca yerinde kalır */}
-        <header className="sticky top-0 z-30 flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 shadow-sm sm:px-6">
+        <header className="topbar sticky top-0 z-30 flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 shadow-sm sm:px-6">
           <button onClick={() => setNavOpen(true)} aria-label="Menü" className="btn grid h-9 w-9 place-items-center border md:hidden">☰</button>
           <div className="min-w-0">
             <div className="truncate text-[13.5px] font-bold text-[var(--ink)]">{open.name}</div>
@@ -130,11 +132,13 @@ export default function App() {
               ? <Badge tone="warn" dot>Teklife {open.daysLeft} gün</Badge>
               : <Badge tone="ok" dot>Yapım · %{open.progress}</Badge>}
             <Badge tone="neutral">{open.status}</Badge>
+            <ChartPalettePicker />
           </div>
         </header>
 
         <main className="flex-1 px-4 pb-12 pt-6 sm:px-6">
-          <div key={tab} className="page-in mx-auto flex max-w-[1500px] flex-col gap-4">
+          <div key={tab} className="page-in gold-sweep-host mx-auto flex max-w-[1500px] flex-col gap-4">
+            <span className="gold-sweep" aria-hidden />
             {!sample && (
               <div className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-[12.5px] text-[var(--muted)]">
                 Görsel prototip: ekrandaki veriler örnek ihale dosyasına ({project.code}) aittir.

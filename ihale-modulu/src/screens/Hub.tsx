@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { ChartPalettePicker } from '../components/ChartPalette'
+import { BrandMark, BrandName } from '../components/Brand'
 import { certificates, library, project } from '../data/mock'
 import { pqqRows, pqqSections } from '../data/pqq'
 import type { PqqSection } from '../data/pqq'
@@ -55,6 +57,7 @@ export function Hub({ persona, onOpen, onLogout }: { persona: Persona; onOpen: (
   )
   const [uploading, setUploading] = useState(false)
   const [pqq, setPqq] = useState(false)
+  const [pqp, setPqp] = useState(false)
   const [justAdded, setJustAdded] = useState<string | null>(null)
   const [cols, setCols] = useState<Record<ColKey, string>>(NO_FILTER)
 
@@ -99,13 +102,14 @@ export function Hub({ persona, onOpen, onLogout }: { persona: Persona; onOpen: (
   return (
     <div className="min-h-screen bg-[var(--bg)]">
       {/* Üst şerit */}
-      <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-6 py-2.5">
-        <span className="grid h-6 w-6 place-items-center rounded-md text-[12px] font-extrabold text-white" style={{ background: 'var(--accent)' }}>IC</span>
-        <span className="text-[13.5px] font-bold tracking-tight text-[var(--ink)]">ICCM Ecosystem</span>
+      <header className="topbar sticky top-0 z-30 flex items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-6 py-2.5">
+        <BrandMark />
+        <BrandName />
         <span className="hidden text-[11.5px] text-[var(--muted)] sm:inline">{project.company}</span>
         <div className="ml-auto flex items-center gap-3">
           <span className="hidden text-[12px] text-[var(--muted)] sm:inline">e.yilmaz</span>
           <Badge tone="accent">{personaOf(persona).label}</Badge>
+          <ChartPalettePicker />
           <Btn small onClick={onLogout}>Çıkış</Btn>
         </div>
       </header>
@@ -127,6 +131,7 @@ export function Hub({ persona, onOpen, onLogout }: { persona: Persona; onOpen: (
             <Search value={q} onChange={setQ} placeholder="İş adı, işveren, kod…" />
             <Btn primary onClick={() => setUploading(true)}>+ Yükle</Btn>
             {persona !== 'proje' && <Btn onClick={() => setPqq(true)} title="Firmanın ön yeterlilik (PQQ) dosyası">PQQ</Btn>}
+            <Btn onClick={() => setPqp(true)} title="Project Quality Plan — proje kalite planı">PQP</Btn>
           </div>
         </div>
 
@@ -248,6 +253,7 @@ export function Hub({ persona, onOpen, onLogout }: { persona: Persona; onOpen: (
       </main>
 
       {pqq && <PqqModal onClose={() => setPqq(false)} />}
+      {pqp && <PqpModal projects={items} onClose={() => setPqp(false)} />}
       {uploading && <UploadModal fixedKind={persona === 'patron' ? undefined : persona === 'ihale' ? 'ihale' : 'proje'} onClose={() => setUploading(false)} onDone={addItem} />}
     </div>
   )
@@ -309,6 +315,83 @@ function PqqModal({ onClose }: { onClose: () => void }) {
                 <span className="block truncate text-[11px] text-[var(--muted)]">{r.value}</span>
               </span>
               <Badge tone={tone(r.state)} dot>{r.state}</Badge>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
+/** Project Quality Plan bölümleri — her projede aynı iskelet, içerik projeye göre doldurulur */
+const PQP_SECTIONS = [
+  { no: '1', title: 'Kalite politikası ve proje kalite hedefleri', owner: 'Kalite müdürü' },
+  { no: '2', title: 'Organizasyon, yetki ve sorumluluklar', owner: 'Proje müdürü' },
+  { no: '3', title: 'Doküman ve kayıt kontrolü', owner: 'Doküman kontrol (DCC)' },
+  { no: '4', title: 'Malzeme onay talepleri (MAR)', owner: 'Teknik ofis' },
+  { no: '5', title: 'Muayene ve test planları (ITP)', owner: 'Kalite kontrol' },
+  { no: '6', title: 'Uygunsuzluk (NCR) ve düzeltici faaliyet', owner: 'Kalite kontrol' },
+  { no: '7', title: 'Ölçüm ekipmanı kalibrasyonu', owner: 'Kalite kontrol' },
+  { no: '8', title: 'Alt yüklenici ve tedarikçi kalite yönetimi', owner: 'Satın alma + kalite' },
+  { no: '9', title: 'İç denetim ve yönetim gözden geçirmesi', owner: 'Kalite müdürü' },
+  { no: '10', title: 'Teslim, test-devreye alma ve kabul', owner: 'Proje müdürü' },
+]
+
+/**
+ * Proje Kalite Planı (PQP): projede kalitenin nasıl yönetileceğini anlatan, işverene onaylatılan plan.
+ * Proje seçilir; bölümlerin revizyonu ve onay durumu, açık uygunsuzluklar ve ITP ilerlemesi tek pencerede görünür.
+ */
+function PqpModal({ projects, onClose }: { projects: LibraryItem[]; onClose: () => void }) {
+  const list = projects.length ? projects : library
+  const [id, setId] = useState(list[0].id)
+  const sel = list.find((p) => p.id === id) ?? list[0]
+  const seed = sel.code.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
+  const states = PQP_SECTIONS.map((s, i) => {
+    const k = (seed + i * 7) % 10
+    return { ...s, rev: 1 + ((seed + i) % 3), state: k < 6 ? 'Onaylandı' : k < 8 ? 'İşveren incelemesinde' : 'Hazırlanıyor' }
+  })
+  const approved = states.filter((s) => s.state === 'Onaylandı').length
+  const tone = (s: string) => (s === 'Onaylandı' ? 'ok' : s === 'İşveren incelemesinde' ? 'warn' : 'neutral')
+  return (
+    <Modal title="PQP — Project Quality Plan" wide onClose={onClose}
+      note="Projenin kalite yönetim planı: kalite hedefleri, sorumluluklar, malzeme onayları, muayene-test planları, uygunsuzluk yönetimi ve kabul. Bölümler işverene onaylatılır; revizyonlar kayıt altında tutulur."
+      footer={<>
+        <span className="text-[11.5px] text-[var(--faint)]">{approved} / {states.length} bölüm onaylı</span>
+        <span className="ml-auto flex gap-2">
+          <Btn title="Sözleşme ve teknik şartnameden AI ile PQP taslağı üretir">PQP taslağı üret</Btn>
+          <Btn>PDF</Btn>
+          <Btn primary onClick={onClose}>Kapat</Btn>
+        </span>
+      </>}>
+      <div className="flex flex-col gap-3">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[12px] font-medium text-[var(--ink)]">Proje / ihale</span>
+          <select value={id} onChange={(e) => setId(e.target.value)}
+            className="h-10 rounded-md border border-[var(--border-strong)] bg-[var(--surface)] px-3 text-[13px] text-[var(--ink)]">
+            {list.map((p) => <option key={p.id} value={p.id}>{p.code} · {p.name}</option>)}
+          </select>
+        </label>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {[
+            { l: 'Onaylı bölüm', v: `${approved} / ${states.length}`, t: 'var(--ok-ink)' },
+            { l: 'Açık uygunsuzluk (NCR)', v: String(3 + (seed % 6)), t: 'var(--crit-ink)' },
+            { l: 'ITP tamamlanma', v: `%${55 + (seed % 40)}`, t: 'var(--accent-ink)' },
+          ].map((k) => (
+            <div key={k.l} className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">{k.l}</div>
+              <div className="mt-0.5 text-[20px] font-bold tnum" style={{ color: k.t }}>{k.v}</div>
+            </div>
+          ))}
+        </div>
+        <div className="flex max-h-[340px] flex-col overflow-y-auto rounded-md border border-[var(--border)]">
+          {states.map((s) => (
+            <div key={s.no} className="flex items-center gap-3 border-b border-[var(--border)] px-3 py-2.5 text-[12.5px] last:border-0">
+              <span className="mono w-6 text-[var(--faint)]">{s.no}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[var(--ink)]">{s.title}</span>
+                <span className="block text-[11px] text-[var(--muted)]">{s.owner} · Rev.{s.rev}</span>
+              </span>
+              <Badge tone={tone(s.state)} dot>{s.state}</Badge>
             </div>
           ))}
         </div>

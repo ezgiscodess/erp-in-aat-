@@ -298,7 +298,7 @@ function SasLog({ items, events, range }: { items: SasItem[]; events: SasEvent[]
             ))}
           </div>
           <div className="mt-auto flex border-t border-[#D0D5DD] pt-1.5 text-[9.5px] text-[#98A2B3]">
-            <span>ICCM Ecosystem · otomatik üretildi</span><span className="ml-auto">Sayfa 1 / 1</span>
+            <span>KIMKON · otomatik üretildi</span><span className="ml-auto">Sayfa 1 / 1</span>
           </div>
         </div>
       </div>

@@ -7,9 +7,9 @@ import { programs } from '../planningData'
 import {
   actualCum, changeOrders, evm, claims, contractMatches, costLines, criticalPath, dailyReport, disruptions, ipcs, machines,
   machineLog, machineWaste, materialWaste, monthName, monthlyPhrs, phrsLog, plannedCum, prj, productivity, staffWaste, subcontracts,
-  timesheet, timesheetDays, trades,
+  MAIN_CONTRACTOR, manpowerFor, timesheetDays, trades,
 } from '../data'
-import type { ChangeOrder, Claim, Impact } from '../data'
+import type { ChangeOrder, Claim, Impact, ManpowerLine } from '../data'
 
 /**
  * Admin Konsolu: üst yöneticinin alt modüllerden gelen verinin en özet hâlini gördüğü ekranlar.
@@ -466,10 +466,13 @@ function cumPct(values: number[], total: number): number[] {
 export function AdminPersonel() {
   const plan = trades.reduce((a, t) => a + t.plan, 0)
   const actual = trades.reduce((a, t) => a + t.actual, 0)
-  const total = (f: (r: typeof timesheet[number]) => boolean) => timesheet.filter(f).reduce((a, r) => a + r.days.reduce((x, y) => x + y, 0), 0)
+  const [day, setDay] = useState('2026-10-06')
+  const lines = manpowerFor(day)
+  const tot = (l: ManpowerLine) => l.indDay + l.indNight + l.dirDay + l.dirNight + l.op
+  const sum = (f: (l: ManpowerLine) => number) => lines.reduce((a, l) => a + f(l), 0)
   return (
     <>
-      <Head title="Personel" note="Meslek gruplarına göre planlanan ve sahadaki kadro, günlük puantaj ve kadronun yapısı. Eksik kadro programı, fazla kadro maliyeti etkiler." />
+      <Head title="Personel" note="Meslek gruplarına göre planlanan ve sahadaki kadro, günlük puantaj (Daily Manpower) ve kadronun yapısı. Eksik kadro programı, fazla kadro maliyeti etkiler." />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi label="Planlanan kadro" value={plan} />
         <Kpi label="Sahadaki kadro" value={actual} sub={`${actual - plan > 0 ? '+' : ''}${actual - plan} kişi`} tone={actual < plan ? 'warn' : 'neutral'} />
@@ -481,20 +484,92 @@ export function AdminPersonel() {
         <PairBars rows={trades.map((t) => ({ label: t.trade, plan: t.plan, actual: t.actual }))} format={(v) => `${v} kişi`} worseWhen="lower" />
       </Card>
       <SplitWithPies
-        table={<Timesheet title="Puantaj · son 7 gün" unit="kişi" rows={timesheet.map((r) => ({ name: r.group, employer: r.employer, kind: r.kind, days: r.days }))}
-          help="Günlük sahaya giren kişi sayısı (puantaj). Hafta sonu çalışmaları ayrıca görünür; ana firma ve taşeron personeli ayrı işaretlenir." />}
+        table={<DailyManpowerSheet day={day} onDay={setDay} lines={lines} />}
         pies={[
-          { title: 'Taşeron / ana firma', help: 'Son 7 günün kişi-gün toplamına göre.', parts: [
-            { label: 'Taşeron', value: total((r) => r.employer === 'Taşeron'), color: 'var(--series-1)' },
-            { label: 'Ana firma', value: total((r) => r.employer === 'Ana firma'), color: 'var(--series-2)' },
-          ], format: (v: number) => `${num(v)} kişi-gün` },
-          { title: 'Direkt / endirekt', help: 'Direkt: imalatta çalışan; endirekt: teknik ofis, İSG, idari işler.', parts: [
-            { label: 'Direkt', value: total((r) => r.kind === 'Direkt'), color: 'var(--series-3)' },
-            { label: 'Endirekt', value: total((r) => r.kind === 'Endirekt'), color: 'var(--series-4)' },
-          ], format: (v: number) => `${num(v)} kişi-gün` },
+          { title: 'Taşeron / ana firma', help: 'Seçili günün puantajına göre kişi sayısı.', parts: [
+            { label: 'Taşeron', value: lines.filter((l) => l.company !== MAIN_CONTRACTOR).reduce((a, l) => a + tot(l), 0), color: 'var(--series-1)' },
+            { label: 'Ana firma', value: lines.filter((l) => l.company === MAIN_CONTRACTOR).reduce((a, l) => a + tot(l), 0), color: 'var(--series-2)' },
+          ], format: (v: number) => `${num(v)} kişi` },
+          { title: 'Direkt / endirekt', help: 'Direkt: imalatta çalışan (operatör ve şoför dâhil); endirekt: teknik ofis, İSG, idari.', parts: [
+            { label: 'Direkt', value: sum((l) => l.dirDay + l.dirNight + l.op), color: 'var(--series-3)' },
+            { label: 'Endirekt', value: sum((l) => l.indDay + l.indNight), color: 'var(--series-4)' },
+          ], format: (v: number) => `${num(v)} kişi` },
         ]}
       />
     </>
+  )
+}
+
+/**
+ * Günlük puantaj (Daily Manpower): firma ve iş türü bazında endirekt / direkt (gündüz-gece), operatör-şoför ve toplam.
+ * Sağ üstte puantajın tarihi; önceki / sonraki gün ya da takvimden gün seçilir.
+ */
+function DailyManpowerSheet({ day, onDay, lines }: { day: string; onDay: (d: string) => void; lines: ManpowerLine[] }) {
+  const shift = (n: number) => { const d = new Date(day); d.setDate(d.getDate() + n); onDay(d.toISOString().slice(0, 10)) }
+  const tot = (l: ManpowerLine) => l.indDay + l.indNight + l.dirDay + l.dirNight + l.op
+  const col = (f: (l: ManpowerLine) => number) => lines.reduce((a, l) => a + f(l), 0)
+  const cell = (v: number) => (v ? num(v) : '')
+  const label = new Intl.DateTimeFormat('tr-TR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }).format(new Date(day))
+  const th = 'border border-[var(--border)] px-2 py-1.5 text-[11px] font-semibold text-[var(--ink)]'
+  const td = 'border border-[var(--border)] px-2 py-1 text-[12px]'
+  return (
+    <section className="card flex h-full flex-col overflow-hidden">
+      {/* Başlık şeridi: solda başlık, sağ üstte tarih */}
+      <header className="flex flex-wrap items-center gap-3 px-4 py-3 text-white" style={{ background: 'var(--accent-grad)' }}>
+        <div>
+          <div className="text-[15px] font-bold tracking-wide">DAILY MANPOWER</div>
+          <div className="text-[11.5px] text-white/75">Günlük puantaj · {lines.length} firma-iş kalemi</div>
+        </div>
+        <div className="ml-auto flex items-center gap-1.5">
+          <button onClick={() => shift(-1)} className="grid h-8 w-8 place-items-center rounded-md border border-white/25 text-white hover:bg-white/10" aria-label="Önceki gün">‹</button>
+          <label className="flex flex-col items-end rounded-md border px-2.5 py-1" style={{ borderColor: 'rgba(216,184,77,.6)' }}>
+            <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--brand-gold-light)' }}>Puantaj tarihi</span>
+            <input type="date" value={day} max="2026-10-07" onChange={(e) => e.target.value && onDay(e.target.value)}
+              className="h-6 border-0 bg-transparent p-0 text-right text-[13px] font-semibold text-white outline-none [color-scheme:dark]" style={{ boxShadow: 'none' }} />
+          </label>
+          <button onClick={() => shift(1)} disabled={day >= '2026-10-07'} className="grid h-8 w-8 place-items-center rounded-md border border-white/25 text-white hover:bg-white/10 disabled:opacity-30" aria-label="Sonraki gün">›</button>
+        </div>
+      </header>
+      <div className="border-b border-[var(--border)] bg-[var(--surface-2)] px-4 py-1.5 text-[11.5px] text-[var(--muted)]">{label}</div>
+      <div className="overflow-x-auto">
+        <table className="grid-table w-full border-collapse">
+          <thead className="bg-[var(--surface-3)]">
+            <tr>
+              <th rowSpan={2} className={`${th} min-w-[170px] text-left`}>Firma</th>
+              <th rowSpan={2} className={`${th} min-w-[190px] text-left`}>İş türü</th>
+              <th colSpan={2} className={`${th} text-center`}>Endirekt</th>
+              <th colSpan={2} className={`${th} text-center`}>Direkt</th>
+              <th rowSpan={2} className={`${th} text-center`}>Operatör<br />şoför</th>
+              <th rowSpan={2} className={`${th} text-center`}>Toplam</th>
+            </tr>
+            <tr>
+              {['Gündüz', 'Gece', 'Gündüz', 'Gece'].map((h, i) => <th key={i} className={`${th} w-[64px] text-center`}>{h}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {lines.map((l, i) => {
+              const main = l.company === MAIN_CONTRACTOR
+              const t = tot(l)
+              return (
+                <tr key={i} style={main ? { background: 'var(--accent-soft)' } : undefined}>
+                  <td className={`${td} ${main ? 'font-bold text-[var(--ink)]' : 'text-[var(--ink)]'}`}>{l.company}</td>
+                  <td className={`${td} text-[var(--muted)]`}>{l.work}</td>
+                  {[l.indDay, l.indNight, l.dirDay, l.dirNight, l.op].map((v, k) => <td key={k} className={`${td} text-center tnum`}>{cell(v)}</td>)}
+                  <td className={`${td} text-center font-bold tnum`}>{cell(t)}</td>
+                </tr>
+              )
+            })}
+            <tr className="bg-[var(--surface-3)]">
+              <td colSpan={2} className={`${td} font-bold`}>Günlük toplam</td>
+              {[col((l) => l.indDay), col((l) => l.indNight), col((l) => l.dirDay), col((l) => l.dirNight), col((l) => l.op)].map((v, k) => (
+                <td key={k} className={`${td} text-center font-bold tnum`}>{num(v)}</td>
+              ))}
+              <td className={`${td} text-center font-extrabold tnum`} style={{ color: 'var(--accent-ink)' }}>{num(col(tot))}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
   )
 }
 
@@ -862,7 +937,7 @@ export function AdminClaim() {
 
   return (
     <>
-      <Head title="Claim" note="Hak talebi: ana kontratla örtüşmeyen, yükleniciden kaynaklanmayan ama zarara uğratan durumlar (işveren revizyonu, lisans alınamaması, yer tesliminin gecikmesi…) için ek bedel ve süre talebi. Amaç tahkime gitmeden, dokümanla güçlü bir pazarlıkla çözmek; ICCM bu durumları oluştuğu an saptar."
+      <Head title="Claim" note="Hak talebi: ana kontratla örtüşmeyen, yükleniciden kaynaklanmayan ama zarara uğratan durumlar (işveren revizyonu, lisans alınamaması, yer tesliminin gecikmesi…) için ek bedel ve süre talebi. Amaç tahkime gitmeden, dokümanla güçlü bir pazarlıkla çözmek; KIMKON bu durumları oluştuğu an saptar."
         extra={<AddImport label="Hak talebi" onAdd={() => setOpen({ cl: blank, edit: true })} onImport={() => setImporting(true)} />} />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 xl:grid-cols-6">

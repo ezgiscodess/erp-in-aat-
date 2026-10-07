@@ -16,7 +16,7 @@ export function Card({ title, subtitle, right, children, pad = true, help, fill 
       {(title || right) && (
         <header className="flex min-h-[52px] items-center gap-3 border-b border-[var(--border)] px-4 py-2">
           <div className="flex min-w-0 items-center gap-1.5">
-            {title && <h3 className="truncate text-[14px] font-semibold text-[var(--ink)]">{title}</h3>}
+            {title && <h3 className="card-title truncate text-[14px] font-semibold text-[var(--ink)]">{title}</h3>}
             {help ? <Help text={help} /> : subtitle ? <span className="truncate text-[12px] text-[var(--muted)]">· {subtitle}</span> : null}
           </div>
           <div className="ml-auto flex flex-shrink-0 items-center gap-2">{right}</div>
@@ -730,7 +730,7 @@ export function Modal({ title, note, onClose, children, footer, wide }: {
     <div className="backdrop fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[rgba(15,23,42,0.40)] p-4 sm:p-6" onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`pop mt-10 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl ${wide ? 'max-w-3xl' : 'max-w-xl'}`}
+        className={`pop modal-frame mt-10 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl ${wide ? 'max-w-3xl' : 'max-w-xl'}`}
       >
         <header className="flex items-start gap-3 border-b border-[var(--border)] px-5 py-3.5">
           <div className="min-w-0">
@@ -1044,7 +1044,7 @@ export function RedlineText({ body, edits }: { body: string; edits: Redline[] })
 
   for (const e of edits) {
     if (e.removed) {
-      parts = parts.flatMap((part) => {
+      parts = parts.flatMap((part): ReactNode[] => {
         if (typeof part !== 'string' || !part.includes(e.removed!)) return [part]
         const [a, ...rest] = part.split(e.removed!)
         return [a, <del key={`d${e.at}`} className="redline-del" title={`${e.by} çıkardı · ${e.at}`}>{e.removed}</del>, rest.join(e.removed!)]

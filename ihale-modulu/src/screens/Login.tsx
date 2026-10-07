@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { BrandMark, BrandName } from '../components/Brand'
 import { project } from '../data/mock'
 import { Btn, Field } from '../components/ui'
 import { personas } from '../lib/roles'
@@ -19,9 +20,9 @@ export function Login({ onLogin }: { onLogin: (p: Persona) => void }) {
         {/* Sol: marka tarafı */}
         <div className="flex flex-col justify-between gap-8 p-8" style={{ background: 'var(--accent-soft)' }}>
           <div className="flex items-center gap-2.5">
-            <span className="grid h-8 w-8 place-items-center rounded-lg text-[14px] font-extrabold text-white" style={{ background: 'var(--accent)' }}>IC</span>
+            <BrandMark size={34} />
             <div>
-              <div className="text-[15px] font-bold tracking-tight text-[var(--ink)]">ICCM Ecosystem</div>
+              <div><BrandName size={15} /></div>
               <div className="text-[11.5px] text-[var(--muted)]">İhale, kontrat ve proje yönetimi</div>
             </div>
           </div>

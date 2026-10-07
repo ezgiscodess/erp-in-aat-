@@ -315,6 +315,52 @@ export const timesheet = [
 ]
 export const timesheetDays = ['21 Eyl Pzt', '22 Eyl Sal', '23 Eyl Çar', '24 Eyl Per', '25 Eyl Cum', '26 Eyl Cmt', '27 Eyl Paz']
 
+/**
+ * Günlük puantaj (Daily Manpower) şablonu: firma, iş türü ve vardiya bazında kişi sayısı.
+ * Gün gün küçük farklarla üretilir (prototip); gerçek sistemde Progress › Daily Manpower girişlerinden gelir.
+ */
+export const MAIN_CONTRACTOR = 'ICCM Construction LTD'
+const MANPOWER_BASE: { company: string; work: string; ind: [number, number]; dir: [number, number]; op: number }[] = [
+  { company: MAIN_CONTRACTOR, work: 'Ana yüklenici', ind: [38, 4], dir: [42, 0], op: 0 },
+  { company: 'Kuzey Çelik Yapı', work: 'Çelik konstrüksiyon montajı', ind: [3, 0], dir: [30, 12], op: 4 },
+  { company: 'Kuzey Çelik Yapı', work: 'Kaynak ve bulonlama', ind: [0, 0], dir: [9, 0], op: 0 },
+  { company: 'Marmara Yapı', work: 'Betonarme — kalıp', ind: [2, 0], dir: [34, 0], op: 0 },
+  { company: 'Marmara Yapı', work: 'Betonarme — demir', ind: [0, 0], dir: [28, 0], op: 0 },
+  { company: 'Marmara Yapı', work: 'Beton dökümü', ind: [0, 0], dir: [8, 6], op: 3 },
+  { company: 'Panelsan', work: 'Cephe sandviç panel', ind: [1, 0], dir: [18, 0], op: 2 },
+  { company: 'Panelsan', work: 'Çatı paneli', ind: [0, 0], dir: [12, 0], op: 1 },
+  { company: 'Öz Duvar', work: 'Tuğla bölme duvar', ind: [1, 0], dir: [31, 0], op: 0 },
+  { company: 'Öz Duvar', work: 'Sıva ve boya', ind: [0, 0], dir: [11, 0], op: 0 },
+  { company: 'Tesisat Grup', work: 'Sprinkler ve yangın tesisatı', ind: [2, 0], dir: [19, 0], op: 0 },
+  { company: 'Tesisat Grup', work: 'Mekanik tesisat', ind: [0, 0], dir: [9, 0], op: 0 },
+  { company: 'Volt Elektrik', work: 'Elektrik ve aydınlatma', ind: [1, 0], dir: [18, 0], op: 0 },
+  { company: 'Volt Elektrik', work: 'OG kablo çekimi', ind: [0, 0], dir: [6, 0], op: 0 },
+  { company: 'Zemin Pro', work: 'Epoksi zemin', ind: [1, 0], dir: [10, 8], op: 0 },
+  { company: 'Akdeniz Hafriyat', work: 'Kazı ve dolgu', ind: [0, 0], dir: [4, 0], op: 6 },
+  { company: 'Güven İSG', work: 'İSG ve güvenlik', ind: [8, 6], dir: [0, 0], op: 0 },
+  { company: 'Temiz Saha', work: 'Saha temizliği', ind: [0, 0], dir: [14, 0], op: 0 },
+  { company: 'Lift Kiralama', work: 'Vinç ve platform operatörleri', ind: [0, 0], dir: [0, 0], op: 9 },
+  { company: 'Yol Asfalt', work: 'Saha asfaltı', ind: [0, 0], dir: [0, 0], op: 0 },
+]
+
+export interface ManpowerLine { company: string; work: string; indDay: number; indNight: number; dirDay: number; dirNight: number; op: number }
+
+/** Verilen günün puantajı — pazar günleri yalnızca gece vardiyası ve güvenlik çalışır */
+export function manpowerFor(isoDate: string): ManpowerLine[] {
+  const d = new Date(isoDate)
+  const sunday = d.getDay() === 0
+  const saturday = d.getDay() === 6
+  const seed = Number(isoDate.replace(/-/g, '')) % 97
+  const vary = (v: number, i: number) => {
+    if (!v) return 0
+    const f = 1 + (((seed * (i + 3)) % 13) - 6) / 50
+    return Math.max(0, Math.round(v * f * (saturday ? 0.7 : 1)))
+  }
+  return MANPOWER_BASE.map((b, i) => sunday
+    ? { company: b.company, work: b.work, indDay: b.work === 'İSG ve güvenlik' ? b.ind[0] : 0, indNight: b.ind[1], dirDay: 0, dirNight: vary(b.dir[1], i), op: 0 }
+    : { company: b.company, work: b.work, indDay: vary(b.ind[0], i), indNight: vary(b.ind[1], i), dirDay: vary(b.dir[0], i), dirNight: vary(b.dir[1], i), op: vary(b.op, i) })
+}
+
 /** Makine-ekipman: ana firma / taşeron ve direkt (imalatta) / endirekt (genel hizmet) ayrımı ve son 7 gün çalışma saati */
 export const machineLog = [
   { name: 'Mobil vinç 100 t', employer: 'Taşeron', kind: 'Direkt', days: [18, 20, 16, 20, 18, 10, 0] },

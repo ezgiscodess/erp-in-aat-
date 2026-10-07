@@ -48,7 +48,7 @@ export function Legend({ items }: { items: { label: string; color: string; dashe
 }
 
 /** Kapsayıcının genişliğini izler — SVG'yi gerilmeden tam genişlikte çizmek için. */
-function useWidth(fallback = 600) {
+export function useWidth(fallback = 600) {
   const ref = useRef<HTMLDivElement>(null)
   const [w, setW] = useState(fallback)
   useEffect(() => {

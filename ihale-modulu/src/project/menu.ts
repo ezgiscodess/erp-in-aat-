@@ -12,6 +12,8 @@ export const menu: MenuGroup[] = [
     key: 'admin', label: 'Admin Konsolu',
     note: 'Üst yöneticinin projeye ait her veriyi ve tutarı kısıtlamasız, en özet ve en görsel hâliyle gördüğü konsol. Detaylar ilgili alt modüllerdedir.',
     items: [
+      { key: 'a_finance', label: 'Finance Dashboard', ready: true },
+      { key: 'a_accounting', label: 'Accounting Dashboard', ready: true },
       { key: 'budget', label: 'Budget', ready: true },
       { key: 'ipc', label: 'IPC', ready: true },
       { key: 'contract', label: 'Contract', ready: true },
@@ -81,8 +83,8 @@ export const menu: MenuGroup[] = [
       { key: 'stock', ready: true, label: 'Stock', note: 'Sahada, depoda, yolda stok; denetim ve stok değeri.' },
     ],
   },
-  { key: 'finance', label: 'Finance', items: [{ key: 'fin_dashboard', label: 'Dashboard', note: 'Kurgusu üzerinde çalışılıyor.' }] },
-  { key: 'accounting', label: 'Accounting', items: [{ key: 'acc_dashboard', label: 'Dashboard', note: 'Kurgusu üzerinde çalışılıyor.' }] },
+  { key: 'finance', label: 'Finance', items: [{ key: 'fin_dashboard', label: 'Dashboard', ready: true, note: 'Finansal sağlık: alacak-borç, kârlılık, nakit yakımı, işletme sermayesi.' }] },
+  { key: 'accounting', label: 'Accounting', items: [{ key: 'acc_dashboard', label: 'Dashboard', ready: true, note: 'Faturalar, borç-alacak, gelir-gider takvimi.' }] },
   {
     key: 'risk', label: 'Risk',
     note: 'Saha ve yönetim riskleri tek Dashboard’da; kontrat riskleri ihaleden aktarılır ya da kontrattan analiz edilir.',

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { BrandMark } from '../../components/Brand'
 import type { ReactNode } from 'react'
 import { Badge, Btn, Field, IconBtn, Modal, PageHead, RowActions } from '../../components/ui'
 import type { Tone } from '../../components/ui'
@@ -128,7 +129,7 @@ export function ReportViewer({ type }: { type: string }) {
             <div className="mx-auto bg-white shadow-sm" style={{ maxWidth: rep.slides ? 900 : 640, aspectRatio: rep.slides ? '16 / 9' : '1 / 1.414' }}>
               <div className="flex h-full flex-col px-10 py-8 text-[#1f2937]">
                 <div className="mb-4 flex items-center gap-2 border-b border-[#e5e7eb] pb-2 text-[10px] text-[#9ca3af]">
-                  <span className="grid h-5 w-5 place-items-center rounded text-[9px] font-extrabold text-white" style={{ background: 'var(--accent)' }}>IC</span>
+                  <BrandMark size={20} />
                   <span>ICCM Construction LTD · {prj.name}</span>
                   <span className="ml-auto">{rep.title} · {rep.period}</span>
                 </div>
