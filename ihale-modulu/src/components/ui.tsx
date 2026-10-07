@@ -227,9 +227,9 @@ export function PageHead({ title, note, right, left }: {
   left?: ReactNode
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-3 border-b border-[var(--border)] pb-3">
+    <div className="page-head-rule flex flex-wrap items-center gap-3 border-b border-[var(--border)] pb-3">
       <div className="flex min-w-0 items-center gap-1.5">
-        <h1 className="text-[16px] font-bold tracking-tight text-[var(--ink)]">{title}</h1>
+        <h1 className="text-[18px] font-bold tracking-tight text-[var(--ink)]">{title}</h1>
         <Help text={note} />
       </div>
       {left && <div className="flex items-center gap-2">{left}</div>}

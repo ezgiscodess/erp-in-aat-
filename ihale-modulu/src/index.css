@@ -191,6 +191,11 @@ tbody tr > td{transition:background-color 150ms ease-out}
 /* Sayfa başlıkları sitedeki gibi serif */
 h1{font-family:var(--serif);letter-spacing:-.005em}
 
+/* ---------------- Marka ---------------- */
+.brand-serif{font-family:var(--serif)}
+/* Sayfa başlıkları sitedeki gibi serif */
+h1{font-family:var(--serif);letter-spacing:-.005em}
+
 /* ---------------- Açılış animasyonu (KIMKON) ---------------- */
 .splash{position:fixed;inset:0;z-index:200;display:grid;place-items:center;overflow:hidden;cursor:pointer;
   background:radial-gradient(120% 90% at 50% 40%,#12805F 0%,#0A5543 40%,#063D30 75%,#021A14 100%);
@@ -249,10 +254,80 @@ h1{font-family:var(--serif);letter-spacing:-.005em}
 /* Simli altın yüzey — marka işareti, rozetler */
 .glitter{background:var(--sparkle),var(--glitter);background-size:7px 7px,9px 9px,100% 100%}
 .glitter-text{background:var(--glitter);-webkit-background-clip:text;background-clip:text;color:transparent}
-/* Açılışta yazının çevresinde yanıp sönen sim parçacıkları */
-.splash-center::before{content:"";position:absolute;inset:-60px -120px;pointer-events:none;
-  background:radial-gradient(circle,rgba(255,242,194,.9) 0 1px,transparent 2px) 0 0/38px 34px,
-             radial-gradient(circle,rgba(232,199,102,.8) 0 1px,transparent 2px) 17px 13px/46px 40px;
-  -webkit-mask:radial-gradient(ellipse at center,#000 30%,transparent 70%);mask:radial-gradient(ellipse at center,#000 30%,transparent 70%);
-  animation:twinkle 1.6s ease-in-out .3s 2 both}
-@keyframes twinkle{0%,100%{opacity:0}50%{opacity:.9}}
+
+/* ================= Açılış sahnesi (KIMKON) ================= */
+.splash{position:fixed;inset:0;z-index:200;display:grid;place-items:center;overflow:hidden;cursor:pointer;
+  background:radial-gradient(130% 100% at 50% 38%,#11745A 0%,#0A5543 34%,#063D30 64%,#021A14 100%)}
+.splash-out{animation:splash-exit .9s cubic-bezier(.7,0,.3,1) forwards}
+@keyframes splash-exit{0%{opacity:1}55%{opacity:1}100%{opacity:0;visibility:hidden}}
+/* Perde: çıkışta ince altın kenarlı zümrüt örtü yukarı çekilir */
+.splash-curtain{position:absolute;inset:0;transform:translateY(100%);pointer-events:none;
+  background:linear-gradient(180deg,#063D30,#021A14);box-shadow:0 -1px 0 rgba(232,199,102,.7)}
+.splash-out .splash-curtain{animation:curtain .9s cubic-bezier(.7,0,.3,1) forwards}
+.splash-out .splash-center{animation:center-out .6s ease-in forwards}
+@keyframes curtain{0%{transform:translateY(100%)}50%{transform:translateY(0)}100%{transform:translateY(-100%)}}
+@keyframes center-out{to{opacity:0;transform:scale(.97);filter:blur(2px)}}
+
+/* Yavaş dönen ışık huzmeleri ve kenar kararması */
+.splash-rays{position:absolute;inset:-50%;pointer-events:none;opacity:.55;
+  background:conic-gradient(from 0deg at 50% 50%,transparent 0deg,rgba(232,199,102,.10) 12deg,transparent 30deg,transparent 90deg,rgba(255,242,194,.08) 104deg,transparent 125deg,transparent 200deg,rgba(232,199,102,.09) 214deg,transparent 236deg,transparent 300deg,rgba(255,242,194,.07) 312deg,transparent 330deg);
+  animation:rays 14s linear infinite}
+@keyframes rays{to{transform:rotate(360deg)}}
+.splash-vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 45%,rgba(1,14,10,.65) 100%)}
+
+/* Süzülen sim parçacıkları */
+.splash-motes{position:absolute;inset:0;pointer-events:none}
+.splash-motes span{position:absolute;border-radius:50%;background:#FFF2C2;box-shadow:0 0 6px 1px rgba(232,199,102,.75);opacity:0;
+  animation-name:mote;animation-timing-function:ease-in-out;animation-iteration-count:infinite}
+@keyframes mote{0%{opacity:0;transform:translateY(12px)}35%{opacity:.95}70%{opacity:.35}100%{opacity:0;transform:translateY(-40px)}}
+
+.splash-center{position:relative;display:flex;flex-direction:column;align-items:center}
+/* Amblem: halka çizilir, monogram belirir */
+.splash-emblem{width:clamp(84px,10vw,118px);height:auto;margin-bottom:22px;filter:drop-shadow(0 0 18px rgba(232,199,102,.25))}
+.splash-ring{stroke-dasharray:340;stroke-dashoffset:340;transform-origin:60px 60px;transform:rotate(-90deg);animation:ring 1.3s cubic-bezier(.6,0,.2,1) .15s forwards}
+.splash-ring-2{stroke-dasharray:296;stroke-dashoffset:296;animation-delay:.35s}
+@keyframes ring{to{stroke-dashoffset:0}}
+.splash-mono{font-family:var(--serif);font-weight:700;font-size:56px;opacity:0;animation:mono .8s ease-out .65s forwards}
+@keyframes mono{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* Kelime: harfler tek tek bulanıklıktan netleşir; üzerinden ışık geçer */
+.splash-word{position:relative;display:flex;font-family:var(--serif);font-weight:700;font-size:clamp(46px,7.6vw,92px);letter-spacing:.2em;padding-left:.2em;line-height:1}
+.splash-word > span:not(.splash-glint){display:inline-block;opacity:0;
+  background:linear-gradient(180deg,#FFF6D6 0%,#E8C766 38%,#C9A227 62%,#8C6D12 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 2px 14px rgba(212,175,55,.28));animation:letter .9s cubic-bezier(.2,.8,.2,1) forwards}
+@keyframes letter{0%{opacity:0;transform:translateY(18px);filter:blur(10px)}100%{opacity:1;transform:none;filter:blur(0) drop-shadow(0 2px 14px rgba(212,175,55,.28))}}
+.splash-glint{position:absolute;inset:0;padding-left:.2em;pointer-events:none;color:transparent;
+  background:linear-gradient(105deg,transparent 35%,rgba(255,252,235,.95) 48%,rgba(255,244,200,.6) 53%,transparent 64%);
+  background-size:300% 100%;background-position:100% 0;-webkit-background-clip:text;background-clip:text;
+  animation:glint 1.3s ease-in-out 1.9s forwards}
+@keyframes glint{from{background-position:100% 0}to{background-position:0 0}}
+
+/* Altın çizgiler ve elmas */
+.splash-rule{display:flex;align-items:center;gap:10px;margin-top:22px;height:8px}
+.splash-rule-l,.splash-rule-r{height:1px;width:0;animation:rule 1s cubic-bezier(.2,.8,.2,1) 1.55s forwards}
+.splash-rule-l{background:linear-gradient(90deg,rgba(232,199,102,0),#E8C766)}
+.splash-rule-r{background:linear-gradient(90deg,#E8C766,rgba(232,199,102,0))}
+@keyframes rule{to{width:min(170px,22vw)}}
+.splash-diamond{width:7px;height:7px;transform:rotate(45deg) scale(0);background:var(--glitter);animation:diamond .5s ease-out 1.5s forwards}
+@keyframes diamond{to{transform:rotate(45deg) scale(1)}}
+.splash-tag{margin-top:16px;font-size:11.5px;font-weight:500;letter-spacing:.42em;padding-left:.42em;text-transform:uppercase;color:rgba(255,248,230,.72);
+  opacity:0;animation:tag .9s ease-out 1.9s forwards}
+@keyframes tag{from{opacity:0;letter-spacing:.6em}to{opacity:1;letter-spacing:.42em}}
+
+/* ================= Premium yüzey dokunuşları ================= */
+/* Zeminde çok hafif kâğıt dokusu (sayfa kökleri bg-[var(--bg)] kullanır) */
+body,[class~="bg-[var(--bg)]"]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .3 0 0 0 0 .2 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+/* Kartlarda üst kenarda ince ışık çizgisi — fildişi yüzeye derinlik */
+.card{box-shadow:var(--shadow-card),inset 0 1px 0 rgba(255,255,255,.9)}
+.lift:hover{box-shadow:var(--shadow-hover),inset 0 1px 0 rgba(255,255,255,.9)}
+/* Birincil buton: üstte ince ışık, kenarda simli altın çizgi */
+.btn-primary{box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 0 0 1px rgba(232,199,102,.35),0 1px 2px rgba(6,61,48,.25)}
+/* Sayfa başlığı: altında simli altın kısa çizgi */
+.page-head-rule{position:relative}
+.page-head-rule::after{content:"";position:absolute;left:0;bottom:-1px;width:72px;height:2px;border-radius:2px;background:var(--glitter)}
+/* Yan menü: dikey derinlik ve sağ kenarda ince altın çizgi */
+.sidebar{background:linear-gradient(180deg,#07473A 0%,#063D30 45%,#042E24 100%);box-shadow:inset -1px 0 0 rgba(232,199,102,.22)}
+/* Seçim ve kaydırma çubuğu */
+::selection{background:rgba(212,175,55,.32);color:var(--ink)}
+::-webkit-scrollbar-thumb{background:rgba(14,107,83,.28);border-radius:5px}
+::-webkit-scrollbar-thumb:hover{background:rgba(14,107,83,.45)}
