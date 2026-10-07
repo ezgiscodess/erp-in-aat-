@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
  * ve tarayıcıda hatırlanır. Durum renkleri (onay, red, bekleyen) paletten bağımsızdır.
  */
 export const PALETTES: { key: string; label: string; colors: [string, string, string, string, string] }[] = [
+  { key: 'zumrut', label: 'Zümrüt', colors: ['#0E6B53', '#D4AF37', '#3FA48A', '#8C6D12', '#C8553D'] },
   { key: 'canli', label: 'Canlı', colors: ['#1E63E9', '#F2B705', '#12B8A6', '#7C4DFF', '#F2545B'] },
   { key: 'kurumsal', label: 'Kurumsal', colors: ['#0B3275', '#C6A02F', '#5B8DD6', '#2E8B57', '#B8693A'] },
   { key: 'okyanus', label: 'Okyanus', colors: ['#0077B6', '#00B4D8', '#F4A261', '#2A9D8F', '#E76F51'] },
@@ -12,7 +13,7 @@ export const PALETTES: { key: string; label: string; colors: [string, string, st
   { key: 'toprak', label: 'Toprak', colors: ['#1F5552', '#E3B04B', '#6FB3B8', '#7A5C8E', '#C98B6B'] },
   { key: 'pastel', label: 'Pastel', colors: ['#5B8DEF', '#F6C35B', '#6DD3B6', '#B39DDB', '#F48FB1'] },
 ]
-const STORE = 'kimkon-chart-palette'
+const STORE = 'kimkon-chart-palette-v2'
 
 export function applyPalette(key: string) {
   const p = PALETTES.find((x) => x.key === key) ?? PALETTES[0]

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 /**
- * Açılış animasyonu: lacivert zemin üzerinde altın KIMKON yazısı, üzerinden geçen ışık şeritleri ve
+ * Açılış animasyonu: zümrüt zemin üzerinde simli altın KIMKON yazısı, üzerinden geçen ışık şeritleri ve
  * altında açılan ince altın çizgi. Oturumda bir kez gösterilir; tıklayınca ya da 2,6 sn sonra kapanır.
  * Hareket azaltma tercihi açıksa animasyonlar CSS'te kapanır, ekran kısa sürede çekilir.
  */

@@ -14,55 +14,59 @@
  * Boşluk: yalnızca 4px katları (4, 8, 12, 16, 24, 32, 48).
  */
 :root{
-  /* KIMKON paleti — kurumsal lacivert ve mat altın (referans: volkan bey web / site.css).
-   * Lacivert: menü, başlık, birincil buton, çerçeve. Altın: yalnızca ince çizgi, aktif menü, küçük vurgu ve hareket detayı. */
+  /* KIMKON paleti — derin zümrüt yeşili, simli altın, sıcak krem / fildişi.
+   * Zümrüt: menü, birincil buton, başlık, çerçeve. Simli altın: ince çizgi, aktif menü, marka ve küçük vurgular.
+   * Krem / fildişi: zeminler. */
 
-  /* Zeminler */
-  --bg:#F8F6F1;               /* kırık beyaz */
-  --surface:#FFFFFF;
-  --surface-2:#FBFAF7;
-  --surface-3:#F3F1EB;        /* tablo başlığı */
-  --row-hover:#F2F5FA;        /* çok hafif lacivert */
+  /* Zeminler — sıcak krem / fildişi */
+  --bg:#F8F2E4;               /* sıcak krem */
+  --surface:#FFFDF7;          /* fildişi kart */
+  --surface-2:#FBF6EB;
+  --surface-3:#F3EAD6;        /* tablo başlığı */
+  --row-hover:#EEF5F0;        /* çok hafif zümrüt */
 
   /* Çizgiler */
-  --border:#E4E7EC;
-  --border-strong:#D0D5DD;
-  /* Lacivert çerçeve — sitedeki ince lacivert kenarlık (kart, panel, modal) */
-  --frame:rgba(8,38,90,.22);
-  --frame-strong:rgba(8,38,90,.45);
+  --border:#E8DEC8;
+  --border-strong:#D6C8AA;
+  /* Zümrüt çerçeve — kart, panel, modal */
+  --frame:rgba(14,107,83,.24);
+  --frame-strong:rgba(14,107,83,.50);
 
   /* Metin */
-  --ink:#102A43;
-  --muted:#667085;            /* beyaz üzerinde 4.8:1 */
-  --faint:#6E7787;
+  --ink:#13352C;
+  --muted:#5D6A62;
+  --faint:#6B776F;
 
-  /* Birincil: lacivert */
-  --accent:#08265A;
-  --accent-strong:#061A3B;
-  --accent-soft:#EEF2F8;
-  --accent-ink:#08265A;
-  --accent-grad:linear-gradient(135deg,#0B3275,#061A3B);
-  --focus-ring:0 0 0 3px rgba(8,38,90,.14);
+  /* Birincil: derin zümrüt */
+  --accent:#0E6B53;
+  --accent-strong:#084A3A;
+  --accent-soft:#E6F1EA;
+  --accent-ink:#0B5E49;
+  --accent-grad:linear-gradient(135deg,#12805F,#063D30);
+  --focus-ring:0 0 0 3px rgba(14,107,83,.16);
 
-  /* Altın — marka vurgusu */
-  --brand-gold:#C6A02F;
-  --brand-gold-light:#D8B84D;
-  --brand-gold-dark:#9C7C1F;  /* beyaz üzerinde küçük altın metin */
+  /* Simli altın */
+  --brand-gold:#C9A227;
+  --brand-gold-light:#E8C766;
+  --brand-gold-dark:#8C6D12;
+  --glitter:linear-gradient(115deg,#8C6D12 0%,#C9A227 22%,#F6E3A1 40%,#D4AF37 52%,#FFF2C2 62%,#B8901E 80%,#8C6D12 100%);
+  --sparkle:radial-gradient(circle,rgba(255,255,255,.85) 0 .6px,transparent 1.1px) 0 0/7px 7px,
+            radial-gradient(circle,rgba(255,246,210,.6) 0 .5px,transparent 1px) 3px 4px/9px 9px;
 
-  /* Durum renkleri. *-ink: küçük metinde kontrastı yeterli koyu ton */
-  --ok:#2E8B57;   --ok-bg:#E8F4EC;   --ok-ink:#1F6B42;
-  --warn:#C9861A; --warn-bg:#FBF1DE; --warn-ink:#8A5A0B;
-  --crit:#B42318; --crit-bg:#FBE9E7; --crit-ink:#9A1D14;
-  --info:#2E5AA7; --info-bg:#EAF0FA; --info-ink:#244A8C;
-  --neutral:#5B6577; --neutral-bg:#EEF0F3; --neutral-ink:#4A5466;
-  --ok-grad:linear-gradient(135deg,#2E8B57,#1F6B42);
+  /* Durum renkleri (birincil yeşilden ayrışsın diye onay rengi zeytin yeşili). *-ink: küçük metin tonu */
+  --ok:#4E8C2A;   --ok-bg:#EEF5E4;   --ok-ink:#3E7021;
+  --warn:#C58A12; --warn-bg:#FBF0D8; --warn-ink:#8A5E07;
+  --crit:#B4361F; --crit-bg:#FBE8E3; --crit-ink:#962B18;
+  --info:#2D6F8E; --info-bg:#E6F1F6; --info-ink:#245B75;
+  --neutral:#66706A; --neutral-bg:#EFEDE6; --neutral-ink:#535C57;
+  --ok-grad:linear-gradient(135deg,#4E8C2A,#3E7021);
   /* Ek Paket vurgusu (altın ailesi) */
-  --gold:#9C7C1F; --gold-bg:#FBF7EA; --gold-border:#E9D9A6; --gold-ink:#7E6418;
+  --gold:#8C6D12; --gold-bg:#FBF3DA; --gold-border:#E8D293; --gold-ink:#765B0E;
 
-  /* Gölgeler — lacivert tonlu, çok hafif */
-  --shadow-card:0 2px 8px rgba(8,38,90,.06);
-  --shadow-hover:0 6px 18px rgba(8,38,90,.10);
-  --shadow-pop:0 12px 32px rgba(6,26,59,.18);
+  /* Gölgeler — zümrüt tonlu, çok hafif */
+  --shadow-card:0 2px 8px rgba(8,74,58,.07);
+  --shadow-hover:0 6px 18px rgba(8,74,58,.12);
+  --shadow-pop:0 12px 32px rgba(6,61,48,.20);
 
   /* Köşeler */
   --radius-card:12px;
@@ -72,20 +76,20 @@
   --dur:180ms;
   --ease:cubic-bezier(.2,.8,.2,1);
 
-  /* Yan menü — koyu lacivert; aktif öğe altın çizgi */
-  --sidebar:#061A3B;
-  --sidebar-2:#0B2A5C;
-  --nav-line:#C6A02F;
+  /* Yan menü — derin zümrüt; aktif öğe simli altın çizgi */
+  --sidebar:#063D30;
+  --sidebar-2:#0A4F3F;
+  --nav-line:#D4AF37;
 
-  /* Grafik serileri: 1 gerçekleşen (lacivert-mavi), 2 planlanan (altın), 3 açık mavi, 4 yeşil, 5 bakır */
-  --series-1:#1F4E9C; --series-2:#C6A02F; --series-3:#7FA3D6; --series-4:#2E8B57; --series-5:#B8693A;
-  --chart-rest:#D9DEE6;
+  /* Grafik serileri (varsayılan "Zümrüt" paleti; renk seçiciden değişir) */
+  --series-1:#0E6B53; --series-2:#D4AF37; --series-3:#3FA48A; --series-4:#8C6D12; --series-5:#C8553D;
+  --chart-rest:#DDD3BE;
   --mono:ui-monospace,"SF Mono",SFMono-Regular,"Cascadia Mono","Roboto Mono",Menlo,Consolas,monospace;
   --sans:"Manrope",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
   --serif:"Playfair Display","Iowan Old Style",Georgia,serif;
 }
 
-/* Yan menü: değişkenler koyu lacivert zemin için yeniden tanımlanır */
+/* Yan menü: değişkenler koyu zümrüt zemin için yeniden tanımlanır */
 .sidebar{
   --surface:var(--sidebar);
   --surface-2:var(--sidebar-2);
@@ -96,15 +100,16 @@
   --ink:#FFFFFF;
   --muted:rgba(255,255,255,.72);
   --faint:rgba(255,255,255,.55);
-  --accent:#D8B84D;
-  --accent-soft:rgba(216,184,77,.12);
-  --ok-ink:#86D3A6; --warn-ink:#F0C66B; --crit-ink:#F5A79E; --accent-ink:#D8B84D;
-  --gold-bg:rgba(198,160,47,.16); --gold-border:rgba(198,160,47,.45); --gold:#D8B84D;
+  --accent:#E8C766;
+  --accent-soft:rgba(232,199,102,.13);
+  --ok-ink:#A9D98A; --warn-ink:#F0C66B; --crit-ink:#F5A79E; --accent-ink:#E8C766;
+  --gold-bg:rgba(212,175,55,.16); --gold-border:rgba(212,175,55,.45); --gold:#E8C766;
   background:var(--sidebar);
   color:var(--ink);
 }
 /* Aktif menü öğesi: hafif mavi zemin + solda vurgu çizgisi */
-.nav-active{box-shadow:inset 3px 0 0 var(--nav-line)}
+.nav-active{box-shadow:none}
+.nav-active::before{content:"";position:absolute;left:0;top:4px;bottom:4px;width:3px;border-radius:2px;background:var(--sparkle),var(--glitter)}
 
 *{box-sizing:border-box}
 html,body,#root{height:100%}
@@ -152,7 +157,7 @@ del.redline-del{color:var(--faint);text-decoration:line-through;text-decoration-
   transition:background-color var(--dur) var(--ease),color var(--dur) var(--ease),border-color var(--dur) var(--ease),box-shadow var(--dur) var(--ease)}
 .btn:not(:disabled):hover{background:var(--surface-2);border-color:#9CA3AF;box-shadow:var(--shadow-card)}
 .btn-primary{background:var(--accent-grad);color:#fff;border-color:var(--accent-strong)}
-.btn-primary:not(:disabled):hover{background:var(--accent-strong);color:#fff;border-color:var(--accent-strong);box-shadow:0 4px 12px rgba(6,26,59,.28)}
+.btn-primary:not(:disabled):hover{background:var(--accent-strong);color:#fff;border-color:var(--accent-strong);box-shadow:0 4px 12px rgba(6,61,48,.30)}
 .btn-danger{background:var(--crit);color:#fff;border-color:var(--crit)}
 .btn-danger:not(:disabled):hover{background:var(--crit-ink);color:#fff;border-color:var(--crit-ink)}
 
@@ -188,12 +193,12 @@ h1{font-family:var(--serif);letter-spacing:-.005em}
 
 /* ---------------- Açılış animasyonu (KIMKON) ---------------- */
 .splash{position:fixed;inset:0;z-index:200;display:grid;place-items:center;overflow:hidden;cursor:pointer;
-  background:radial-gradient(120% 90% at 50% 40%,#0B3275 0%,#08265A 45%,#061A3B 80%,#030913 100%);
+  background:radial-gradient(120% 90% at 50% 40%,#12805F 0%,#0A5543 40%,#063D30 75%,#021A14 100%);
   transition:opacity .6s ease,visibility .6s ease}
 .splash-out{opacity:0;visibility:hidden}
 .splash-center{position:relative;display:flex;flex-direction:column;align-items:center;gap:18px}
 .splash-word{font-family:var(--serif);font-weight:700;font-size:clamp(44px,8vw,96px);letter-spacing:.22em;padding-left:.22em;
-  background:linear-gradient(100deg,#9C7C1F 0%,#C6A02F 30%,#FFF4C4 48%,#D8B84D 56%,#C6A02F 70%,#9C7C1F 100%);
+  background:linear-gradient(100deg,#8C6D12 0%,#C9A227 28%,#FFF6D0 46%,#D4AF37 54%,#FFF2C2 60%,#B8901E 74%,#8C6D12 100%);
   background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
   animation:splash-rise .9s cubic-bezier(.2,.8,.2,1) both,splash-shine 2.2s .5s ease-in-out both;
   filter:drop-shadow(0 6px 24px rgba(198,160,47,.25))}
@@ -216,10 +221,10 @@ h1{font-family:var(--serif);letter-spacing:-.005em}
 /* Kart başlığının önünde küçük altın işaret */
 .card-title{position:relative;padding-left:12px}
 .card-title::before{content:"";position:absolute;left:0;top:50%;width:4px;height:14px;margin-top:-7px;border-radius:2px;
-  background:linear-gradient(180deg,var(--brand-gold-light),var(--brand-gold-dark))}
-/* Kart başlık şeridi: çok hafif lacivert-beyaz geçiş */
-.card > header{background:linear-gradient(180deg,rgba(8,38,90,.035),rgba(8,38,90,0))}
-/* Tablo kutuları ve modal da aynı lacivert çerçeveyi kullanır */
+  background:var(--sparkle),var(--glitter)}
+/* Kart başlık şeridi: çok hafif zümrüt geçiş */
+.card > header{background:linear-gradient(180deg,rgba(14,107,83,.045),rgba(14,107,83,0))}
+/* Tablo kutuları ve modal da aynı zümrüt çerçeveyi kullanır */
 .tbl-wrap{border-color:var(--frame)!important}
 .modal-frame{border-color:var(--frame-strong)!important}
 
@@ -239,4 +244,15 @@ h1{font-family:var(--serif);letter-spacing:-.005em}
 
 /* Üst bar: altında ince altın çizgi */
 .topbar::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;
-  background:linear-gradient(90deg,rgba(198,160,47,0),rgba(198,160,47,.75) 30%,rgba(216,184,77,.9) 50%,rgba(198,160,47,.75) 70%,rgba(198,160,47,0))}
+  background:linear-gradient(90deg,rgba(201,162,39,0),rgba(201,162,39,.8) 25%,#FFF2C2 50%,rgba(201,162,39,.8) 75%,rgba(201,162,39,0))}
+
+/* Simli altın yüzey — marka işareti, rozetler */
+.glitter{background:var(--sparkle),var(--glitter);background-size:7px 7px,9px 9px,100% 100%}
+.glitter-text{background:var(--glitter);-webkit-background-clip:text;background-clip:text;color:transparent}
+/* Açılışta yazının çevresinde yanıp sönen sim parçacıkları */
+.splash-center::before{content:"";position:absolute;inset:-60px -120px;pointer-events:none;
+  background:radial-gradient(circle,rgba(255,242,194,.9) 0 1px,transparent 2px) 0 0/38px 34px,
+             radial-gradient(circle,rgba(232,199,102,.8) 0 1px,transparent 2px) 17px 13px/46px 40px;
+  -webkit-mask:radial-gradient(ellipse at center,#000 30%,transparent 70%);mask:radial-gradient(ellipse at center,#000 30%,transparent 70%);
+  animation:twinkle 1.6s ease-in-out .3s 2 both}
+@keyframes twinkle{0%,100%{opacity:0}50%{opacity:.9}}
